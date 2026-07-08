@@ -1,7 +1,10 @@
 const {
   exportBackup,
+  getCityStats,
   getRecords,
   getSummary,
+  getTagStats,
+  getTimelineGroups,
   importBackup,
   parseBackupPayload,
   searchAndSortRecords
@@ -15,12 +18,28 @@ const SORT_OPTIONS = [
   { label: "评分最低", value: "score_asc" }
 ];
 
+const VIEW_TABS = [
+  { key: "records", label: "记录" },
+  { key: "timeline", label: "时间线" },
+  { key: "cities", label: "城市" },
+  { key: "tags", label: "标签" }
+];
+
 Page({
   data: {
     records: [],
     visibleRecords: [],
+    timelineGroups: [],
+    cityStats: [],
+    tagStats: [],
+    selectedCity: "",
+    cityRecords: [],
     keyword: "",
+    activeView: "records",
+    viewTabs: VIEW_TABS,
     activeType: "all",
+    activeStatus: "all",
+    activeTag: "",
     sortOptions: SORT_OPTIONS,
     sortLabels: SORT_OPTIONS.map((item) => item.label),
     sortMode: "created_desc",
@@ -29,6 +48,8 @@ Page({
       total: 0,
       hotelTotal: 0,
       restaurantTotal: 0,
+      draftTotal: 0,
+      cityTotal: 0,
       averageScore: 0,
       bestHotelName: "",
       latestHotelName: ""
@@ -43,9 +64,19 @@ Page({
   refreshRecords() {
     const records = getRecords();
     const visibleRecords = this.getVisibleRecords(records);
+    const cityStats = getCityStats(records);
+    const selectedCity = this.data.selectedCity
+      && cityStats.some((item) => item.city === this.data.selectedCity)
+      ? this.data.selectedCity
+      : "";
     this.setData({
       records,
       visibleRecords,
+      timelineGroups: getTimelineGroups(records),
+      cityStats,
+      tagStats: getTagStats(records),
+      selectedCity,
+      cityRecords: selectedCity ? this.getCityRecords(records, selectedCity) : [],
       summary: getSummary(records)
     });
   },
@@ -54,13 +85,33 @@ Page({
     return searchAndSortRecords(records, {
       keyword: this.data.keyword,
       activeType: this.data.activeType,
+      activeStatus: this.data.activeStatus,
+      activeTag: this.data.activeTag,
+      sortMode: this.data.sortMode
+    });
+  },
+
+  getCityRecords(records, city) {
+    return searchAndSortRecords(records.filter((record) => (record.city || "未填写城市") === city), {
+      keyword: this.data.keyword,
+      activeType: this.data.activeType,
+      activeStatus: this.data.activeStatus,
+      activeTag: this.data.activeTag,
       sortMode: this.data.sortMode
     });
   },
 
   refreshVisibleRecords() {
+    const visibleRecords = this.getVisibleRecords();
     this.setData({
-      visibleRecords: this.getVisibleRecords()
+      visibleRecords,
+      cityRecords: this.data.selectedCity ? this.getCityRecords(this.data.records, this.data.selectedCity) : []
+    });
+  },
+
+  onViewChange(event) {
+    this.setData({
+      activeView: event.currentTarget.dataset.view
     });
   },
 
@@ -76,6 +127,25 @@ Page({
     this.refreshVisibleRecords();
   },
 
+  onStatusFilter(event) {
+    this.setData({ activeStatus: event.currentTarget.dataset.status });
+    this.refreshVisibleRecords();
+  },
+
+  onTagFilter(event) {
+    const tag = event.currentTarget.dataset.tag || "";
+    this.setData({
+      activeTag: this.data.activeTag === tag ? "" : tag,
+      activeView: "records"
+    });
+    this.refreshVisibleRecords();
+  },
+
+  clearTagFilter() {
+    this.setData({ activeTag: "" });
+    this.refreshVisibleRecords();
+  },
+
   onSortChange(event) {
     const index = Number(event.detail.value || 0);
     const option = this.data.sortOptions[index] || this.data.sortOptions[0];
@@ -88,14 +158,36 @@ Page({
 
   goCreate(event) {
     const type = event.currentTarget.dataset.type || "hotel";
+    const quick = event.currentTarget.dataset.quick ? "&quick=1" : "";
     wx.navigateTo({
-      url: `/pages/record/record?type=${type}`
+      url: `/pages/record/record?type=${type}${quick}`
+    });
+  },
+
+  goQuickCreate() {
+    wx.showActionSheet({
+      itemList: ["快速记录酒店", "快速记录餐厅"],
+      success: (res) => {
+        const type = res.tapIndex === 1 ? "restaurant" : "hotel";
+        wx.navigateTo({
+          url: `/pages/record/record?type=${type}&quick=1`
+        });
+      }
     });
   },
 
   goDetail(event) {
     wx.navigateTo({
       url: `/pages/record/record?id=${event.currentTarget.dataset.id}`
+    });
+  },
+
+  selectCity(event) {
+    const city = event.currentTarget.dataset.city || "";
+    const selectedCity = this.data.selectedCity === city ? "" : city;
+    this.setData({
+      selectedCity,
+      cityRecords: selectedCity ? this.getCityRecords(this.data.records, selectedCity) : []
     });
   },
 

@@ -228,18 +228,94 @@ page {
   opacity: 0.92;
 }
 
+.score-overview {
+  padding-bottom: 18rpx;
+}
+
+.score-bar {
+  margin-top: 22rpx;
+}
+
+.score-bar-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+}
+
+.score-bar-label,
+.score-bar-value {
+  font-size: 25rpx;
+  line-height: 36rpx;
+}
+
+.score-bar-label {
+  color: #263248;
+  font-weight: 800;
+}
+
+.score-bar-value {
+  color: #667085;
+  font-weight: 700;
+}
+
+.score-track {
+  height: 14rpx;
+  margin-top: 10rpx;
+  border-radius: 8rpx;
+  background: #e7ebf1;
+  overflow: hidden;
+}
+
+.score-fill {
+  height: 14rpx;
+  border-radius: 8rpx;
+}
+
+.custom-tag-editor {
+  display: flex;
+  gap: 12rpx;
+}
+
+.custom-tag-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.tag-add-button {
+  width: 128rpx;
+  height: 84rpx;
+  border-radius: 8rpx;
+  background: #172033;
+  color: #ffffff;
+  font-size: 26rpx;
+  font-weight: 800;
+  line-height: 84rpx;
+  padding: 0;
+}
+
+.tag-add-button::after {
+  border: none;
+}
+
+.custom-tags {
+  margin-top: 18rpx;
+}
+
 .actions {
   margin-top: 24rpx;
-  display: grid;
-  grid-template-columns: 1fr;
+  display: flex;
+  flex-wrap: wrap;
   gap: 16rpx;
 }
 
 .detail-actions {
-  grid-template-columns: 1fr 1fr 1fr;
+  flex-wrap: nowrap;
 }
 
 .button {
+  flex: 1;
+  min-width: 190rpx;
   height: 88rpx;
   border-radius: 8rpx;
   font-size: 28rpx;

@@ -21,6 +21,7 @@ function normalizeRecord(input = {}) {
   const overallScore = roundScore(input.overallScore || getOverallScore(scores, recordType));
   const hotelName = String(input.hotelName || "").trim();
   const restaurantName = String(input.restaurantName || "").trim();
+  const status = input.status === "draft" ? "draft" : "completed";
   return {
     id: String(input.id || Date.now()),
     recordType,
@@ -40,7 +41,12 @@ function normalizeRecord(input = {}) {
     verdict: input.verdict || getVerdict(overallScore, recordType),
     scores: clone(scores),
     selectedTags: clone(input.selectedTags || buildSelectedTags(recordType)),
+    customTags: Array.isArray(input.customTags)
+      ? input.customTags.map((tag) => String(tag).trim()).filter(Boolean)
+      : [],
     note: String(input.note || "").trim(),
+    status,
+    statusLabel: status === "draft" ? "草稿" : "已完成",
     createdAt: input.createdAt || new Date().toISOString(),
     updatedAt: input.updatedAt || "",
     sourceRecordId: input.sourceRecordId ? String(input.sourceRecordId) : ""
@@ -119,6 +125,8 @@ function getSummary(records = getRecords()) {
       total: 0,
       hotelTotal: 0,
       restaurantTotal: 0,
+      draftTotal: 0,
+      cityTotal: 0,
       averageScore: 0,
       bestHotelName: "",
       latestHotelName: "",
@@ -127,16 +135,22 @@ function getSummary(records = getRecords()) {
     };
   }
 
-  const totalScore = records.reduce((sum, record) => sum + Number(record.overallScore || 0), 0);
-  const bestRecord = records.reduce((best, record) => (
-    Number(record.overallScore || 0) > Number(best.overallScore || 0) ? record : best
-  ), records[0]);
+  const completedRecords = records.filter((record) => record.status !== "draft");
+  const scoredRecords = completedRecords.length ? completedRecords : [];
+  const totalScore = scoredRecords.reduce((sum, record) => sum + Number(record.overallScore || 0), 0);
+  const bestRecord = scoredRecords.length
+    ? scoredRecords.reduce((best, record) => (
+      Number(record.overallScore || 0) > Number(best.overallScore || 0) ? record : best
+    ), scoredRecords[0])
+    : records[0];
 
   return {
     total: records.length,
     hotelTotal: records.filter((record) => record.recordType !== "restaurant").length,
     restaurantTotal: records.filter((record) => record.recordType === "restaurant").length,
-    averageScore: roundScore(totalScore / records.length),
+    draftTotal: records.filter((record) => record.status === "draft").length,
+    cityTotal: getUniqueCities(records).length,
+    averageScore: scoredRecords.length ? roundScore(totalScore / scoredRecords.length) : 0,
     bestHotelName: bestRecord.displayName,
     latestHotelName: records[0].displayName,
     bestRecordName: bestRecord.displayName,
@@ -158,7 +172,9 @@ function getSearchText(record) {
     record.mealPeriod,
     record.priceRange,
     record.verdict,
+    record.statusLabel,
     record.note,
+    (record.customTags || []).join(" "),
     Object.keys(record.selectedTags || {}).map((key) => (record.selectedTags[key] || []).join(" ")).join(" ")
   ].join(" ").toLowerCase();
 }
@@ -166,6 +182,8 @@ function getSearchText(record) {
 function searchAndSortRecords(records, filters = {}) {
   const keyword = String(filters.keyword || "").trim().toLowerCase();
   const activeType = filters.activeType || "all";
+  const activeStatus = filters.activeStatus || "all";
+  const activeTag = String(filters.activeTag || "").trim();
   const sortMode = filters.sortMode || "created_desc";
   let result = records.slice();
 
@@ -179,6 +197,16 @@ function searchAndSortRecords(records, filters = {}) {
     result = result.filter((record) => getSearchText(record).indexOf(keyword) >= 0);
   }
 
+  if (activeStatus === "draft") {
+    result = result.filter((record) => record.status === "draft");
+  } else if (activeStatus === "completed") {
+    result = result.filter((record) => record.status !== "draft");
+  }
+
+  if (activeTag) {
+    result = result.filter((record) => getAllRecordTags(record).indexOf(activeTag) >= 0);
+  }
+
   const score = (record) => Number(record.overallScore || 0);
   const date = (record) => String(record.stayDate || "");
   const created = (record) => String(record.createdAt || "");
@@ -190,6 +218,112 @@ function searchAndSortRecords(records, filters = {}) {
   });
 
   return result;
+}
+
+function getUniqueCities(records) {
+  return records.reduce((cities, record) => {
+    if (record.city && cities.indexOf(record.city) < 0) cities.push(record.city);
+    return cities;
+  }, []);
+}
+
+function getAllRecordTags(record) {
+  const systemTags = Object.keys(record.selectedTags || {}).reduce((tags, key) => {
+    return tags.concat(record.selectedTags[key] || []);
+  }, []);
+  return systemTags.concat(record.customTags || []).filter(Boolean);
+}
+
+function getTimelineGroups(records = getRecords()) {
+  const sorted = records.slice().sort((a, b) => {
+    const dateA = a.stayDate || "0000-00-00";
+    const dateB = b.stayDate || "0000-00-00";
+    return dateB.localeCompare(dateA) || String(b.createdAt || "").localeCompare(String(a.createdAt || ""));
+  });
+  const groups = [];
+  const groupMap = {};
+  sorted.forEach((record) => {
+    const groupKey = record.stayDate ? record.stayDate.slice(0, 7) : "undated";
+    const title = record.stayDate ? groupKey.replace("-", "年") + "月" : "未标日期";
+    if (!groupMap[groupKey]) {
+      groupMap[groupKey] = { key: groupKey, title, records: [] };
+      groups.push(groupMap[groupKey]);
+    }
+    groupMap[groupKey].records.push(record);
+  });
+  return groups;
+}
+
+function getCityStats(records = getRecords()) {
+  const cityMap = {};
+  records.forEach((record) => {
+    const city = record.city || "未填写城市";
+    if (!cityMap[city]) {
+      cityMap[city] = {
+        city,
+        total: 0,
+        hotelTotal: 0,
+        restaurantTotal: 0,
+        averageScore: 0,
+        bestRecordName: "",
+        bestRecordScore: 0,
+        records: [],
+        totalScore: 0
+      };
+    }
+    const item = cityMap[city];
+    item.total += 1;
+    item.hotelTotal += record.recordType === "restaurant" ? 0 : 1;
+    item.restaurantTotal += record.recordType === "restaurant" ? 1 : 0;
+    if (record.status !== "draft") item.totalScore += Number(record.overallScore || 0);
+    item.records.push(record);
+    if (Number(record.overallScore || 0) >= item.bestRecordScore) {
+      item.bestRecordName = record.displayName;
+      item.bestRecordScore = Number(record.overallScore || 0);
+    }
+  });
+  return Object.keys(cityMap).map((city) => {
+    const item = cityMap[city];
+    const completedTotal = item.records.filter((record) => record.status !== "draft").length;
+    item.averageScore = completedTotal ? roundScore(item.totalScore / completedTotal) : 0;
+    delete item.totalScore;
+    return item;
+  }).sort((a, b) => b.total - a.total || b.averageScore - a.averageScore);
+}
+
+function getTagStats(records = getRecords()) {
+  const tagMap = {};
+  records.forEach((record) => {
+    getAllRecordTags(record).forEach((tag) => {
+      if (!tagMap[tag]) {
+        tagMap[tag] = {
+          tag,
+          total: 0,
+          systemTotal: 0,
+          customTotal: 0,
+          completedTotal: 0,
+          averageScore: 0,
+          totalScore: 0
+        };
+      }
+      tagMap[tag].total += 1;
+      if (record.status !== "draft") {
+        tagMap[tag].completedTotal += 1;
+        tagMap[tag].totalScore += Number(record.overallScore || 0);
+      }
+      if ((record.customTags || []).indexOf(tag) >= 0) {
+        tagMap[tag].customTotal += 1;
+      } else {
+        tagMap[tag].systemTotal += 1;
+      }
+    });
+  });
+  return Object.keys(tagMap).map((tag) => {
+    const item = tagMap[tag];
+    item.averageScore = item.completedTotal ? roundScore(item.totalScore / item.completedTotal) : 0;
+    delete item.totalScore;
+    return item;
+  }).sort((a, b) => b.total - a.total || b.averageScore - a.averageScore);
 }
 
 function exportBackup(records = getRecords()) {
@@ -243,9 +377,13 @@ module.exports = {
   deleteRecord,
   duplicateRecord,
   exportBackup,
+  getAllRecordTags,
+  getCityStats,
   getRecordById,
   getRecords,
   getSummary,
+  getTagStats,
+  getTimelineGroups,
   importBackup,
   normalizeRecord,
   parseBackupPayload,

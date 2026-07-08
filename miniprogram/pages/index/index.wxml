@@ -1,16 +1,21 @@
 <view class="page">
   <view class="topbar">
     <view>
-      <view class="eyebrow">HOTEL REVIEW</view>
+      <view class="eyebrow">TRAVEL ARCHIVE</view>
       <view class="title">体验档案</view>
     </view>
-    <button class="icon-button" bindtap="goCreate">+</button>
+    <button class="icon-button" bindtap="goQuickCreate">+</button>
   </view>
 
   <view class="hero">
     <view class="summary-item">
       <view class="summary-value">{{summary.total}}</view>
       <view class="summary-label">全部记录</view>
+    </view>
+    <view class="summary-divider"></view>
+    <view class="summary-item">
+      <view class="summary-value">{{summary.cityTotal}}</view>
+      <view class="summary-label">去过城市</view>
     </view>
     <view class="summary-divider"></view>
     <view class="summary-item">
@@ -22,13 +27,30 @@
   <view class="quick-actions">
     <button class="button primary" data-type="hotel" bindtap="goCreate">新增酒店</button>
     <button class="button accent" data-type="restaurant" bindtap="goCreate">新增餐厅</button>
+    <button class="button secondary" bindtap="goQuickCreate">快速记录</button>
+  </view>
+  <view class="quick-actions compact-actions">
     <button class="button secondary" loading="{{exporting}}" bindtap="exportPdf">导出 PDF</button>
+    <button class="button secondary" bindtap="exportJson">备份 JSON</button>
+    <button class="button secondary" bindtap="importJson">恢复 JSON</button>
+  </view>
+
+  <view class="view-tabs">
+    <view
+      class="view-tab {{activeView === item.key ? 'view-active' : ''}}"
+      wx:for="{{viewTabs}}"
+      wx:key="key"
+      data-view="{{item.key}}"
+      bindtap="onViewChange"
+    >
+      {{item.label}}
+    </view>
   </view>
 
   <view class="tools">
     <input
       class="search-input"
-      placeholder="搜索名称、城市、备注、菜系、会员等级"
+      placeholder="搜索名称、城市、备注、菜系、会员等级、标签"
       value="{{keyword}}"
       bindinput="onKeywordInput"
     />
@@ -36,13 +58,13 @@
       <picker mode="selector" range="{{sortLabels}}" bindchange="onSortChange">
         <view class="tool-button">排序：{{sortLabel}}</view>
       </picker>
-      <view class="tool-button" bindtap="exportJson">备份 JSON</view>
-      <view class="tool-button" bindtap="importJson">恢复 JSON</view>
+      <view class="tool-button {{activeStatus === 'all' ? 'tool-active' : ''}}" data-status="all" bindtap="onStatusFilter">全部状态</view>
+      <view class="tool-button {{activeStatus === 'draft' ? 'tool-active' : ''}}" data-status="draft" bindtap="onStatusFilter">草稿</view>
     </view>
   </view>
 
   <view class="insight" wx:if="{{summary.total}}">
-    <view class="insight-line">酒店：{{summary.hotelTotal}} 条 · 米其林餐厅：{{summary.restaurantTotal}} 条</view>
+    <view class="insight-line">酒店：{{summary.hotelTotal}} 条 · 米其林餐厅：{{summary.restaurantTotal}} 条 · 草稿：{{summary.draftTotal}} 条</view>
     <view class="insight-line">最近记录：{{summary.latestRecordName}}</view>
     <view class="insight-line">最高评分：{{summary.bestRecordName}}</view>
   </view>
@@ -53,40 +75,144 @@
     <view class="filter-tab {{activeType === 'restaurant' ? 'filter-active' : ''}}" data-type="restaurant" bindtap="onTypeFilter">米其林餐厅</view>
   </view>
 
-  <view class="section-head">
-    <view class="section-title">全部记录</view>
-    <view class="section-count">{{visibleRecords.length}} 条</view>
+  <view class="active-filter" wx:if="{{activeTag}}">
+    <view>标签筛选：{{activeTag}}</view>
+    <view class="clear-filter" bindtap="clearTagFilter">清除</view>
   </view>
 
-  <view class="empty" wx:if="{{!visibleRecords.length}}">
-    <view class="empty-title">还没有记录</view>
-    <view class="empty-desc">
-      {{keyword ? "换个关键词试试，或新增一条记录。" : "新增酒店或米其林餐厅，把值得复盘的体验都记下来。"}}
+  <block wx:if="{{activeView === 'records'}}">
+    <view class="section-head">
+      <view class="section-title">全部记录</view>
+      <view class="section-count">{{visibleRecords.length}} 条</view>
     </view>
-    <button
-      class="button primary empty-button"
-      data-type="{{activeType === 'restaurant' ? 'restaurant' : 'hotel'}}"
-      bindtap="goCreate"
+
+    <view class="empty" wx:if="{{!visibleRecords.length}}">
+      <view class="empty-title">还没有记录</view>
+      <view class="empty-desc">
+        {{keyword || activeTag ? "换个关键词或标签试试，或新增一条记录。" : "新增酒店或米其林餐厅，把值得复盘的体验都记下来。"}}
+      </view>
+      <button
+        class="button primary empty-button"
+        data-type="{{activeType === 'restaurant' ? 'restaurant' : 'hotel'}}"
+        bindtap="goCreate"
+      >
+        {{activeType === "restaurant" ? "新增餐厅" : "新增酒店"}}
+      </button>
+    </view>
+
+    <view
+      class="record"
+      wx:for="{{visibleRecords}}"
+      wx:key="id"
+      data-id="{{item.id}}"
+      bindtap="goDetail"
     >
-      {{activeType === "restaurant" ? "新增餐厅" : "新增酒店"}}
-    </button>
-  </view>
-
-  <view
-    class="record"
-    wx:for="{{visibleRecords}}"
-    wx:key="id"
-    data-id="{{item.id}}"
-    bindtap="goDetail"
-  >
-    <view class="record-main">
-      <view class="record-type">{{item.typeLabel}}</view>
-      <view class="record-title">{{item.displayName}}</view>
-      <view class="record-meta">{{item.city || "未填写城市"}} · {{item.stayDate || "未填写日期"}}</view>
-      <view class="record-note">{{item.verdict}}</view>
+      <view class="record-main">
+        <view>
+          <text class="record-type">{{item.typeLabel}}</text>
+          <text class="record-status {{item.status === 'draft' ? 'status-draft' : ''}}">{{item.statusLabel}}</text>
+        </view>
+        <view class="record-title">{{item.displayName}}</view>
+        <view class="record-meta">{{item.city || "未填写城市"}} · {{item.stayDate || "未填写日期"}}</view>
+        <view class="record-note">{{item.verdict}}</view>
+      </view>
+      <view class="record-score">{{item.overallScore}}</view>
     </view>
-    <view class="record-score">{{item.overallScore}}</view>
-  </view>
+  </block>
+
+  <block wx:if="{{activeView === 'timeline'}}">
+    <view class="section-head">
+      <view class="section-title">旅行时间线</view>
+      <view class="section-count">{{timelineGroups.length}} 组</view>
+    </view>
+    <view class="empty" wx:if="{{!timelineGroups.length}}">
+      <view class="empty-title">时间线还是空的</view>
+      <view class="empty-desc">先快速记一条酒店或餐厅，之后它会自动出现在这里。</view>
+      <button class="button primary empty-button" bindtap="goQuickCreate">快速记录</button>
+    </view>
+    <view class="timeline-group" wx:for="{{timelineGroups}}" wx:key="key" wx:for-item="group">
+      <view class="timeline-title">{{group.title}}</view>
+      <view
+        class="record timeline-record"
+        wx:for="{{group.records}}"
+        wx:key="id"
+        wx:for-item="item"
+        data-id="{{item.id}}"
+        bindtap="goDetail"
+      >
+        <view class="record-main">
+          <view class="record-type">{{item.typeLabel}}</view>
+          <view class="record-title">{{item.displayName}}</view>
+          <view class="record-meta">{{item.city || "未填写城市"}} · {{item.statusLabel}}</view>
+          <view class="record-note">{{item.note || item.verdict}}</view>
+        </view>
+        <view class="record-score">{{item.overallScore}}</view>
+      </view>
+    </view>
+  </block>
+
+  <block wx:if="{{activeView === 'cities'}}">
+    <view class="section-head">
+      <view class="section-title">城市档案</view>
+      <view class="section-count">{{cityStats.length}} 城市</view>
+    </view>
+    <view class="empty" wx:if="{{!cityStats.length}}">
+      <view class="empty-title">还没有城市</view>
+      <view class="empty-desc">给记录填上城市后，会自动生成城市档案。</view>
+    </view>
+    <view class="city-card" wx:for="{{cityStats}}" wx:key="city" data-city="{{item.city}}" bindtap="selectCity">
+      <view>
+        <view class="city-title">{{item.city}}</view>
+        <view class="city-meta">酒店 {{item.hotelTotal}} · 餐厅 {{item.restaurantTotal}} · 平均 {{item.averageScore}}</view>
+        <view class="city-best">最佳：{{item.bestRecordName || "暂无"}}</view>
+      </view>
+      <view class="city-count">{{item.total}}</view>
+    </view>
+    <view wx:if="{{selectedCity}}">
+      <view class="section-head city-detail-head">
+        <view class="section-title">{{selectedCity}}</view>
+        <view class="section-count">{{cityRecords.length}} 条</view>
+      </view>
+      <view
+        class="record"
+        wx:for="{{cityRecords}}"
+        wx:key="id"
+        data-id="{{item.id}}"
+        bindtap="goDetail"
+      >
+        <view class="record-main">
+          <view class="record-type">{{item.typeLabel}}</view>
+          <view class="record-title">{{item.displayName}}</view>
+          <view class="record-meta">{{item.stayDate || "未填写日期"}} · {{item.statusLabel}}</view>
+          <view class="record-note">{{item.verdict}}</view>
+        </view>
+        <view class="record-score">{{item.overallScore}}</view>
+      </view>
+    </view>
+  </block>
+
+  <block wx:if="{{activeView === 'tags'}}">
+    <view class="section-head">
+      <view class="section-title">常用标签</view>
+      <view class="section-count">{{tagStats.length}} 个</view>
+    </view>
+    <view class="empty" wx:if="{{!tagStats.length}}">
+      <view class="empty-title">标签还没长出来</view>
+      <view class="empty-desc">在记录里选择系统标签或添加自定义标签后，这里会自动统计。</view>
+    </view>
+    <view class="tag-cloud">
+      <view
+        class="tag-card {{activeTag === item.tag ? 'tag-card-active' : ''}}"
+        wx:for="{{tagStats}}"
+        wx:key="tag"
+        data-tag="{{item.tag}}"
+        bindtap="onTagFilter"
+      >
+        <view class="tag-name">{{item.tag}}</view>
+        <view class="tag-stat">{{item.total}} 次 · 平均 {{item.averageScore}}</view>
+      </view>
+    </view>
+  </block>
 
   <canvas
     id="pdfCanvas"

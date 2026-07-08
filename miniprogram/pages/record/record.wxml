@@ -3,9 +3,9 @@
     <view>
       <view class="eyebrow">{{pageText.eyebrow}}</view>
       <view class="title">{{pageText.title}}</view>
-      <view class="summary">{{form.overallScore}} · {{form.verdict}}</view>
+      <view class="summary">{{form.overallScore}} · {{form.verdict}} · {{form.status === "draft" ? "草稿" : "已完成"}}</view>
     </view>
-    <view class="score-card">
+    <view class="score-card" wx:if="{{!isQuick}}">
       <view class="score-value">{{form.overallScore}}</view>
       <view class="score-label">总分</view>
     </view>
@@ -128,7 +128,20 @@
     </view>
   </view>
 
-  <view class="section" wx:for="{{categories}}" wx:key="key">
+  <view class="section score-overview" wx:if="{{!isQuick}}">
+    <view class="field-label">维度评分</view>
+    <view class="score-bar" wx:for="{{scoreBars}}" wx:key="key">
+      <view class="score-bar-row">
+        <view class="score-bar-label">{{item.title}}</view>
+        <view class="score-bar-value">{{item.score}}</view>
+      </view>
+      <view class="score-track">
+        <view class="score-fill" style="width: {{item.percent}}%; background: {{item.accent}};"></view>
+      </view>
+    </view>
+  </view>
+
+  <view class="section" wx:if="{{!isQuick}}" wx:for="{{categories}}" wx:key="key">
     <view class="category-head">
       <view>
         <view class="category-title">{{item.title}}</view>
@@ -174,6 +187,30 @@
   </view>
 
   <view class="section">
+    <view class="field-label">自定义标签</view>
+    <view class="custom-tag-editor" wx:if="{{!isReadonly}}">
+      <input
+        class="input custom-tag-input"
+        placeholder="例如：适合纪念日 / 值得二刷"
+        value="{{customTagInput}}"
+        bindinput="onCustomTagInput"
+      />
+      <button class="tag-add-button" bindtap="addCustomTag">添加</button>
+    </view>
+    <view class="tag-list custom-tags" wx:if="{{form.customTags.length}}">
+      <view
+        class="tag tag-active {{isReadonly ? 'tag-readonly' : ''}}"
+        wx:for="{{form.customTags}}"
+        wx:key="*this"
+        data-tag="{{item}}"
+        bindtap="removeCustomTag"
+      >
+        {{item}}
+      </view>
+    </view>
+  </view>
+
+  <view class="section">
     <view class="field-label">补充观察</view>
     <textarea
       class="textarea"
@@ -187,7 +224,8 @@
   </view>
 
   <view class="actions" wx:if="{{mode === 'create' || mode === 'edit'}}">
-    <button class="button primary" bindtap="saveRecord">{{mode === "edit" ? "保存修改" : "保存记录"}}</button>
+    <button class="button primary" data-status="completed" bindtap="saveRecord">{{mode === "edit" ? "保存修改" : "保存记录"}}</button>
+    <button class="button secondary" data-status="draft" bindtap="saveRecord">{{mode === "edit" ? "保存为草稿" : "保存草稿"}}</button>
     <button class="button secondary" wx:if="{{mode === 'edit'}}" bindtap="cancelEdit">取消</button>
   </view>
 

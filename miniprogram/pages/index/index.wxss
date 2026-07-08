@@ -90,6 +90,10 @@ page {
   align-items: stretch;
 }
 
+.compact-actions {
+  margin-top: 14rpx;
+}
+
 .button {
   height: 88rpx;
   border-radius: 8rpx;
@@ -141,6 +145,31 @@ page {
   background: #ffffff;
 }
 
+.view-tabs {
+  display: flex;
+  gap: 10rpx;
+  margin-top: 24rpx;
+  padding: 8rpx;
+  border-radius: 8rpx;
+  background: #ffffff;
+}
+
+.view-tab {
+  flex: 1;
+  min-height: 62rpx;
+  border-radius: 8rpx;
+  color: #667085;
+  font-size: 24rpx;
+  font-weight: 800;
+  line-height: 62rpx;
+  text-align: center;
+}
+
+.view-active {
+  background: #172033;
+  color: #ffffff;
+}
+
 .search-input {
   height: 78rpx;
   box-sizing: border-box;
@@ -170,6 +199,11 @@ page {
   text-align: center;
 }
 
+.tool-active {
+  background: #172033;
+  color: #ffffff;
+}
+
 .section-head {
   margin-top: 34rpx;
 }
@@ -195,6 +229,23 @@ page {
 .filter-active {
   background: #172033;
   color: #ffffff;
+}
+
+.active-filter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 18rpx;
+  padding: 18rpx 22rpx;
+  border-radius: 8rpx;
+  background: #fff5e8;
+  color: #7a4b12;
+  font-size: 24rpx;
+  font-weight: 700;
+}
+
+.clear-filter {
+  color: #2864d9;
 }
 
 .section-title {
@@ -268,6 +319,24 @@ page {
   margin-bottom: 8rpx;
 }
 
+.record-status {
+  display: inline-flex;
+  min-height: 34rpx;
+  margin-left: 8rpx;
+  padding: 0 12rpx;
+  border-radius: 8rpx;
+  background: #e7f4ef;
+  color: #1f7a55;
+  font-size: 20rpx;
+  font-weight: 700;
+  line-height: 34rpx;
+}
+
+.status-draft {
+  background: #fff0de;
+  color: #a35b12;
+}
+
 .record-meta,
 .record-note {
   color: #667085;
@@ -293,6 +362,105 @@ page {
   font-weight: 800;
   line-height: 70rpx;
   text-align: center;
+}
+
+.timeline-group {
+  margin-top: 28rpx;
+}
+
+.timeline-title {
+  color: #172033;
+  font-size: 30rpx;
+  font-weight: 800;
+  line-height: 42rpx;
+}
+
+.timeline-record {
+  margin-top: 14rpx;
+}
+
+.city-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24rpx;
+  margin-top: 18rpx;
+  padding: 28rpx;
+  border-radius: 8rpx;
+  background: #ffffff;
+}
+
+.city-title {
+  color: #172033;
+  font-size: 32rpx;
+  font-weight: 800;
+  line-height: 44rpx;
+}
+
+.city-meta,
+.city-best {
+  color: #667085;
+  font-size: 24rpx;
+  line-height: 36rpx;
+}
+
+.city-meta {
+  margin-top: 8rpx;
+}
+
+.city-count {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 8rpx;
+  background: #eef2f5;
+  color: #172033;
+  font-size: 30rpx;
+  font-weight: 800;
+  line-height: 72rpx;
+  text-align: center;
+}
+
+.city-detail-head {
+  margin-top: 42rpx;
+}
+
+.tag-cloud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14rpx;
+  margin-top: 20rpx;
+}
+
+.tag-card {
+  min-width: 206rpx;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 20rpx 22rpx;
+  border-radius: 8rpx;
+  background: #ffffff;
+}
+
+.tag-card-active {
+  background: #172033;
+}
+
+.tag-name {
+  color: #172033;
+  font-size: 26rpx;
+  font-weight: 800;
+  line-height: 36rpx;
+}
+
+.tag-stat {
+  margin-top: 4rpx;
+  color: #667085;
+  font-size: 22rpx;
+  line-height: 32rpx;
+}
+
+.tag-card-active .tag-name,
+.tag-card-active .tag-stat {
+  color: #ffffff;
 }
 
 .pdf-canvas {

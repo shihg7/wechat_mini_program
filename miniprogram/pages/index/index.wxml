@@ -25,6 +25,22 @@
     <button class="button secondary" loading="{{exporting}}" bindtap="exportPdf">导出 PDF</button>
   </view>
 
+  <view class="tools">
+    <input
+      class="search-input"
+      placeholder="搜索名称、城市、备注、菜系、会员等级"
+      value="{{keyword}}"
+      bindinput="onKeywordInput"
+    />
+    <view class="tool-row">
+      <picker mode="selector" range="{{sortLabels}}" bindchange="onSortChange">
+        <view class="tool-button">排序：{{sortLabel}}</view>
+      </picker>
+      <view class="tool-button" bindtap="exportJson">备份 JSON</view>
+      <view class="tool-button" bindtap="importJson">恢复 JSON</view>
+    </view>
+  </view>
+
   <view class="insight" wx:if="{{summary.total}}">
     <view class="insight-line">酒店：{{summary.hotelTotal}} 条 · 米其林餐厅：{{summary.restaurantTotal}} 条</view>
     <view class="insight-line">最近记录：{{summary.latestRecordName}}</view>
@@ -44,8 +60,16 @@
 
   <view class="empty" wx:if="{{!visibleRecords.length}}">
     <view class="empty-title">还没有记录</view>
-    <view class="empty-desc">新增酒店或米其林餐厅，把值得复盘的体验都记下来。</view>
-    <button class="button primary empty-button" data-type="hotel" bindtap="goCreate">新增酒店</button>
+    <view class="empty-desc">
+      {{keyword ? "换个关键词试试，或新增一条记录。" : "新增酒店或米其林餐厅，把值得复盘的体验都记下来。"}}
+    </view>
+    <button
+      class="button primary empty-button"
+      data-type="{{activeType === 'restaurant' ? 'restaurant' : 'hotel'}}"
+      bindtap="goCreate"
+    >
+      {{activeType === "restaurant" ? "新增餐厅" : "新增酒店"}}
+    </button>
   </view>
 
   <view

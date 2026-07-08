@@ -11,7 +11,9 @@ const {
 const {
   addRecord,
   deleteRecord,
-  getRecordById
+  duplicateRecord,
+  getRecordById,
+  updateRecord
 } = require("../../utils/hotelReviewStore");
 
 function buildInitialForm(recordType = "hotel") {
@@ -40,6 +42,12 @@ function buildInitialForm(recordType = "hotel") {
 
 function getPageText(mode, recordType, form = {}) {
   const typeConfig = getTypeConfig(recordType);
+  if (mode === "edit") {
+    return {
+      eyebrow: `编辑${typeConfig.label}`,
+      title: getRecordTitle(form)
+    };
+  }
   return {
     eyebrow: mode === "detail" ? `${typeConfig.label}详情` : `新增${typeConfig.label}`,
     title: mode === "detail"
@@ -55,8 +63,11 @@ Page({
     recordType: "hotel",
     typeConfig: getTypeConfig("hotel"),
     categories: getCategories("hotel"),
+    isReadonly: false,
+    hasUnsavedChanges: false,
     pageText: getPageText("create", "hotel", buildInitialForm()),
-    form: buildInitialForm()
+    form: buildInitialForm(),
+    originalForm: null
   },
 
   onLoad(options) {
@@ -74,9 +85,13 @@ Page({
       recordType,
       typeConfig: getTypeConfig(recordType),
       categories: getCategories(recordType),
+      isReadonly: false,
+      hasUnsavedChanges: false,
       pageText: getPageText("create", recordType, form),
-      form
+      form,
+      originalForm: JSON.stringify(form)
     });
+    this.disableLeaveAlert();
   },
 
   onTypeChange(event) {
@@ -105,25 +120,93 @@ Page({
       recordType: record.recordType,
       typeConfig: getTypeConfig(record.recordType),
       categories: getCategories(record.recordType),
+      isReadonly: true,
+      hasUnsavedChanges: false,
       pageText: getPageText("detail", record.recordType, form),
+      form,
+      originalForm: JSON.stringify(form)
+    });
+    this.disableLeaveAlert();
+  },
+
+  enterEdit() {
+    const originalForm = JSON.stringify(this.data.form);
+    this.setData({
+      mode: "edit",
+      isReadonly: false,
+      hasUnsavedChanges: false,
+      pageText: getPageText("edit", this.data.recordType, this.data.form),
+      originalForm
+    });
+    this.disableLeaveAlert();
+  },
+
+  cancelEdit() {
+    if (this.data.hasUnsavedChanges) {
+      wx.showModal({
+        title: "放弃修改",
+        content: "当前修改尚未保存，确定放弃吗？",
+        confirmText: "放弃",
+        success: (res) => {
+          if (res.confirm) this.restoreOriginalForm();
+        }
+      });
+      return;
+    }
+    this.restoreOriginalForm();
+  },
+
+  restoreOriginalForm() {
+    const form = this.data.originalForm ? JSON.parse(this.data.originalForm) : this.data.form;
+    this.setData({
+      mode: "detail",
+      isReadonly: true,
+      hasUnsavedChanges: false,
+      pageText: getPageText("detail", this.data.recordType, form),
       form
     });
+    this.disableLeaveAlert();
+  },
+
+  markDirty() {
+    const changed = JSON.stringify(this.data.form) !== this.data.originalForm;
+    this.setData({ hasUnsavedChanges: changed });
+    if (changed) {
+      this.enableLeaveAlert();
+    } else {
+      this.disableLeaveAlert();
+    }
+  },
+
+  enableLeaveAlert() {
+    if (!wx.enableAlertBeforeUnload) return;
+    wx.enableAlertBeforeUnload({
+      message: "当前修改尚未保存，确定离开吗？"
+    });
+  },
+
+  disableLeaveAlert() {
+    if (!wx.disableAlertBeforeUnload) return;
+    wx.disableAlertBeforeUnload();
   },
 
   onFieldInput(event) {
+    if (this.data.isReadonly) return;
     const { field } = event.currentTarget.dataset;
     this.setData({
       [`form.${field}`]: event.detail.value
-    });
+    }, () => this.markDirty());
   },
 
   onDateChange(event) {
+    if (this.data.isReadonly) return;
     this.setData({
       "form.stayDate": event.detail.value
-    });
+    }, () => this.markDirty());
   },
 
   onScoreChange(event) {
+    if (this.data.isReadonly) return;
     const { category, metric } = event.currentTarget.dataset;
     const recordType = this.data.form.recordType;
     const scores = this.data.form.scores;
@@ -134,11 +217,11 @@ Page({
       "form.categoryScores": getCategoryScores(scores, recordType),
       "form.overallScore": overallScore,
       "form.verdict": getVerdict(overallScore, recordType)
-    });
+    }, () => this.markDirty());
   },
 
   onToggleTag(event) {
-    if (this.data.mode === "detail") return;
+    if (this.data.isReadonly) return;
     const { category, tag } = event.currentTarget.dataset;
     const selectedTags = this.data.form.selectedTags;
     const current = selectedTags[category] || [];
@@ -147,7 +230,7 @@ Page({
       : current.concat(tag);
     this.setData({
       "form.selectedTags": selectedTags
-    });
+    }, () => this.markDirty());
   },
 
   saveRecord() {
@@ -161,12 +244,51 @@ Page({
       return;
     }
 
+    if (this.data.mode === "edit") {
+      const updated = updateRecord(this.data.recordId, this.data.form);
+      const form = {
+        ...updated,
+        categoryScores: getCategoryScores(updated.scores, updated.recordType)
+      };
+      this.setData({
+        mode: "detail",
+        isReadonly: true,
+        hasUnsavedChanges: false,
+        form,
+        pageText: getPageText("detail", updated.recordType, form),
+        originalForm: JSON.stringify(form)
+      });
+      this.disableLeaveAlert();
+      wx.showToast({
+        title: "已更新",
+        icon: "success"
+      });
+      return;
+    }
+
     addRecord(this.data.form);
+    this.disableLeaveAlert();
     wx.showToast({
       title: "已保存",
       icon: "success"
     });
     setTimeout(() => wx.navigateBack(), 450);
+  },
+
+  copyRecord() {
+    const record = duplicateRecord(this.data.recordId);
+    if (!record) {
+      wx.showToast({
+        title: "复制失败",
+        icon: "none"
+      });
+      return;
+    }
+    wx.showToast({
+      title: "已复制",
+      icon: "success"
+    });
+    this.loadDetail(record.id);
   },
 
   deleteRecord() {
@@ -185,5 +307,9 @@ Page({
         setTimeout(() => wx.navigateBack(), 450);
       }
     });
+  },
+
+  onUnload() {
+    this.disableLeaveAlert();
   }
 });

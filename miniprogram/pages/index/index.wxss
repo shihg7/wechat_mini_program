@@ -134,6 +134,42 @@ page {
   margin-top: 8rpx;
 }
 
+.tools {
+  margin-top: 22rpx;
+  padding: 22rpx;
+  border-radius: 8rpx;
+  background: #ffffff;
+}
+
+.search-input {
+  height: 78rpx;
+  box-sizing: border-box;
+  padding: 0 22rpx;
+  border: 1rpx solid #d9dee8;
+  border-radius: 8rpx;
+  background: #f8fafc;
+  color: #172033;
+  font-size: 26rpx;
+}
+
+.tool-row {
+  display: grid;
+  grid-template-columns: 1.25fr 1fr 1fr;
+  gap: 12rpx;
+  margin-top: 16rpx;
+}
+
+.tool-button {
+  min-height: 64rpx;
+  border-radius: 8rpx;
+  background: #eef2f5;
+  color: #4d596c;
+  font-size: 23rpx;
+  font-weight: 700;
+  line-height: 64rpx;
+  text-align: center;
+}
+
 .section-head {
   margin-top: 34rpx;
 }

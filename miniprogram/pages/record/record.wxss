@@ -230,6 +230,13 @@ page {
 
 .actions {
   margin-top: 24rpx;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16rpx;
+}
+
+.detail-actions {
+  grid-template-columns: 1fr 1fr 1fr;
 }
 
 .button {
@@ -247,6 +254,11 @@ page {
 .primary {
   background: #2864d9;
   color: #ffffff;
+}
+
+.secondary {
+  background: #ffffff;
+  color: #172033;
 }
 
 .danger {

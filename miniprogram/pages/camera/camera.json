@@ -1,0 +1,10 @@
+{
+  "usingComponents": {
+    "loading2": "../../components/loading2",
+    "operate-list": "../../components/operate-list",
+    "webar-camera": "tencentcloud-webar-wx/webar-camera",
+    "webar-live-pusher": "tencentcloud-webar-wx/webar-live-pusher"
+  },
+  "disableScroll": true,
+  "navigationStyle": "custom"
+}

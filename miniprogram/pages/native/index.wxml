@@ -1,0 +1,70 @@
+<view class="native-container">
+  <view class="navi-back" bindtap="goBack" style="top: {{backBtnTop}}px;">
+    <image
+      class="icon-back"
+      src="https://cdn-weijian-1258344699.file.myqcloud.com/images/icon-back.png"
+      role="img"
+      mode="aspectFit"
+    ></image>
+  </view>
+  <webar-live-pusher
+    class="pusher"
+    style="width: 100vw; height: 100vh;"
+    licenseKey="{{licenseKey}}"
+    appId="{{appid}}"
+    authFunc="{{authFunc}}"
+    custom-effect
+    skin-whiteness="{{beauti.whiten}}"
+    skin-smoothness="{{beauti.dermabrasion}}"
+    face-thinness="{{beauti.lift}}"
+    eye-bigness="{{beauti.eye}}"
+    bind:created="onArCreated"
+    style="width: 100vw; height: 100vh"
+  />
+  <view wx:if="{{!!current.type}}" class="mask" bindtap="onClickMask"></view>
+  <view
+    class="side-opt-container"
+    style="top: {{bigScreen ? backBtnTop + mainPageTop + 20 : backBtnTop + mainPageTop + 40}}px;opacity:{{ current.type?0:1}}"
+  >
+    <!-- <view class="opt-item" bindtap="onClickSwitchIcon">
+      <image
+        class="opt-item-icon"
+        src="https://webar-static.tencent-cloud.com/assets/template/fanzhuan.png"
+      />
+      <text class="opt-item-text">{{i18n.flip}}</text>
+    </view> -->
+    <view class="opt-item" style="margin-top:30rpx" id="beauti" bindtap="setType">
+      <image
+        class="opt-item-icon"
+        src="https://webar-static.tencent-cloud.com/assets/template/meiyan.png"
+      />
+      <text class="opt-item-text">{{i18n.beautify}}</text>
+    </view>
+    <!-- <view class="opt-item" style="margin-top:30rpx" id="makeUp" bindtap="setType">
+      <image class="opt-item-icon" src="./makeup.png" />
+      <text class="opt-item-text">{{i18n.makeUp}}</text>
+    </view> -->
+    <!-- <view class="opt-item" style="margin-top:30rpx" id="filter" bindtap="setType">
+      <image class="opt-item-icon" src="./filter.png" />
+      <text class="opt-item-text">{{i18n.filter}}</text>
+    </view> -->
+    <!-- <view class="opt-item" style="margin-top:30rpx" id="sticker" bindtap="setType">
+      <image class="opt-item-icon" src="/images/sticker.png" />
+      <text class="opt-item-text">{{i18n.sticker}}</text>
+    </view> -->
+    <view class="opt-item" style="margin-top:30rpx" id="background" bindtap="setType">
+      <image
+        class="opt-item-icon"
+        src="https://webar-static.tencent-cloud.com/assets/template/back.png"
+      />
+      <text class="opt-item-text">{{i18n.background}}</text>
+    </view>
+  </view>
+
+  <operate-list
+    list="{{ list }}"
+    current="{{ current }}"
+    bind:update="onUpdate"
+    bind:changeEnable="onChangeEnable"
+  />
+</view>

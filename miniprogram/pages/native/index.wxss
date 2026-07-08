@@ -1,0 +1,64 @@
+.navi-back {
+  position: fixed;
+  top: 48rpx;
+  left: 20rpx;
+  z-index: 999;
+  width: 60rpx;
+  height: 60rpx;
+}
+
+.navi-back .icon-back {
+  width: 60rpx;
+  height: 60rpx;
+}
+
+.native-container {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  background-color: #000;
+}
+
+.pusher {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 9;
+}
+
+.mask {
+  position: absolute;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  z-index: 999;
+}
+
+.side-opt-container {
+  position: absolute;
+  right: 44rpx;
+  width: 72rpx;
+  display: flex;
+  flex-direction: column;
+  z-index: 9999;
+}
+.side-opt-container .opt-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.side-opt-container .opt-item-icon {
+  width: 72rpx;
+  height: 72rpx;
+}
+
+.side-opt-container .opt-item-text {
+  color: #fff;
+  text-shadow: 0px 0px 4px rgba(0, 0, 0, 0.25);
+  font-family: "PingFang SC";
+  font-size: 28rpx;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+}

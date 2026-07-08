@@ -1,0 +1,71 @@
+var wxsInfo = {}, effectListDom = [], isAutoScroll = false, 
+    effectHomeBorderDom = null, effectHomeBgDom = null
+module.exports = {
+    wxsInfoObserver: function (value, oldValue, ownerInstance, instance) {
+        wxsInfo = value
+        effectListDom = ownerInstance.selectAllComponents('.effect-item-container')
+        effectHomeBorderDom = ownerInstance.selectComponent('#effect-home-icon-border')
+        effectHomeBgDom = ownerInstance.selectComponent('#effect-home-icon-bg')
+        console.log('wxsInfo', effectListDom.length)
+    },
+    selectedEffectObserver: function(value,oldValue, ownerInstance, instance){
+        var selectedEffectIndex = value.index
+        if(selectedEffectIndex===undefined) return
+        console.log('wxs selectedEffectObserver', selectedEffectIndex)
+        for(var i=0;i<effectListDom.length;i++){
+            if(i===selectedEffectIndex){
+                effectListDom[i].setStyle({
+                    'border-width': '12rpx'
+                })
+            }else{
+                effectListDom[i].setStyle({
+                    'border-width': '24rpx'
+                })
+            }
+        }
+        effectHomeBorderDom && effectHomeBorderDom.setStyle({
+            opacity: selectedEffectIndex===0?0:1
+        })
+        effectHomeBgDom && effectHomeBgDom.setStyle({
+            opacity: selectedEffectIndex===0?1:0
+        })
+    },
+    // 用户点击特效图标触发滚动
+    autoScrollObserver: function(value,oldValue, ownerInstance, instance){
+        isAutoScroll = value
+    },
+
+    onScroll: function(e, ownerInstance){
+        if(isAutoScroll) return
+        if(!effectListDom.length){ // 兜底
+            effectListDom = ownerInstance.selectAllComponents('.effect-item-container')
+        }
+        if(!effectHomeBorderDom){
+            effectHomeBorderDom = ownerInstance.selectComponent('#effect-home-icon-border')
+        }
+        if(!effectHomeBgDom){
+            effectHomeBgDom = ownerInstance.selectComponent('#effect-home-icon-bg')
+        }
+        var scrollLeft = e.detail.scrollLeft, index = scrollLeft / wxsInfo.itemWidth
+        var pre = Math.floor(index), next = Math.ceil(index)
+        var preBorderW = 12 + (scrollLeft - wxsInfo.itemWidth*pre) / wxsInfo.itemWidth * 12,
+            nextBorderW = 12 + (wxsInfo.itemWidth*next - scrollLeft) / wxsInfo.itemWidth * 12
+        effectListDom[pre] && effectListDom[pre].setStyle({
+            'border-width': Math.round(preBorderW) + 'rpx'
+        })
+        effectListDom[next] && effectListDom[next].setStyle({
+            'border-width': Math.round(nextBorderW) + 'rpx'
+        })
+        // 首页图标透明度设置
+        if(pre===0){
+            effectHomeBorderDom.setStyle({
+                opacity: (scrollLeft - wxsInfo.itemWidth*pre) / wxsInfo.itemWidth
+            })
+            effectHomeBgDom.setStyle({
+                opacity: 1 - (scrollLeft - wxsInfo.itemWidth*pre) / wxsInfo.itemWidth
+            })
+        }
+        console.log('wxs', scrollLeft, pre, next, preBorderW, nextBorderW)
+        ownerInstance.callMethod('onScrollEffectList', e)
+    }
+}

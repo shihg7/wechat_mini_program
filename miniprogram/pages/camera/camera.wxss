@@ -1,0 +1,394 @@
+@import "../../components/style/common.wxss";
+.main-container {
+  background-color: #000;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+}
+.main-canvas {
+  width: 100vw;
+  height: 100vh;
+  position: fixed;
+  left: 0;
+  top: 0;
+}
+.camera-canvas-container {
+  /* background: chocolate; */
+  height: 1334rpx;
+  width: 750rpx;
+  position: relative;
+}
+
+.navi-back {
+  position: fixed;
+  top: 48rpx;
+  left: 20rpx;
+  z-index: 999;
+  width: 60rpx;
+  height: 60rpx;
+}
+
+.navi-back .icon-back {
+  width: 60rpx;
+  height: 60rpx;
+}
+
+.random-music {
+  background: rgba(0, 0, 0, 0.7);
+  position: fixed;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 60rpx;
+  left: 50%;
+  padding: 0 20rpx;
+  transform: translate(-50%, 0);
+  -webkit-transform: translate(-50%, 0);
+  border-radius: 30rpx;
+  z-index: 999;
+}
+.random-music-hover {
+  background: rgba(0, 0, 0, 0.9);
+}
+
+.random-music .icon-music {
+  width: 40rpx;
+  height: 40rpx;
+}
+.random-music .text {
+  font-size: 26rpx;
+  margin-left: 6rpx;
+  color: #fff;
+}
+.random-music .icon-close-container {
+  width: 60rpx;
+  height: 100%;
+  margin-left: 10rpx;
+  padding: 15rpx 15rpx 15rpx 0;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+}
+.random-music .icon-close {
+  border-left: 1px solid rgba(255, 255, 255, 0.8);
+  padding-left: 10rpx;
+  width: 30rpx;
+  height: 30rpx;
+}
+.side-opt-container {
+  position: absolute;
+  right: 30rpx;
+  width: 72rpx;
+  display: flex;
+  flex-direction: column;
+  z-index: 9999;
+}
+.side-opt-container .opt-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.side-opt-container .opt-item-icon {
+  width: 72rpx;
+  height: 72rpx;
+}
+
+.side-opt-container .opt-item-text {
+  color: #fff;
+  text-shadow: 0px 0px 4px rgba(0, 0, 0, 0.25);
+  font-family: "PingFang SC";
+  font-size: 28rpx;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+}
+
+.opt-btn-container {
+  flex: 1;
+  /* margin-top: 60rpx; */
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 1;
+  transition: opacity 100ms linear;
+  -webkit-transition: opacity 100ms linear;
+}
+
+.opt-btn-container .hidden {
+  opacity: 0 !important;
+}
+
+.opt-btn-img {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 148rpx;
+  height: 148rpx;
+  opacity: 1;
+}
+
+.opt-btn-container .outer {
+  position: relative;
+  box-sizing: border-box;
+  border-radius: 50%;
+  height: 148rpx;
+  width: 148rpx;
+  transition: transform 200ms linear;
+  -webkit-transition: transform 200ms linear;
+  opacity: 1;
+}
+.opt-btn-container .outer.active .inner {
+  transform: scale(1.4);
+}
+.opt-btn-container .outer.active .record-progress-wrap {
+  transform: scale(1.4);
+}
+.opt-btn-container .outer .inner {
+  height: 100%;
+  width: 100%;
+  background: rgb(255, 255, 255, 0.3);
+  backdrop-filter: blur(10px);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 200ms linear;
+  -webkit-transition: transform 200ms linear;
+  transform: scale(1);
+}
+.opt-btn-container .outer .inner-inner {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 68rpx;
+  height: 68rpx;
+  background: #fff;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  transition: transform 200ms linear;
+  -webkit-transition: transform 200ms linear;
+}
+.record-btn-video,
+.record-btn-photo,
+.record-btn-fake {
+  width: 140rpx;
+  height: 140rpx;
+  box-sizing: border-box;
+}
+.record-btn-video {
+  border-radius: 50%;
+  border: 6rpx solid #fff;
+  pointer-events: none;
+}
+.record-btn-photo {
+  border-radius: 50%;
+  background: rgb(255, 255, 255, 0.3);
+  backdrop-filter: blur(10px);
+  z-index: 9;
+  pointer-events: none;
+}
+
+.camera-btn-container {
+  box-sizing: content-box;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-around;
+  width: 750rpx;
+  z-index: 999;
+}
+
+.hover-btn {
+  opacity: 0.8;
+}
+
+.elapsed-time-wrap {
+  position: absolute;
+  width: 100%;
+  top: -28rpx;
+  left: 50%;
+  transform: translateX(-50%);
+  height: 28rpx;
+  text-align: center;
+}
+
+.elapsed-time {
+  text-align: center;
+  color: #fff;
+  font-size: 28rpx;
+}
+
+.record-stop-btn-wrap {
+  display: block;
+  position: relative;
+  overflow: visible;
+}
+
+.stop-btn {
+  width: 140rpx;
+  height: 140rpx;
+  z-index: 999;
+  border-radius: 50%;
+  position: relative;
+}
+
+.inner-red {
+  width: 40rpx;
+  height: 40rpx;
+  z-index: 999;
+  position: absolute;
+  top: 50rpx;
+  left: 50rpx;
+  background-color: red;
+  border-radius: 10rpx;
+}
+
+.record-progress-common {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  border: 10rpx solid transparent;
+  box-sizing: border-box;
+}
+
+.record-progress-anim-left,
+.record-progress-anim-right {
+  border-right-color: transparent;
+  border-bottom-color: transparent;
+}
+
+.record-progress-anim-left {
+  transform: rotate(315deg);
+}
+
+.record-progress-anim-right {
+  transform: rotate(135deg);
+}
+
+.record-progress-wrap {
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-width: 0;
+  transform: scale(1);
+  /* transition: transform 100ms linear;
+    -webkit-transition: transform 100ms linear; */
+}
+
+@keyframes circle-animation {
+  0%,
+  50% {
+    clip-path: polygon(50% 0, 100% 0%, 100% 100%, 50% 100%);
+  }
+
+  51% {
+    clip-path: polygon(0 0, 100% 0%, 100% 100%, 0% 100%);
+  }
+}
+
+@keyframes left-animation {
+  0% {
+    transform: rotate(-45deg);
+  }
+
+  50% {
+    transform: rotate(135deg);
+  }
+
+  100% {
+    transform: rotate(315deg);
+  }
+}
+
+@keyframes right-animation {
+  0% {
+    transform: rotate(-45deg);
+  }
+
+  50% {
+    transform: rotate(135deg);
+  }
+
+  100% {
+    transform: rotate(135deg);
+  }
+}
+
+.mask {
+  position: absolute;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  z-index: 999;
+}
+.filter-container,
+.disable-icon {
+  filter: brightness(0.5);
+}
+
+.record-container {
+  width: 100%;
+  height: 372rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  padding-bottom: constant(safe-area-inset-bottom);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.record-mode-container {
+  display: flex;
+  justify-content: space-around;
+  gap: 0 22rpx;
+  flex: none;
+}
+
+.record-mode-item {
+  color: rgba(255, 255, 255, 0.7);
+  text-align: center;
+  text-shadow: 0px 0px 8rpx rgba(0, 0, 0, 0.25);
+  font-family: "PingFang SC";
+  font-size: 32rpx;
+  font-style: normal;
+  font-weight: 600;
+  line-height: 36rpx; /* 112.5% */
+}
+
+.record-item-active {
+  color: #fff;
+}
+
+.record-mode-tabs {
+  width: 100%;
+  /* height: 50px; */
+  white-space: nowrap;
+  transition: transform 0.2s ease;
+}
+
+.record-mode-tag {
+  position: absolute;
+  bottom: 0;
+  height: 6rpx;
+  width: 40rpx;
+  background-color: #fff;
+  border-radius: 2rpx;
+}
+
+.effect-loading {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 100rpx;
+  height: 100rpx;
+}

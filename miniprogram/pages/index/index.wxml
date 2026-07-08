@@ -1,0 +1,73 @@
+<view class="page">
+  <view class="topbar">
+    <view>
+      <view class="eyebrow">HOTEL REVIEW</view>
+      <view class="title">体验档案</view>
+    </view>
+    <button class="icon-button" bindtap="goCreate">+</button>
+  </view>
+
+  <view class="hero">
+    <view class="summary-item">
+      <view class="summary-value">{{summary.total}}</view>
+      <view class="summary-label">全部记录</view>
+    </view>
+    <view class="summary-divider"></view>
+    <view class="summary-item">
+      <view class="summary-value">{{summary.averageScore}}</view>
+      <view class="summary-label">平均评分</view>
+    </view>
+  </view>
+
+  <view class="quick-actions">
+    <button class="button primary" data-type="hotel" bindtap="goCreate">新增酒店</button>
+    <button class="button accent" data-type="restaurant" bindtap="goCreate">新增餐厅</button>
+    <button class="button secondary" loading="{{exporting}}" bindtap="exportPdf">导出 PDF</button>
+  </view>
+
+  <view class="insight" wx:if="{{summary.total}}">
+    <view class="insight-line">酒店：{{summary.hotelTotal}} 条 · 米其林餐厅：{{summary.restaurantTotal}} 条</view>
+    <view class="insight-line">最近记录：{{summary.latestRecordName}}</view>
+    <view class="insight-line">最高评分：{{summary.bestRecordName}}</view>
+  </view>
+
+  <view class="filter-tabs">
+    <view class="filter-tab {{activeType === 'all' ? 'filter-active' : ''}}" data-type="all" bindtap="onTypeFilter">全部</view>
+    <view class="filter-tab {{activeType === 'hotel' ? 'filter-active' : ''}}" data-type="hotel" bindtap="onTypeFilter">酒店</view>
+    <view class="filter-tab {{activeType === 'restaurant' ? 'filter-active' : ''}}" data-type="restaurant" bindtap="onTypeFilter">米其林餐厅</view>
+  </view>
+
+  <view class="section-head">
+    <view class="section-title">全部记录</view>
+    <view class="section-count">{{visibleRecords.length}} 条</view>
+  </view>
+
+  <view class="empty" wx:if="{{!visibleRecords.length}}">
+    <view class="empty-title">还没有记录</view>
+    <view class="empty-desc">新增酒店或米其林餐厅，把值得复盘的体验都记下来。</view>
+    <button class="button primary empty-button" data-type="hotel" bindtap="goCreate">新增酒店</button>
+  </view>
+
+  <view
+    class="record"
+    wx:for="{{visibleRecords}}"
+    wx:key="id"
+    data-id="{{item.id}}"
+    bindtap="goDetail"
+  >
+    <view class="record-main">
+      <view class="record-type">{{item.typeLabel}}</view>
+      <view class="record-title">{{item.displayName}}</view>
+      <view class="record-meta">{{item.city || "未填写城市"}} · {{item.stayDate || "未填写日期"}}</view>
+      <view class="record-note">{{item.verdict}}</view>
+    </view>
+    <view class="record-score">{{item.overallScore}}</view>
+  </view>
+
+  <canvas
+    id="pdfCanvas"
+    type="2d"
+    class="pdf-canvas"
+    style="width: 595px; height: 842px;"
+  ></canvas>
+</view>

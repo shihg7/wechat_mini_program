@@ -1,0 +1,10 @@
+<!-- 
+	author: sevenyzhang
+	description: 通用loading组件
+-->
+<view class="lds-ellipsis custom-style" style="top:{{top}}">
+	<view class="view view1" />
+	<view class="view view2" />
+	<view class="view view3" />
+	<view class="view view4" />
+</view>

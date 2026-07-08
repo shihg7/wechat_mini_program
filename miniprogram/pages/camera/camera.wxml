@@ -1,0 +1,154 @@
+<view class="main-container" style="padding-top: {{mainPageTop}}px">
+  <view class="camera-canvas-container" id="camera-canvas-container">
+    <view class="navi-back" bindtap="goBack" style="top: {{backBtnTop}}px;">
+      <image
+        class="icon-back"
+        src="https://cdn-weijian-1258344699.file.myqcloud.com/images/icon-back.png"
+        role="img"
+        mode="aspectFit"
+      ></image>
+    </view>
+    <view hidden="{{recordStatus!=='init'||activeRecordMode==i18n.takePhoto}}">
+      <view
+        class="random-music"
+        hover-class="random-music-hover"
+        style="top: {{backBtnTop}}px; padding-right: {{isPlayingMusic?0:20}}rpx;"
+        bindtap="onClickMusicIcon"
+      >
+        <image
+          class="icon-music"
+          src="https://cdn-weijian-1258344699.file.myqcloud.com/icon/ar/yinyue.png"
+          role="img"
+          mode="aspectFit"
+        ></image>
+        <view class="text">{{isPlayingMusic?i18n.switchMusic:i18n.playMusic}}</view>
+        <view class="icon-close-container" wx:if="{{isPlayingMusic}}" catchtap="onClickCloseIcon">
+          <image
+            class="icon-close"
+            src="https://cdn-weijian-1258344699.file.myqcloud.com/images/close_icon.png"
+            role="img"
+            mode="aspectFit"
+          ></image>
+        </view>
+      </view>
+    </view>
+    <webar-camera
+      class="main-canvas"
+      licenseKey="{{licenseKey}}"
+      appId="{{appid}}"
+      authFunc="{{authFunc}}"
+      plugin3d="{{plugin3d}}"
+      beautify="{{beautify}}"
+      enableVideoCustomRender
+      bind:created="onArCreated"
+      bind:error="onError"
+      style="width: 100vw; height: 100vh"
+    />
+    <view
+      class="side-opt-container"
+      style="top: {{bigScreen ? backBtnTop + 20 : backBtnTop + 40}}px;opacity:{{recordStatus!=='init' || current.type?0:1}}"
+    >
+      <view class="opt-item" bindtap="onClickSwitchIcon">
+        <image
+          class="opt-item-icon"
+          src="https://webar-static.tencent-cloud.com/assets/template/fanzhuan.png"
+        />
+        <text class="opt-item-text">{{i18n.flip}}</text>
+      </view>
+      <view class="opt-item" style="margin-top:30rpx" id="beauti" bindtap="setType">
+        <image
+          class="opt-item-icon"
+          src="https://webar-static.tencent-cloud.com/assets/template/meiyan.png"
+        />
+        <text class="opt-item-text">{{i18n.beautify}}</text>
+      </view>
+      <view class="opt-item" style="margin-top:30rpx" id="makeUp" bindtap="setType">
+        <image
+          class="opt-item-icon"
+          src="https://webar-static.tencent-cloud.com/assets/template/makeup.png"
+        />
+        <text class="opt-item-text">{{i18n.makeUp}}</text>
+      </view>
+      <view class="opt-item" style="margin-top:30rpx" id="filter" bindtap="setType">
+        <image
+          class="opt-item-icon"
+          src="https://webar-static.tencent-cloud.com/assets/template/filter.png"
+        />
+        <text class="opt-item-text">{{i18n.filter}}</text>
+      </view>
+      <view class="opt-item" style="margin-top:30rpx" id="sticker" bindtap="setType">
+        <image
+          class="opt-item-icon"
+          src="https://webar-static.tencent-cloud.com/assets/template/sticker.png"
+        />
+        <text class="opt-item-text">{{i18n.sticker}}</text>
+      </view>
+    </view>
+    <!-- <loading wx:if="{{!inited}}"></loading> -->
+  </view>
+  <view wx:if="{{!!current.type}}" class="mask" bindtap="onClickMask"></view>
+  <loading2 class="effect-loading" wx:if="{{!inited||loadingEffect}}"></loading2>
+  <view class="record-container" hidden="{{current.type||!inited}}">
+    <!-- 选择拍摄模式 -->
+    <view
+      class="record-mode-container"
+      style="visibility: {{ recordStatus === 'recording'?'hidden':'visible' }}"
+    >
+      <view
+        wx:for="{{modeList}}"
+        data-idx="{{index}}"
+        bindtap="onClickModeItem"
+        class="record-mode-item {{activeRecordMode===modeList[index]?'record-item-active':''}}"
+      >
+        <view>{{item}}</view>
+      </view>
+    </view>
+    <view class="elapsed-time-wrap" wx:if="{{sdkRecording}}">
+      <view class="elapsed-time">{{elapsedTime}}s</view>
+    </view>
+    <!--停止按钮-->
+    <view class="opt-btn-container">
+      <view
+        class="outer {{ recordStatus === 'recording'? 'active':'hidden' }}"
+        bindtap="onClickStop"
+      >
+        <view class="inner"> </view>
+        <view class="inner-inner"> </view>
+        <view
+          wx:if="{{sdkRecording}}"
+          class="record-progress-wrap record-progress-common"
+          style="animation: circle-animation 30s linear"
+        >
+          <view
+            class="record-progress-anim-right record-progress-common"
+            style="animation: right-animation 30s linear;border-top: 10rpx solid rgba(0, 108, 255, 1);border-left: 10rpx solid rgba(0, 108, 255, 1);"
+          ></view>
+          <view
+            class="record-progress-anim-left record-progress-common"
+            style="animation: left-animation 30s linear;border-top: 10rpx solid rgba(0, 108, 255, 1);border-left: 10rpx solid rgba(0, 108, 255, 1);"
+          ></view>
+        </view>
+      </view>
+      <image
+        wx:if="{{ recordStatus !== 'recording'}}"
+        class="opt-btn-img"
+        src="{{ activeRecordMode===i18n.takePhoto ? './photo.svg':'./video.svg'}}"
+        bind:tap="onClickRecord"
+      />
+    </view>
+  </view>
+</view>
+
+<operate-list
+  list="{{ list }}"
+  current="{{ current }}"
+  bind:update="onUpdate"
+  bind:changeEnable="onChangeEnable"
+/>
+
+<canvas
+  type="2d"
+  canvas-id="photo-canvas"
+  id="photo-canvas"
+  style="position:absolute;width:720px;height:1280px;top:-9999px;left:-9999px;"
+></canvas>

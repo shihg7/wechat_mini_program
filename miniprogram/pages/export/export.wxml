@@ -1,0 +1,44 @@
+<view class="main-container">
+  <view class="navi-back" bindtap="goBack" style="top: {{backBtnTop}}px;">
+    <image
+      class="icon-back"
+      src="https://cdn-weijian-1258344699.file.myqcloud.com/images/icon-back.png"
+      role="img"
+      mode="aspectFit"
+    ></image>
+  </view>
+  <view class="video-container">
+    <video
+      style="height:100%;width:100%"
+      src="{{file}}"
+      wx:if="{{type!=='image'}}"
+      autoplay
+      loop
+      play-btn-position="center"
+      show-play-btn="{{false}}"
+      show-progress="{{false}}"
+      show-fullscreen-btn="{{false}}"
+      controls="{{false}}"
+    ></video>
+    <image wx:else src="{{file}}" style="height:100%;width:100%" />
+    <button class="opt-btn" bindtap="onClickExport">
+      <image class="icon-down" src="./download.png" role="img" mode="aspectFit"></image>
+      {{i18n.save}}{{type==='image'?i18n.photo:i18n.video}}
+    </button>
+  </view>
+  <!-- <view class="modal {{showCustomModal?'show':'hidden'}}">
+        <view class="icon-container">
+          <icon class="icon-small" type="success_no_circle" size="43"></icon>
+        </view>
+        <view class="line1" style="font-size:36rpx">保存成功！</view>
+        <view class="line2" style="margin-top:10rpx">觉得不错的话，分享给朋友体验吧。</view>
+        <view class="btn-container">
+          <button class="btn home" plain type="primary"  bindtap="goHome">
+              返回首页
+          </button>
+          <button class="btn share" open-type='share' type="primary">
+              去分享
+          </button>
+        </view>
+    </view> -->
+</view>

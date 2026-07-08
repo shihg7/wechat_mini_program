@@ -1,0 +1,196 @@
+<scroll-view class="page" scroll-y>
+  <view class="hero">
+    <view>
+      <view class="eyebrow">{{pageText.eyebrow}}</view>
+      <view class="title">{{pageText.title}}</view>
+      <view class="summary">{{form.overallScore}} · {{form.verdict}}</view>
+    </view>
+    <view class="score-card">
+      <view class="score-value">{{form.overallScore}}</view>
+      <view class="score-label">总分</view>
+    </view>
+  </view>
+
+  <view class="section">
+    <view class="type-switch" wx:if="{{mode === 'create'}}">
+      <view class="type-option {{recordType === 'hotel' ? 'type-active' : ''}}" data-type="hotel" bindtap="onTypeChange">酒店</view>
+      <view class="type-option {{recordType === 'restaurant' ? 'type-active' : ''}}" data-type="restaurant" bindtap="onTypeChange">米其林餐厅</view>
+    </view>
+    <view class="field">
+      <view class="field-label">{{typeConfig.primaryFieldLabel}}</view>
+      <input
+        wx:if="{{recordType === 'hotel'}}"
+        class="input"
+        disabled="{{mode === 'detail'}}"
+        placeholder="{{typeConfig.titlePlaceholder}}"
+        value="{{form.hotelName}}"
+        data-field="hotelName"
+        bindinput="onFieldInput"
+      />
+      <input
+        wx:if="{{recordType === 'restaurant'}}"
+        class="input"
+        disabled="{{mode === 'detail'}}"
+        placeholder="{{typeConfig.titlePlaceholder}}"
+        value="{{form.restaurantName}}"
+        data-field="restaurantName"
+        bindinput="onFieldInput"
+      />
+    </view>
+    <view class="grid">
+      <view class="field">
+        <view class="field-label">城市/地区</view>
+        <input
+          class="input"
+          disabled="{{mode === 'detail'}}"
+          placeholder="上海"
+          value="{{form.city}}"
+          data-field="city"
+          bindinput="onFieldInput"
+        />
+      </view>
+      <view class="field">
+        <view class="field-label">{{typeConfig.dateLabel}}</view>
+        <picker mode="date" disabled="{{mode === 'detail'}}" value="{{form.stayDate}}" bindchange="onDateChange">
+          <view class="input picker-value">{{form.stayDate || "选择日期"}}</view>
+        </picker>
+      </view>
+    </view>
+    <view class="grid">
+      <view class="field" wx:if="{{recordType === 'hotel'}}">
+        <view class="field-label">房型</view>
+        <input
+          class="input"
+          disabled="{{mode === 'detail'}}"
+          placeholder="基础房/套房"
+          value="{{form.roomType}}"
+          data-field="roomType"
+          bindinput="onFieldInput"
+        />
+      </view>
+      <view class="field" wx:if="{{recordType === 'hotel'}}">
+        <view class="field-label">会员等级</view>
+        <input
+          class="input"
+          disabled="{{mode === 'detail'}}"
+          placeholder="金卡/钻卡"
+          value="{{form.memberLevel}}"
+          data-field="memberLevel"
+          bindinput="onFieldInput"
+        />
+      </view>
+      <view class="field" wx:if="{{recordType === 'restaurant'}}">
+        <view class="field-label">菜系</view>
+        <input
+          class="input"
+          disabled="{{mode === 'detail'}}"
+          placeholder="粤菜/法餐/日料"
+          value="{{form.cuisine}}"
+          data-field="cuisine"
+          bindinput="onFieldInput"
+        />
+      </view>
+      <view class="field" wx:if="{{recordType === 'restaurant'}}">
+        <view class="field-label">米其林等级</view>
+        <input
+          class="input"
+          disabled="{{mode === 'detail'}}"
+          placeholder="一星/二星/三星/入选"
+          value="{{form.michelinLevel}}"
+          data-field="michelinLevel"
+          bindinput="onFieldInput"
+        />
+      </view>
+    </view>
+    <view class="grid" wx:if="{{recordType === 'restaurant'}}">
+      <view class="field">
+        <view class="field-label">餐段</view>
+        <input
+          class="input"
+          disabled="{{mode === 'detail'}}"
+          placeholder="午餐/晚餐"
+          value="{{form.mealPeriod}}"
+          data-field="mealPeriod"
+          bindinput="onFieldInput"
+        />
+      </view>
+      <view class="field">
+        <view class="field-label">人均/套餐</view>
+        <input
+          class="input"
+          disabled="{{mode === 'detail'}}"
+          placeholder="¥800/人"
+          value="{{form.priceRange}}"
+          data-field="priceRange"
+          bindinput="onFieldInput"
+        />
+      </view>
+    </view>
+  </view>
+
+  <view class="section" wx:for="{{categories}}" wx:key="key">
+    <view class="category-head">
+      <view>
+        <view class="category-title">{{item.title}}</view>
+        <view class="category-subtitle">{{item.subtitle}}</view>
+      </view>
+      <view class="category-score">{{form.categoryScores[item.key]}}</view>
+    </view>
+
+    <view class="metric" wx:for="{{item.metrics}}" wx:for-item="metric" wx:key="key">
+      <view class="metric-row">
+        <view class="metric-label">{{metric.label}}</view>
+        <view class="metric-value">{{form.scores[item.key][metric.key]}} / 10</view>
+      </view>
+      <slider
+        disabled="{{mode === 'detail'}}"
+        min="0"
+        max="10"
+        step="0.5"
+        value="{{form.scores[item.key][metric.key]}}"
+        activeColor="{{item.accent}}"
+        backgroundColor="#d9dee8"
+        block-size="22"
+        data-category="{{item.key}}"
+        data-metric="{{metric.key}}"
+        bindchange="onScoreChange"
+        bindchanging="onScoreChange"
+      />
+    </view>
+
+    <view class="tag-list">
+      <view
+        class="tag {{form.selectedTags[item.key].indexOf(tag) >= 0 ? 'tag-active' : ''}} {{mode === 'detail' ? 'tag-readonly' : ''}}"
+        wx:for="{{item.tags}}"
+        wx:for-item="tag"
+        wx:key="*this"
+        data-category="{{item.key}}"
+        data-tag="{{tag}}"
+        bindtap="onToggleTag"
+      >
+        {{tag}}
+      </view>
+    </view>
+  </view>
+
+  <view class="section">
+    <view class="field-label">补充观察</view>
+    <textarea
+      class="textarea"
+      disabled="{{mode === 'detail'}}"
+      placeholder="{{recordType === 'restaurant' ? '记录菜品亮点、服务节奏、酒水搭配、订位难度等细节' : '记录排队情况、会员识别、儿童友好度、拍照点等细节'}}"
+      value="{{form.note}}"
+      maxlength="300"
+      data-field="note"
+      bindinput="onFieldInput"
+    />
+  </view>
+
+  <view class="actions" wx:if="{{mode === 'create'}}">
+    <button class="button primary" bindtap="saveRecord">保存记录</button>
+  </view>
+
+  <view class="actions detail-actions" wx:if="{{mode === 'detail'}}">
+    <button class="button danger" bindtap="deleteRecord">删除记录</button>
+  </view>
+</scroll-view>

@@ -1,0 +1,9 @@
+{
+  "usingComponents": {
+    "loading2": "../../components/loading2",
+    "operate-list": "../../components/operate-list",
+    "webar-live-pusher": "plugin://webarPlugin/webar-live-pusher"
+  },
+  "disableScroll": true,
+  "navigationStyle": "custom"
+}

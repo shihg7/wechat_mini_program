@@ -337,6 +337,11 @@ page {
   color: #a35b12;
 }
 
+.status-public {
+  background: #e6efff;
+  color: #2864d9;
+}
+
 .record-meta,
 .record-note {
   color: #667085;

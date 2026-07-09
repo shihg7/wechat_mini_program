@@ -64,7 +64,7 @@
   </view>
 
   <view class="insight" wx:if="{{summary.total}}">
-    <view class="insight-line">酒店：{{summary.hotelTotal}} 条 · 米其林餐厅：{{summary.restaurantTotal}} 条 · 草稿：{{summary.draftTotal}} 条</view>
+    <view class="insight-line">酒店：{{summary.hotelTotal}} 条 · 米其林餐厅：{{summary.restaurantTotal}} 条 · 草稿：{{summary.draftTotal}} 条 · 公开预备：{{summary.publicTotal}} 条</view>
     <view class="insight-line">最近记录：{{summary.latestRecordName}}</view>
     <view class="insight-line">最高评分：{{summary.bestRecordName}}</view>
   </view>
@@ -111,10 +111,11 @@
         <view>
           <text class="record-type">{{item.typeLabel}}</text>
           <text class="record-status {{item.status === 'draft' ? 'status-draft' : ''}}">{{item.statusLabel}}</text>
+          <text class="record-status {{item.visibility === 'public' ? 'status-public' : ''}}">{{item.visibilityLabel}}</text>
         </view>
         <view class="record-title">{{item.displayName}}</view>
-        <view class="record-meta">{{item.city || "未填写城市"}} · {{item.stayDate || "未填写日期"}}</view>
-        <view class="record-note">{{item.verdict}}</view>
+        <view class="record-meta">{{item.city || "未填写城市"}} · {{item.stayDate || "未填写日期"}} · {{item.publishStatusLabel}}</view>
+        <view class="record-note">{{item.publicNote || item.verdict}}</view>
       </view>
       <view class="record-score">{{item.overallScore}}</view>
     </view>

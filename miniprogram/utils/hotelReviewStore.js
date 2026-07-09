@@ -14,6 +14,37 @@ function clone(value) {
   return JSON.parse(JSON.stringify(value));
 }
 
+function normalizeVisibility(value) {
+  if (value === "public" || value === "unlisted") return value;
+  return "private";
+}
+
+function getVisibilityLabel(value) {
+  if (value === "public") return "公开";
+  if (value === "unlisted") return "不公开列表";
+  return "私密";
+}
+
+function normalizePublishStatus(value) {
+  if (value === "pending" || value === "published" || value === "rejected" || value === "hidden") return value;
+  return "local";
+}
+
+function getPublishStatusLabel(value) {
+  if (value === "pending") return "待审核";
+  if (value === "published") return "已发布";
+  if (value === "rejected") return "已驳回";
+  if (value === "hidden") return "已隐藏";
+  return "仅本地";
+}
+
+function getVisitMonth(stayDate, inputMonth) {
+  const month = String(inputMonth || "").trim();
+  if (/^\d{4}-\d{2}$/.test(month)) return month;
+  const date = String(stayDate || "").trim();
+  return date.length >= 7 ? date.slice(0, 7) : "";
+}
+
 function normalizeRecord(input = {}) {
   const recordType = input.recordType || "hotel";
   const typeConfig = getTypeConfig(recordType);
@@ -22,15 +53,27 @@ function normalizeRecord(input = {}) {
   const hotelName = String(input.hotelName || "").trim();
   const restaurantName = String(input.restaurantName || "").trim();
   const status = input.status === "draft" ? "draft" : "completed";
+  const placeName = String(input.placeName || getRecordTitle({ recordType, hotelName, restaurantName })).trim();
+  const visibility = normalizeVisibility(input.visibility);
+  const publishStatus = normalizePublishStatus(input.publishStatus);
+  const privateNote = String(input.privateNote || input.note || "").trim();
+  const publicNote = String(input.publicNote || "").trim();
+  const stayDate = String(input.stayDate || "").trim();
   return {
     id: String(input.id || Date.now()),
+    cloudRecordId: input.cloudRecordId ? String(input.cloudRecordId) : "",
+    publicReviewId: input.publicReviewId ? String(input.publicReviewId) : "",
+    placeId: input.placeId ? String(input.placeId) : "",
+    placeName,
+    placeAlias: String(input.placeAlias || "").trim(),
     recordType,
     typeLabel: typeConfig.label,
     hotelName,
     restaurantName,
     displayName: getRecordTitle({ recordType, hotelName, restaurantName }),
     city: String(input.city || "").trim(),
-    stayDate: String(input.stayDate || "").trim(),
+    stayDate,
+    visitMonth: getVisitMonth(stayDate, input.visitMonth),
     roomType: String(input.roomType || "").trim(),
     memberLevel: String(input.memberLevel || "").trim(),
     cuisine: String(input.cuisine || "").trim(),
@@ -44,7 +87,13 @@ function normalizeRecord(input = {}) {
     customTags: Array.isArray(input.customTags)
       ? input.customTags.map((tag) => String(tag).trim()).filter(Boolean)
       : [],
-    note: String(input.note || "").trim(),
+    note: privateNote,
+    privateNote,
+    publicNote,
+    visibility,
+    visibilityLabel: getVisibilityLabel(visibility),
+    publishStatus,
+    publishStatusLabel: getPublishStatusLabel(publishStatus),
     status,
     statusLabel: status === "draft" ? "草稿" : "已完成",
     createdAt: input.createdAt || new Date().toISOString(),
@@ -105,6 +154,10 @@ function duplicateRecord(id) {
   return addRecord({
     ...source,
     sourceRecordId: source.id,
+    cloudRecordId: "",
+    publicReviewId: "",
+    publishStatus: "local",
+    visibility: "private",
     note: source.note
   });
 }
@@ -126,6 +179,7 @@ function getSummary(records = getRecords()) {
       hotelTotal: 0,
       restaurantTotal: 0,
       draftTotal: 0,
+      publicTotal: 0,
       cityTotal: 0,
       averageScore: 0,
       bestHotelName: "",
@@ -149,6 +203,7 @@ function getSummary(records = getRecords()) {
     hotelTotal: records.filter((record) => record.recordType !== "restaurant").length,
     restaurantTotal: records.filter((record) => record.recordType === "restaurant").length,
     draftTotal: records.filter((record) => record.status === "draft").length,
+    publicTotal: records.filter((record) => record.visibility === "public").length,
     cityTotal: getUniqueCities(records).length,
     averageScore: scoredRecords.length ? roundScore(totalScore / scoredRecords.length) : 0,
     bestHotelName: bestRecord.displayName,
@@ -163,8 +218,11 @@ function getSearchText(record) {
     record.displayName,
     record.hotelName,
     record.restaurantName,
+    record.placeName,
+    record.placeAlias,
     record.city,
     record.stayDate,
+    record.visitMonth,
     record.roomType,
     record.memberLevel,
     record.cuisine,
@@ -173,7 +231,11 @@ function getSearchText(record) {
     record.priceRange,
     record.verdict,
     record.statusLabel,
+    record.visibilityLabel,
+    record.publishStatusLabel,
     record.note,
+    record.privateNote,
+    record.publicNote,
     (record.customTags || []).join(" "),
     Object.keys(record.selectedTags || {}).map((key) => (record.selectedTags[key] || []).join(" ")).join(" ")
   ].join(" ").toLowerCase();
@@ -194,7 +256,11 @@ function searchAndSortRecords(records, filters = {}) {
   }
 
   if (keyword) {
-    result = result.filter((record) => getSearchText(record).indexOf(keyword) >= 0);
+    const terms = keyword.split(/\s+/).filter(Boolean);
+    result = result.filter((record) => {
+      const searchText = getSearchText(record);
+      return terms.every((term) => searchText.indexOf(term) >= 0);
+    });
   }
 
   if (activeStatus === "draft") {
@@ -331,6 +397,7 @@ function exportBackup(records = getRecords()) {
     version: 1,
     app: "experience-review-miniprogram",
     exportedAt: new Date().toISOString(),
+    recordCount: records.length,
     records: records.map(normalizeRecord)
   };
   const filePath = `${wx.env.USER_DATA_PATH}/experience-review-backup.json`;

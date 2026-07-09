@@ -49,6 +49,7 @@ Page({
       hotelTotal: 0,
       restaurantTotal: 0,
       draftTotal: 0,
+      publicTotal: 0,
       cityTotal: 0,
       averageScore: 0,
       bestHotelName: "",

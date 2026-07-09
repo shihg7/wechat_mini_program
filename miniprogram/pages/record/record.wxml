@@ -39,6 +39,30 @@
     </view>
     <view class="grid">
       <view class="field">
+        <view class="field-label">标准地点名</view>
+        <input
+          class="input"
+          disabled="{{isReadonly}}"
+          placeholder="未来用于合并同一家酒店/餐厅"
+          value="{{form.placeName}}"
+          data-field="placeName"
+          bindinput="onFieldInput"
+        />
+      </view>
+      <view class="field">
+        <view class="field-label">地点别名</view>
+        <input
+          class="input"
+          disabled="{{isReadonly}}"
+          placeholder="英文名/简称/商圈名"
+          value="{{form.placeAlias}}"
+          data-field="placeAlias"
+          bindinput="onFieldInput"
+        />
+      </view>
+    </view>
+    <view class="grid">
+      <view class="field">
         <view class="field-label">城市/地区</view>
         <input
           class="input"
@@ -221,6 +245,34 @@
       data-field="note"
       bindinput="onFieldInput"
     />
+  </view>
+
+  <view class="section">
+    <view class="field-label">公开测评设置</view>
+    <view class="visibility-tabs">
+      <view class="visibility-tab {{form.visibility === 'private' ? 'visibility-active' : ''}}" data-visibility="private" bindtap="onVisibilityChange">私密</view>
+      <view class="visibility-tab {{form.visibility === 'unlisted' ? 'visibility-active' : ''}}" data-visibility="unlisted" bindtap="onVisibilityChange">链接可见</view>
+      <view class="visibility-tab {{form.visibility === 'public' ? 'visibility-active' : ''}}" data-visibility="public" bindtap="onVisibilityChange">公开</view>
+    </view>
+    <textarea
+      class="textarea public-textarea"
+      disabled="{{isReadonly}}"
+      placeholder="公开摘要，只写愿意给别人看的内容；精确日期、会员等级、价格默认不应写在这里"
+      value="{{form.publicNote}}"
+      maxlength="180"
+      data-field="publicNote"
+      bindinput="onFieldInput"
+    />
+    <view class="public-preview">
+      <view class="preview-head">
+        <view class="preview-title">{{publicPreview.title}}</view>
+        <view class="preview-score">{{form.overallScore}}</view>
+      </view>
+      <view class="preview-meta">{{publicPreview.typeLabel}} · {{form.city || "未填写城市"}} · {{publicPreview.visitMonth}}</view>
+      <view class="preview-note">{{publicPreview.summary}}</view>
+      <view class="preview-tags">{{publicPreview.tags}}</view>
+    </view>
+    <view class="privacy-hint">公开预览不会展示精确日期、会员等级、价格和私密备注；这些字段未来只进入私有同步。</view>
   </view>
 
   <view class="actions" wx:if="{{mode === 'create' || mode === 'edit'}}">

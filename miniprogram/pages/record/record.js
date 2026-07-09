@@ -23,8 +23,14 @@ function buildInitialForm(recordType = "hotel") {
     recordType,
     hotelName: "",
     restaurantName: "",
+    placeId: "",
+    placeName: "",
+    placeAlias: "",
+    cloudRecordId: "",
+    publicReviewId: "",
     city: "",
     stayDate: "",
+    visitMonth: "",
     roomType: "",
     memberLevel: "",
     cuisine: "",
@@ -32,6 +38,10 @@ function buildInitialForm(recordType = "hotel") {
     mealPeriod: "",
     priceRange: "",
     note: "",
+    privateNote: "",
+    publicNote: "",
+    visibility: "private",
+    publishStatus: "local",
     scores,
     selectedTags: buildSelectedTags(recordType),
     customTags: [],
@@ -55,6 +65,20 @@ function buildScoreBars(form) {
       percent: Math.max(0, Math.min(100, score * 10))
     };
   });
+}
+
+function buildPublicPreview(form) {
+  const typeConfig = getTypeConfig(form.recordType);
+  const tags = Object.keys(form.selectedTags || {}).reduce((items, key) => {
+    return items.concat(form.selectedTags[key] || []);
+  }, []).concat(form.customTags || []);
+  return {
+    title: form.placeName || getRecordTitle(form),
+    typeLabel: typeConfig.label,
+    visitMonth: form.visitMonth || (form.stayDate ? form.stayDate.slice(0, 7) : "未填写月份"),
+    summary: form.publicNote || form.verdict || "暂无公开摘要",
+    tags: tags.slice(0, 8).join("、") || "暂无标签"
+  };
 }
 
 function getPageText(mode, recordType, form = {}, isQuick = false) {
@@ -93,7 +117,8 @@ Page({
     form: buildInitialForm(),
     originalForm: null,
     customTagInput: "",
-    scoreBars: buildScoreBars(buildInitialForm())
+    scoreBars: buildScoreBars(buildInitialForm()),
+    publicPreview: buildPublicPreview(buildInitialForm())
   },
 
   onLoad(options) {
@@ -119,7 +144,8 @@ Page({
       form,
       originalForm: JSON.stringify(form),
       customTagInput: "",
-      scoreBars: buildScoreBars(form)
+      scoreBars: buildScoreBars(form),
+      publicPreview: buildPublicPreview(form)
     });
     this.disableLeaveAlert();
   },
@@ -157,7 +183,8 @@ Page({
       form,
       originalForm: JSON.stringify(form),
       customTagInput: "",
-      scoreBars: buildScoreBars(form)
+      scoreBars: buildScoreBars(form),
+      publicPreview: buildPublicPreview(form)
     });
     this.disableLeaveAlert();
   },
@@ -198,7 +225,8 @@ Page({
       hasUnsavedChanges: false,
       pageText: getPageText("detail", this.data.recordType, form),
       form,
-      scoreBars: buildScoreBars(form)
+      scoreBars: buildScoreBars(form),
+      publicPreview: buildPublicPreview(form)
     });
     this.disableLeaveAlert();
   },
@@ -228,16 +256,27 @@ Page({
   onFieldInput(event) {
     if (this.data.isReadonly) return;
     const { field } = event.currentTarget.dataset;
-    this.setData({
+    const updates = {
       [`form.${field}`]: event.detail.value
-    }, () => this.markDirty());
+    };
+    if (field === "note") {
+      updates["form.privateNote"] = event.detail.value;
+    }
+    this.setData(updates, () => {
+      this.setData({ publicPreview: buildPublicPreview(this.data.form) });
+      this.markDirty();
+    });
   },
 
   onDateChange(event) {
     if (this.data.isReadonly) return;
     this.setData({
-      "form.stayDate": event.detail.value
-    }, () => this.markDirty());
+      "form.stayDate": event.detail.value,
+      "form.visitMonth": event.detail.value ? event.detail.value.slice(0, 7) : ""
+    }, () => {
+      this.setData({ publicPreview: buildPublicPreview(this.data.form) });
+      this.markDirty();
+    });
   },
 
   onScoreChange(event) {
@@ -258,7 +297,10 @@ Page({
         categoryScores: getCategoryScores(scores, recordType),
         overallScore
       })
-    }, () => this.markDirty());
+    }, () => {
+      this.setData({ publicPreview: buildPublicPreview(this.data.form) });
+      this.markDirty();
+    });
   },
 
   onToggleTag(event) {
@@ -271,6 +313,16 @@ Page({
       : current.concat(tag);
     this.setData({
       "form.selectedTags": selectedTags
+    }, () => {
+      this.setData({ publicPreview: buildPublicPreview(this.data.form) });
+      this.markDirty();
+    });
+  },
+
+  onVisibilityChange(event) {
+    if (this.data.isReadonly) return;
+    this.setData({
+      "form.visibility": event.currentTarget.dataset.visibility || "private"
     }, () => this.markDirty());
   },
 
@@ -297,7 +349,10 @@ Page({
     this.setData({
       "form.customTags": customTags.concat(tag),
       customTagInput: ""
-    }, () => this.markDirty());
+    }, () => {
+      this.setData({ publicPreview: buildPublicPreview(this.data.form) });
+      this.markDirty();
+    });
   },
 
   removeCustomTag(event) {
@@ -306,7 +361,10 @@ Page({
     const customTags = (this.data.form.customTags || []).filter((item) => item !== tag);
     this.setData({
       "form.customTags": customTags
-    }, () => this.markDirty());
+    }, () => {
+      this.setData({ publicPreview: buildPublicPreview(this.data.form) });
+      this.markDirty();
+    });
   },
 
   saveRecord(event) {
@@ -322,6 +380,9 @@ Page({
     }
     const nextForm = {
       ...this.data.form,
+      placeName: this.data.form.placeName || title,
+      privateNote: this.data.form.note,
+      visitMonth: this.data.form.visitMonth || (this.data.form.stayDate ? this.data.form.stayDate.slice(0, 7) : ""),
       status: targetStatus || this.data.form.status || "completed"
     };
 
@@ -338,7 +399,8 @@ Page({
         form,
         pageText: getPageText("detail", updated.recordType, form),
         originalForm: JSON.stringify(form),
-        scoreBars: buildScoreBars(form)
+        scoreBars: buildScoreBars(form),
+        publicPreview: buildPublicPreview(form)
       });
       this.disableLeaveAlert();
       wx.showToast({

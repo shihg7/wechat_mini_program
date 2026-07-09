@@ -1,7 +1,10 @@
 {
   "pages": [
     "pages/index/index",
-    "pages/record/record"
+    "pages/record/record",
+    "pages/ledger/index/index",
+    "pages/ledger/edit/edit",
+    "pages/ledger/detail/detail"
   ],
   "window": {
     "backgroundTextStyle": "light",

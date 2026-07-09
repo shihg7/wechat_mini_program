@@ -1,0 +1,38 @@
+<view class="page">
+  <view class="topbar">
+    <view>
+      <view class="eyebrow">SPLIT LEDGER</view>
+      <view class="title">AA 账本</view>
+    </view>
+    <button class="icon-button" bindtap="createLedger">+</button>
+  </view>
+
+  <view class="hero">
+    <view class="summary-item">
+      <view class="summary-value">{{totalCount}}</view>
+      <view class="summary-label">账本</view>
+    </view>
+    <view class="summary-text">记录多人旅行支出，自动算出谁该给谁多少钱。</view>
+  </view>
+
+  <view class="empty" wx:if="{{!ledgers.length}}">
+    <view class="empty-title">还没有账本</view>
+    <view class="empty-desc">新建一次旅行或活动，添加成员后就可以开始记 AA 支出了。</view>
+    <button class="button primary empty-button" bindtap="createLedger">新建账本</button>
+  </view>
+
+  <view class="ledger-card" wx:for="{{ledgers}}" wx:key="id" data-id="{{item.id}}" bindtap="goDetail">
+    <view class="ledger-main">
+      <view class="ledger-title">{{item.title || "未命名账本"}}</view>
+      <view class="ledger-meta">{{item.city || "未填写城市"}} · {{item.memberCount}} 人 · {{item.expenseCount}} 笔</view>
+      <view class="ledger-date">{{item.startDate || "未填写开始日期"}} - {{item.endDate || "未填写结束日期"}}</view>
+    </view>
+    <view class="ledger-side">
+      <view class="ledger-total">{{item.totalText}}</view>
+      <view class="mini-actions">
+        <view class="mini-link" catchtap="editLedger" data-id="{{item.id}}">编辑</view>
+        <view class="mini-danger" catchtap="removeLedger" data-id="{{item.id}}">删除</view>
+      </view>
+    </view>
+  </view>
+</view>

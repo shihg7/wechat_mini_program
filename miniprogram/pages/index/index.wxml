@@ -30,6 +30,7 @@
     <button class="button secondary" bindtap="goQuickCreate">快速记录</button>
   </view>
   <view class="quick-actions compact-actions">
+    <button class="button secondary" bindtap="goLedgers">AA 账本</button>
     <button class="button secondary" loading="{{exporting}}" bindtap="exportPdf">导出 PDF</button>
     <button class="button secondary" bindtap="exportJson">备份 JSON</button>
     <button class="button secondary" bindtap="importJson">恢复 JSON</button>

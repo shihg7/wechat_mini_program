@@ -1,0 +1,187 @@
+page {
+  background: #eef2f5;
+  color: #172033;
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", Arial, sans-serif;
+}
+
+.page {
+  min-height: 100vh;
+  box-sizing: border-box;
+  padding: 36rpx 28rpx calc(env(safe-area-inset-bottom) + 48rpx);
+}
+
+.topbar,
+.hero,
+.ledger-card,
+.mini-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.eyebrow {
+  color: #667085;
+  font-size: 22rpx;
+  line-height: 32rpx;
+}
+
+.title {
+  margin-top: 8rpx;
+  font-size: 48rpx;
+  font-weight: 800;
+  line-height: 64rpx;
+}
+
+.icon-button {
+  width: 76rpx;
+  height: 76rpx;
+  border-radius: 8rpx;
+  background: #172033;
+  color: #ffffff;
+  font-size: 42rpx;
+  line-height: 72rpx;
+  text-align: center;
+  padding: 0;
+}
+
+.icon-button::after,
+.button::after {
+  border: none;
+}
+
+.hero {
+  gap: 28rpx;
+  margin-top: 32rpx;
+  padding: 34rpx 30rpx;
+  border-radius: 8rpx;
+  background: #172033;
+  color: #ffffff;
+}
+
+.summary-item {
+  width: 150rpx;
+  text-align: center;
+}
+
+.summary-value {
+  font-size: 56rpx;
+  font-weight: 800;
+  line-height: 66rpx;
+}
+
+.summary-label {
+  margin-top: 8rpx;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 24rpx;
+  line-height: 34rpx;
+}
+
+.summary-text {
+  flex: 1;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 26rpx;
+  line-height: 40rpx;
+}
+
+.empty,
+.ledger-card {
+  margin-top: 22rpx;
+  border-radius: 8rpx;
+  background: #ffffff;
+}
+
+.empty {
+  padding: 58rpx 38rpx;
+  text-align: center;
+}
+
+.empty-title {
+  font-size: 32rpx;
+  font-weight: 800;
+  line-height: 44rpx;
+}
+
+.empty-desc {
+  margin-top: 14rpx;
+  color: #667085;
+  font-size: 26rpx;
+  line-height: 40rpx;
+}
+
+.empty-button {
+  margin-top: 30rpx;
+}
+
+.button {
+  height: 88rpx;
+  border-radius: 8rpx;
+  font-size: 28rpx;
+  font-weight: 800;
+  line-height: 88rpx;
+}
+
+.primary {
+  background: #2864d9;
+  color: #ffffff;
+}
+
+.ledger-card {
+  gap: 22rpx;
+  padding: 28rpx;
+}
+
+.ledger-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.ledger-title {
+  color: #172033;
+  font-size: 32rpx;
+  font-weight: 800;
+  line-height: 44rpx;
+  word-break: break-all;
+}
+
+.ledger-meta,
+.ledger-date {
+  color: #667085;
+  font-size: 24rpx;
+  line-height: 36rpx;
+}
+
+.ledger-meta {
+  margin-top: 8rpx;
+}
+
+.ledger-side {
+  min-width: 168rpx;
+  text-align: right;
+}
+
+.ledger-total {
+  color: #172033;
+  font-size: 30rpx;
+  font-weight: 800;
+  line-height: 42rpx;
+}
+
+.mini-actions {
+  gap: 18rpx;
+  margin-top: 12rpx;
+  justify-content: flex-end;
+}
+
+.mini-link,
+.mini-danger {
+  font-size: 24rpx;
+  line-height: 34rpx;
+}
+
+.mini-link {
+  color: #2864d9;
+}
+
+.mini-danger {
+  color: #a34b32;
+}

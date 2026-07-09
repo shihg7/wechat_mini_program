@@ -85,6 +85,8 @@ page {
 }
 
 .quick-actions {
+  display: flex;
+  flex-wrap: wrap;
   gap: 18rpx;
   margin-top: 22rpx;
   align-items: stretch;
@@ -95,6 +97,8 @@ page {
 }
 
 .button {
+  flex: 1;
+  min-width: 150rpx;
   height: 88rpx;
   border-radius: 8rpx;
   font-size: 28rpx;

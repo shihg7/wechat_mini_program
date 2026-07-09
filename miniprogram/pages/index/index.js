@@ -183,6 +183,12 @@ Page({
     });
   },
 
+  goLedgers() {
+    wx.navigateTo({
+      url: "/pages/ledger/index/index"
+    });
+  },
+
   selectCity(event) {
     const city = event.currentTarget.dataset.city || "";
     const selectedCity = this.data.selectedCity === city ? "" : city;

@@ -1,0 +1,44 @@
+<scroll-view class="page" scroll-y>
+  <view class="hero">
+    <view class="eyebrow">SPLIT LEDGER</view>
+    <view class="title">{{mode === "edit" ? "编辑账本" : "新建账本"}}</view>
+    <view class="summary">成员可以用换行、逗号或空格分隔。</view>
+  </view>
+
+  <view class="section">
+    <view class="field">
+      <view class="field-label">账本名称</view>
+      <input class="input" placeholder="例如：东京 2026" value="{{form.title}}" data-field="title" bindinput="onFieldInput" />
+    </view>
+    <view class="field">
+      <view class="field-label">城市/目的地</view>
+      <input class="input" placeholder="东京" value="{{form.city}}" data-field="city" bindinput="onFieldInput" />
+    </view>
+    <view class="grid">
+      <view class="field">
+        <view class="field-label">开始日期</view>
+        <picker mode="date" value="{{form.startDate}}" bindchange="onStartDateChange">
+          <view class="input picker-value">{{form.startDate || "选择日期"}}</view>
+        </picker>
+      </view>
+      <view class="field">
+        <view class="field-label">结束日期</view>
+        <picker mode="date" value="{{form.endDate}}" bindchange="onEndDateChange">
+          <view class="input picker-value">{{form.endDate || "选择日期"}}</view>
+        </picker>
+      </view>
+    </view>
+    <view class="field">
+      <view class="field-label">成员</view>
+      <textarea class="textarea members-textarea" placeholder="我&#10;朋友A&#10;朋友B" value="{{form.membersText}}" data-field="membersText" bindinput="onFieldInput" />
+    </view>
+    <view class="field">
+      <view class="field-label">备注</view>
+      <textarea class="textarea" placeholder="可选：行程说明、结算约定等" value="{{form.note}}" data-field="note" bindinput="onFieldInput" />
+    </view>
+  </view>
+
+  <view class="actions">
+    <button class="button primary" bindtap="saveLedger">{{mode === "edit" ? "保存修改" : "创建账本"}}</button>
+  </view>
+</scroll-view>

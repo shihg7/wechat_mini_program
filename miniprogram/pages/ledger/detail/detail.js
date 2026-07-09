@@ -52,7 +52,8 @@ Page({
     expenseForm: null,
     memberOptions: [],
     editingExpenseId: "",
-    participantSummary: ""
+    participantSummary: "",
+    showExpenseForm: false
   },
 
   onLoad(options) {
@@ -90,6 +91,23 @@ Page({
   editLedger() {
     wx.navigateTo({
       url: `/pages/ledger/edit/edit?id=${this.data.ledgerId}`
+    });
+  },
+
+  openExpenseForm() {
+    this.setData({
+      showExpenseForm: true
+    });
+    wx.pageScrollTo({
+      scrollTop: 260,
+      duration: 180
+    });
+  },
+
+  closeExpenseForm() {
+    this.resetExpenseForm();
+    this.setData({
+      showExpenseForm: false
     });
   },
 
@@ -199,6 +217,7 @@ Page({
       addExpense(this.data.ledgerId, payload);
     }
     this.resetExpenseForm();
+    this.setData({ showExpenseForm: false });
     this.refreshLedger(this.data.ledgerId);
     wx.showToast({
       title: wasEditing ? "已更新" : "已记一笔",
@@ -214,11 +233,12 @@ Page({
     this.setData({
       expenseForm,
       editingExpenseId: expense.id,
+      showExpenseForm: true,
       memberOptions: buildMemberOptions(this.data.ledger.members, expenseForm.participantValues),
       participantSummary: `${expenseForm.participantValues.length}/${this.data.ledger.members.length} 人参与`
     });
     wx.pageScrollTo({
-      scrollTop: 0,
+      scrollTop: 260,
       duration: 200
     });
   },

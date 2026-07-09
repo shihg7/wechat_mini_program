@@ -1,6 +1,6 @@
 <scroll-view class="page" scroll-y wx:if="{{ledger}}">
   <view class="hero">
-    <view>
+    <view class="hero-main">
       <view class="eyebrow">SPLIT LEDGER</view>
       <view class="title">{{ledger.title}}</view>
       <view class="summary">{{ledger.city || "未填写城市"}} · {{ledger.members.length}} 人 · {{summary.expenseCount}} 笔</view>
@@ -11,45 +11,68 @@
     </view>
   </view>
 
-  <view class="actions">
+  <view class="overview-grid">
+    <view class="overview-item">
+      <view class="overview-value">{{summary.averageText}}</view>
+      <view class="overview-label">人均</view>
+    </view>
+    <view class="overview-item">
+      <view class="overview-value">{{settlements.length}}</view>
+      <view class="overview-label">待转账</view>
+    </view>
+    <view class="overview-item">
+      <view class="overview-value">{{summary.categories.length}}</view>
+      <view class="overview-label">分类</view>
+    </view>
+  </view>
+
+  <view class="quick-actions">
+    <button class="button primary" bindtap="openExpenseForm">{{showExpenseForm ? "继续填写" : "记一笔支出"}}</button>
     <button class="button secondary" bindtap="editLedger">编辑账本</button>
   </view>
 
-  <view class="section">
+  <view class="section form-section" wx:if="{{showExpenseForm}}">
     <view class="section-head">
-      <view class="section-title">{{editingExpenseId ? "编辑支出" : "记一笔支出"}}</view>
-      <view class="section-subtitle">{{editingExpenseId ? "正在修改已有支出" : "付款人可以不同于参与平分人"}}</view>
+      <view>
+        <view class="section-title">{{editingExpenseId ? "编辑支出" : "记一笔支出"}}</view>
+        <view class="section-subtitle">{{editingExpenseId ? "修改后会重新计算结算" : "只选择实际参与平分的人"}}</view>
+      </view>
+      <view class="close-link" bindtap="closeExpenseForm">收起</view>
     </view>
+
     <view class="field">
       <view class="field-label">支出名称</view>
       <input class="input" placeholder="例如：晚餐 / 酒店 / 打车" value="{{expenseForm.title}}" data-field="title" bindinput="onExpenseInput" />
     </view>
-    <view class="grid">
-      <view class="field">
+
+    <view class="amount-row">
+      <view class="field amount-field">
         <view class="field-label">金额</view>
-        <input class="input" type="digit" placeholder="1200.00" value="{{expenseForm.amount}}" data-field="amount" bindinput="onExpenseInput" />
+        <input class="input amount-input" type="digit" placeholder="1200.00" value="{{expenseForm.amount}}" data-field="amount" bindinput="onExpenseInput" />
       </view>
-      <view class="field">
+      <view class="field payer-field">
         <view class="field-label">付款人</view>
         <picker mode="selector" range="{{ledger.members}}" value="{{expenseForm.payerIndex}}" bindchange="onPayerChange">
           <view class="input picker-value">{{expenseForm.payerName}}</view>
         </picker>
       </view>
     </view>
-    <view class="grid">
-      <view class="field">
+
+    <view class="split-row">
+      <view class="field split-field">
         <view class="field-label">分类</view>
         <picker mode="selector" range="{{categories}}" value="{{expenseForm.categoryIndex}}" bindchange="onCategoryChange">
           <view class="input picker-value">{{expenseForm.categoryName}}</view>
         </picker>
       </view>
-      <view class="field">
+      <view class="field split-field">
         <view class="field-label">日期</view>
         <picker mode="date" value="{{expenseForm.paidAt}}" bindchange="onPaidAtChange">
           <view class="input picker-value">{{expenseForm.paidAt || "选择日期"}}</view>
         </picker>
       </view>
     </view>
+
     <view class="field">
       <view class="participant-head">
         <view class="field-label">参与平分人 · {{participantSummary}}</view>
@@ -65,33 +88,41 @@
         </label>
       </checkbox-group>
     </view>
+
     <view class="field">
       <view class="field-label">备注</view>
       <input class="input" placeholder="可选" value="{{expenseForm.note}}" data-field="note" bindinput="onExpenseInput" />
     </view>
-    <button class="button primary save-expense" bindtap="saveExpense">{{editingExpenseId ? "保存修改" : "保存支出"}}</button>
-    <button class="button secondary reset-expense" wx:if="{{editingExpenseId}}" bindtap="resetExpenseForm">取消编辑</button>
+
+    <view class="form-actions">
+      <button class="button primary" bindtap="saveExpense">{{editingExpenseId ? "保存修改" : "保存支出"}}</button>
+      <button class="button secondary" wx:if="{{editingExpenseId}}" bindtap="resetExpenseForm">取消编辑</button>
+    </view>
   </view>
 
-  <view class="section">
+  <view class="section priority-section">
     <view class="section-head">
-      <view class="section-title">分类统计</view>
-      <view class="section-subtitle">{{summary.categories.length}} 类</view>
-    </view>
-    <view class="empty-inner" wx:if="{{!summary.categories.length}}">还没有分类支出。</view>
-    <view class="category-row" wx:for="{{summary.categories}}" wx:key="category">
       <view>
-        <view class="member-name">{{item.category}}</view>
-        <view class="member-meta">{{item.count}} 笔</view>
+        <view class="section-title">结算建议</view>
+        <view class="section-subtitle">{{settlements.length ? "按最少转账次数撮合" : "当前无需转账"}}</view>
       </view>
-      <view class="expense-amount">{{item.totalText}}</view>
+    </view>
+    <view class="empty-inner" wx:if="{{!settlements.length}}">账目已经平衡。</view>
+    <view class="settlement" wx:for="{{settlements}}" wx:key="text">
+      <view>
+        <view class="settlement-flow">{{item.from}} → {{item.to}}</view>
+        <view class="settlement-hint">建议转账</view>
+      </view>
+      <view class="settlement-amount">{{item.amountText}}</view>
     </view>
   </view>
 
   <view class="section">
     <view class="section-head">
-      <view class="section-title">成员净额</view>
-      <view class="section-subtitle">正数表示应收，负数表示应付</view>
+      <view>
+        <view class="section-title">成员净额</view>
+        <view class="section-subtitle">正数应收，负数应付</view>
+      </view>
     </view>
     <view class="member-row" wx:for="{{summary.members}}" wx:key="name">
       <view>
@@ -104,20 +135,10 @@
 
   <view class="section">
     <view class="section-head">
-      <view class="section-title">结算建议</view>
-      <view class="section-subtitle">{{settlements.length ? "按最少转账次数撮合" : "当前无需转账"}}</view>
-    </view>
-    <view class="empty-inner" wx:if="{{!settlements.length}}">账目已经平衡。</view>
-    <view class="settlement" wx:for="{{settlements}}" wx:key="text">
-      <view class="settlement-flow">{{item.from}} → {{item.to}}</view>
-      <view class="settlement-amount">{{item.amountText}}</view>
-    </view>
-  </view>
-
-  <view class="section">
-    <view class="section-head">
-      <view class="section-title">支出明细</view>
-      <view class="section-subtitle">{{summary.expenseCount}} 笔</view>
+      <view>
+        <view class="section-title">支出明细</view>
+        <view class="section-subtitle">{{summary.expenseCount}} 笔</view>
+      </view>
     </view>
     <view class="empty-inner" wx:if="{{!ledger.expenses.length}}">还没有支出。</view>
     <view class="expense" wx:for="{{ledger.expenses}}" wx:key="id">
@@ -128,9 +149,28 @@
       </view>
       <view class="expense-side">
         <view class="expense-amount">{{item.amountText}}</view>
-        <view class="edit-link" data-id="{{item.id}}" bindtap="editExpense">编辑</view>
-        <view class="delete-link" data-id="{{item.id}}" bindtap="removeExpense">删除</view>
+        <view class="expense-actions">
+          <view class="edit-link" data-id="{{item.id}}" bindtap="editExpense">编辑</view>
+          <view class="delete-link" data-id="{{item.id}}" bindtap="removeExpense">删除</view>
+        </view>
       </view>
+    </view>
+  </view>
+
+  <view class="section">
+    <view class="section-head">
+      <view>
+        <view class="section-title">分类统计</view>
+        <view class="section-subtitle">{{summary.categories.length}} 类</view>
+      </view>
+    </view>
+    <view class="empty-inner" wx:if="{{!summary.categories.length}}">还没有分类支出。</view>
+    <view class="category-row" wx:for="{{summary.categories}}" wx:key="category">
+      <view>
+        <view class="member-name">{{item.category}}</view>
+        <view class="member-meta">{{item.count}} 笔</view>
+      </view>
+      <view class="expense-amount">{{item.totalText}}</view>
     </view>
   </view>
 </scroll-view>

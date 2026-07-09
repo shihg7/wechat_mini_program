@@ -6,20 +6,32 @@ const {
   deleteExpense,
   formatCents,
   getLedgerById,
-  parseAmountToCents
+  parseAmountToCents,
+  updateExpense
 } = require("../../../utils/tripLedgerStore");
 
-function buildExpenseForm(ledger) {
+function centsToInput(cents) {
+  const value = Number(cents || 0);
+  if (!value) return "";
+  const yuan = Math.floor(value / 100);
+  const cent = String(value % 100).padStart(2, "0");
+  return `${yuan}.${cent}`;
+}
+
+function buildExpenseForm(ledger, expense = null) {
+  const payerIndex = expense ? Math.max(0, ledger.members.indexOf(expense.payer)) : 0;
+  const categoryIndex = expense ? Math.max(0, DEFAULT_CATEGORIES.indexOf(expense.category)) : 0;
   return {
-    title: "",
-    amount: "",
-    payerIndex: 0,
-    payerName: ledger.members[0] || "",
-    participantValues: ledger.members.slice(),
-    categoryIndex: 0,
-    categoryName: DEFAULT_CATEGORIES[0],
-    paidAt: "",
-    note: ""
+    id: expense ? expense.id : "",
+    title: expense ? expense.title : "",
+    amount: expense ? centsToInput(expense.amountCents) : "",
+    payerIndex,
+    payerName: ledger.members[payerIndex] || "",
+    participantValues: expense ? expense.participants.slice() : ledger.members.slice(),
+    categoryIndex,
+    categoryName: DEFAULT_CATEGORIES[categoryIndex] || "其他",
+    paidAt: expense ? expense.paidAt : "",
+    note: expense ? expense.note : ""
   };
 }
 
@@ -38,7 +50,9 @@ Page({
     settlements: [],
     categories: DEFAULT_CATEGORIES,
     expenseForm: null,
-    memberOptions: []
+    memberOptions: [],
+    editingExpenseId: "",
+    participantSummary: ""
   },
 
   onLoad(options) {
@@ -68,7 +82,8 @@ Page({
       summary: calculateLedgerSummary(ledger),
       settlements: calculateSettlements(ledger),
       expenseForm,
-      memberOptions: buildMemberOptions(ledger.members, expenseForm.participantValues)
+      memberOptions: buildMemberOptions(ledger.members, expenseForm.participantValues),
+      participantSummary: `${expenseForm.participantValues.length}/${ledger.members.length} 人参与`
     });
   },
 
@@ -111,7 +126,25 @@ Page({
     const values = event.detail.value || [];
     this.setData({
       "expenseForm.participantValues": values,
-      memberOptions: buildMemberOptions(this.data.ledger.members, values)
+      memberOptions: buildMemberOptions(this.data.ledger.members, values),
+      participantSummary: `${values.length}/${this.data.ledger.members.length} 人参与`
+    });
+  },
+
+  selectAllParticipants() {
+    const values = this.data.ledger.members.slice();
+    this.setData({
+      "expenseForm.participantValues": values,
+      memberOptions: buildMemberOptions(this.data.ledger.members, values),
+      participantSummary: `${values.length}/${this.data.ledger.members.length} 人参与`
+    });
+  },
+
+  clearParticipants() {
+    this.setData({
+      "expenseForm.participantValues": [],
+      memberOptions: buildMemberOptions(this.data.ledger.members, []),
+      participantSummary: `0/${this.data.ledger.members.length} 人参与`
     });
   },
 
@@ -119,7 +152,9 @@ Page({
     const expenseForm = buildExpenseForm(this.data.ledger);
     this.setData({
       expenseForm,
-      memberOptions: buildMemberOptions(this.data.ledger.members, expenseForm.participantValues)
+      editingExpenseId: "",
+      memberOptions: buildMemberOptions(this.data.ledger.members, expenseForm.participantValues),
+      participantSummary: `${expenseForm.participantValues.length}/${this.data.ledger.members.length} 人参与`
     });
   },
 
@@ -148,7 +183,7 @@ Page({
       return;
     }
 
-    addExpense(this.data.ledgerId, {
+    const payload = {
       title: form.title,
       amountCents,
       payer: this.data.ledger.members[form.payerIndex] || this.data.ledger.members[0],
@@ -156,12 +191,35 @@ Page({
       category: this.data.categories[form.categoryIndex] || "其他",
       paidAt: form.paidAt,
       note: form.note
-    });
+    };
+    const wasEditing = !!this.data.editingExpenseId;
+    if (wasEditing) {
+      updateExpense(this.data.ledgerId, this.data.editingExpenseId, payload);
+    } else {
+      addExpense(this.data.ledgerId, payload);
+    }
     this.resetExpenseForm();
     this.refreshLedger(this.data.ledgerId);
     wx.showToast({
-      title: "已记一笔",
+      title: wasEditing ? "已更新" : "已记一笔",
       icon: "success"
+    });
+  },
+
+  editExpense(event) {
+    const expenseId = event.currentTarget.dataset.id;
+    const expense = this.data.ledger.expenses.find((item) => String(item.id) === String(expenseId));
+    if (!expense) return;
+    const expenseForm = buildExpenseForm(this.data.ledger, expense);
+    this.setData({
+      expenseForm,
+      editingExpenseId: expense.id,
+      memberOptions: buildMemberOptions(this.data.ledger.members, expenseForm.participantValues),
+      participantSummary: `${expenseForm.participantValues.length}/${this.data.ledger.members.length} 人参与`
+    });
+    wx.pageScrollTo({
+      scrollTop: 0,
+      duration: 200
     });
   },
 

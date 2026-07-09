@@ -24,7 +24,7 @@
   <view class="ledger-card" wx:for="{{ledgers}}" wx:key="id" data-id="{{item.id}}" bindtap="goDetail">
     <view class="ledger-main">
       <view class="ledger-title">{{item.title || "未命名账本"}}</view>
-      <view class="ledger-meta">{{item.city || "未填写城市"}} · {{item.memberCount}} 人 · {{item.expenseCount}} 笔</view>
+      <view class="ledger-meta">{{item.city || "未填写城市"}} · {{item.memberCount}} 人 · {{item.expenseCount}} 笔 · {{item.settlementCount}} 笔转账</view>
       <view class="ledger-date">{{item.startDate || "未填写开始日期"}} - {{item.endDate || "未填写结束日期"}}</view>
     </view>
     <view class="ledger-side">

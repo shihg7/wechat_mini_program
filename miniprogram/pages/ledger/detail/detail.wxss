@@ -79,7 +79,10 @@ page {
 .section-head,
 .member-row,
 .settlement,
-.expense {
+.expense,
+.category-row,
+.participant-head,
+.participant-actions {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -140,6 +143,18 @@ page {
   gap: 14rpx;
 }
 
+.participant-head {
+  margin-bottom: 12rpx;
+}
+
+.participant-head .field-label {
+  margin-bottom: 0;
+}
+
+.participant-actions {
+  gap: 18rpx;
+}
+
 .member-check {
   min-height: 60rpx;
   padding: 0 18rpx;
@@ -181,9 +196,14 @@ page {
   margin-top: 24rpx;
 }
 
+.reset-expense {
+  margin-top: 14rpx;
+}
+
 .member-row,
 .settlement,
-.expense {
+.expense,
+.category-row {
   margin-top: 18rpx;
   padding: 22rpx;
   border-radius: 8rpx;
@@ -240,11 +260,23 @@ page {
   text-align: right;
 }
 
-.delete-link {
+.edit-link,
+.delete-link,
+.mini-link,
+.mini-danger {
   margin-top: 10rpx;
-  color: #a34b32;
   font-size: 24rpx;
   line-height: 34rpx;
+}
+
+.edit-link,
+.mini-link {
+  color: #2864d9;
+}
+
+.delete-link,
+.mini-danger {
+  color: #a34b32;
 }
 
 .empty-inner {

@@ -17,8 +17,8 @@
 
   <view class="section">
     <view class="section-head">
-      <view class="section-title">记一笔支出</view>
-      <view class="section-subtitle">付款人可以不同于参与平分人</view>
+      <view class="section-title">{{editingExpenseId ? "编辑支出" : "记一笔支出"}}</view>
+      <view class="section-subtitle">{{editingExpenseId ? "正在修改已有支出" : "付款人可以不同于参与平分人"}}</view>
     </view>
     <view class="field">
       <view class="field-label">支出名称</view>
@@ -51,7 +51,13 @@
       </view>
     </view>
     <view class="field">
-      <view class="field-label">参与平分人</view>
+      <view class="participant-head">
+        <view class="field-label">参与平分人 · {{participantSummary}}</view>
+        <view class="participant-actions">
+          <view class="mini-link" bindtap="selectAllParticipants">全选</view>
+          <view class="mini-danger" bindtap="clearParticipants">清空</view>
+        </view>
+      </view>
       <checkbox-group class="member-checks" bindchange="onParticipantsChange">
         <label class="member-check" wx:for="{{memberOptions}}" wx:key="name">
           <checkbox value="{{item.name}}" checked="{{item.checked}}" color="#2864d9" />
@@ -63,7 +69,23 @@
       <view class="field-label">备注</view>
       <input class="input" placeholder="可选" value="{{expenseForm.note}}" data-field="note" bindinput="onExpenseInput" />
     </view>
-    <button class="button primary save-expense" bindtap="saveExpense">保存支出</button>
+    <button class="button primary save-expense" bindtap="saveExpense">{{editingExpenseId ? "保存修改" : "保存支出"}}</button>
+    <button class="button secondary reset-expense" wx:if="{{editingExpenseId}}" bindtap="resetExpenseForm">取消编辑</button>
+  </view>
+
+  <view class="section">
+    <view class="section-head">
+      <view class="section-title">分类统计</view>
+      <view class="section-subtitle">{{summary.categories.length}} 类</view>
+    </view>
+    <view class="empty-inner" wx:if="{{!summary.categories.length}}">还没有分类支出。</view>
+    <view class="category-row" wx:for="{{summary.categories}}" wx:key="category">
+      <view>
+        <view class="member-name">{{item.category}}</view>
+        <view class="member-meta">{{item.count}} 笔</view>
+      </view>
+      <view class="expense-amount">{{item.totalText}}</view>
+    </view>
   </view>
 
   <view class="section">
@@ -106,6 +128,7 @@
       </view>
       <view class="expense-side">
         <view class="expense-amount">{{item.amountText}}</view>
+        <view class="edit-link" data-id="{{item.id}}" bindtap="editExpense">编辑</view>
         <view class="delete-link" data-id="{{item.id}}" bindtap="removeExpense">删除</view>
       </view>
     </view>

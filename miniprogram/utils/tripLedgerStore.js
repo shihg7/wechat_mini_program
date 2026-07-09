@@ -10,6 +10,10 @@ function nowIso() {
   return new Date().toISOString();
 }
 
+function createId(prefix) {
+  return `${prefix}_${Date.now()}_${Math.floor(Math.random() * 1000000)}`;
+}
+
 function normalizeMemberName(name) {
   return String(name || "").trim();
 }
@@ -46,7 +50,7 @@ function normalizeExpense(input = {}, members = []) {
   const participants = uniqueMembers(input.participants && input.participants.length ? input.participants : ledgerMembers);
   const amountCents = Number(input.amountCents || 0) || parseAmountToCents(input.amount || input.amountText);
   return {
-    id: String(input.id || Date.now()),
+    id: String(input.id || createId("expense")),
     title: String(input.title || "").trim(),
     amountCents,
     amountText: formatCents(amountCents),
@@ -67,7 +71,7 @@ function normalizeLedger(input = {}) {
   const members = uniqueMembers(input.members && input.members.length ? input.members : ["我"]);
   const expenses = (input.expenses || []).map((expense) => normalizeExpense(expense, members));
   return {
-    id: String(input.id || Date.now()),
+    id: String(input.id || createId("ledger")),
     title: String(input.title || "").trim(),
     city: String(input.city || "").trim(),
     startDate: String(input.startDate || "").trim(),
@@ -101,7 +105,7 @@ function addLedger(ledger) {
   const timestamp = nowIso();
   const nextLedger = normalizeLedger({
     ...ledger,
-    id: Date.now(),
+    id: createId("ledger"),
     createdAt: timestamp,
     updatedAt: timestamp
   });
@@ -138,7 +142,7 @@ function addExpense(ledgerId, expense) {
   const timestamp = nowIso();
   const nextExpense = normalizeExpense({
     ...expense,
-    id: Date.now(),
+    id: createId("expense"),
     createdAt: timestamp,
     updatedAt: timestamp
   }, ledger.members);
@@ -146,6 +150,25 @@ function addExpense(ledgerId, expense) {
     expenses: [nextExpense].concat(ledger.expenses)
   });
   return updated ? nextExpense : null;
+}
+
+function updateExpense(ledgerId, expenseId, patch) {
+  const ledger = getLedgerById(ledgerId);
+  if (!ledger) return null;
+  let updatedExpense = null;
+  const expenses = ledger.expenses.map((expense) => {
+    if (String(expense.id) !== String(expenseId)) return expense;
+    updatedExpense = normalizeExpense({
+      ...expense,
+      ...patch,
+      id: expense.id,
+      createdAt: expense.createdAt,
+      updatedAt: nowIso()
+    }, ledger.members);
+    return updatedExpense;
+  });
+  updateLedger(ledgerId, { expenses });
+  return updatedExpense;
 }
 
 function deleteExpense(ledgerId, expenseId) {
@@ -184,9 +207,20 @@ function calculateLedgerSummary(ledgerInput) {
     return map;
   }, {});
   let totalCents = 0;
+  const categoryMap = {};
 
   ledger.expenses.forEach((expense) => {
     totalCents += expense.amountCents;
+    if (!categoryMap[expense.category]) {
+      categoryMap[expense.category] = {
+        category: expense.category,
+        totalCents: 0,
+        totalText: formatCents(0),
+        count: 0
+      };
+    }
+    categoryMap[expense.category].totalCents += expense.amountCents;
+    categoryMap[expense.category].count += 1;
     if (!memberMap[expense.payer]) {
       memberMap[expense.payer] = {
         name: expense.payer,
@@ -225,13 +259,20 @@ function calculateLedgerSummary(ledgerInput) {
     return member;
   }).sort((a, b) => b.balanceCents - a.balanceCents);
 
+  const categories = Object.keys(categoryMap).map((category) => {
+    const item = categoryMap[category];
+    item.totalText = formatCents(item.totalCents);
+    return item;
+  }).sort((a, b) => b.totalCents - a.totalCents);
+
   return {
     totalCents,
     totalText: formatCents(totalCents),
     averageCents: ledger.members.length ? Math.round(totalCents / ledger.members.length) : 0,
     averageText: formatCents(ledger.members.length ? Math.round(totalCents / ledger.members.length) : 0),
     expenseCount: ledger.expenses.length,
-    members
+    members,
+    categories
   };
 }
 
@@ -277,7 +318,8 @@ function getLedgerListItems(ledgers = getLedgers()) {
       ...clone(ledger),
       totalText: summary.totalText,
       expenseCount: summary.expenseCount,
-      memberCount: ledger.members.length
+      memberCount: ledger.members.length,
+      settlementCount: calculateSettlements(ledger).length
     };
   });
 }
@@ -298,5 +340,6 @@ module.exports = {
   normalizeLedger,
   parseAmountToCents,
   setLedgers,
+  updateExpense,
   updateLedger
 };

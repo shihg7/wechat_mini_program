@@ -15,20 +15,17 @@ function parseMembers(text) {
     }, []);
 }
 
-function membersToText(members) {
-  return (members || []).join("\n");
-}
-
 Page({
   data: {
     mode: "create",
     ledgerId: "",
+    newMemberName: "",
     form: {
       title: "",
       city: "",
       startDate: "",
       endDate: "",
-      membersText: "我\n朋友A\n朋友B",
+      members: ["我"],
       note: ""
     }
   },
@@ -57,7 +54,7 @@ Page({
         city: ledger.city,
         startDate: ledger.startDate,
         endDate: ledger.endDate,
-        membersText: membersToText(ledger.members),
+        members: ledger.members,
         note: ledger.note
       }
     });
@@ -67,6 +64,49 @@ Page({
     const field = event.currentTarget.dataset.field;
     this.setData({
       [`form.${field}`]: event.detail.value
+    });
+  },
+
+  onNewMemberInput(event) {
+    this.setData({
+      newMemberName: event.detail.value
+    });
+  },
+
+  addMember() {
+    const name = String(this.data.newMemberName || "").trim();
+    if (!name) {
+      wx.showToast({
+        title: "先填写成员名",
+        icon: "none"
+      });
+      return;
+    }
+    if (this.data.form.members.indexOf(name) >= 0) {
+      wx.showToast({
+        title: "成员已存在",
+        icon: "none"
+      });
+      this.setData({ newMemberName: "" });
+      return;
+    }
+    this.setData({
+      "form.members": this.data.form.members.concat(name),
+      newMemberName: ""
+    });
+  },
+
+  removeMember(event) {
+    const name = event.currentTarget.dataset.name;
+    if (this.data.form.members.length <= 1) {
+      wx.showToast({
+        title: "至少保留一个成员",
+        icon: "none"
+      });
+      return;
+    }
+    this.setData({
+      "form.members": this.data.form.members.filter((member) => member !== name)
     });
   },
 
@@ -83,7 +123,7 @@ Page({
   },
 
   saveLedger() {
-    const members = parseMembers(this.data.form.membersText);
+    const members = parseMembers(this.data.form.members.join("\n"));
     if (!this.data.form.title.trim()) {
       wx.showToast({
         title: "先填写账本名称",

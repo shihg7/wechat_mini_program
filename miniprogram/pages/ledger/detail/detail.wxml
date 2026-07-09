@@ -31,6 +31,22 @@
     <button class="button secondary" bindtap="editLedger">编辑账本</button>
   </view>
 
+  <view class="section member-section">
+    <view class="section-head">
+      <view>
+        <view class="section-title">成员</view>
+        <view class="section-subtitle">新增成员只影响后续支出，不会改历史分摊</view>
+      </view>
+    </view>
+    <view class="member-chips">
+      <view class="member-chip" wx:for="{{ledger.members}}" wx:key="*this">{{item}}</view>
+    </view>
+    <view class="add-member-row">
+      <input class="input add-member-input" placeholder="新增成员名" value="{{newMemberName}}" bindinput="onNewMemberInput" />
+      <button class="add-member-button" bindtap="addMember">添加</button>
+    </view>
+  </view>
+
   <view class="section form-section" wx:if="{{showExpenseForm}}">
     <view class="section-head">
       <view>

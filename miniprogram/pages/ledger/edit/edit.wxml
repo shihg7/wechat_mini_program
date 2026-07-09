@@ -2,7 +2,7 @@
   <view class="hero">
     <view class="eyebrow">SPLIT LEDGER</view>
     <view class="title">{{mode === "edit" ? "编辑账本" : "新建账本"}}</view>
-    <view class="summary">成员可以用换行、逗号或空格分隔。</view>
+    <view class="summary">先建账本，后续也可以在账本详情里继续加人。</view>
   </view>
 
   <view class="section">
@@ -30,7 +30,16 @@
     </view>
     <view class="field">
       <view class="field-label">成员</view>
-      <textarea class="textarea members-textarea" placeholder="我&#10;朋友A&#10;朋友B" value="{{form.membersText}}" data-field="membersText" bindinput="onFieldInput" />
+      <view class="member-chips">
+        <view class="member-chip" wx:for="{{form.members}}" wx:key="*this">
+          <text>{{item}}</text>
+          <text class="member-remove" data-name="{{item}}" bindtap="removeMember">×</text>
+        </view>
+      </view>
+      <view class="add-member-row">
+        <input class="input add-member-input" placeholder="输入成员名" value="{{newMemberName}}" bindinput="onNewMemberInput" />
+        <button class="add-member-button" bindtap="addMember">添加</button>
+      </view>
     </view>
     <view class="field">
       <view class="field-label">备注</view>

@@ -130,6 +130,17 @@ function updateLedger(id, patch) {
   return updated;
 }
 
+function addLedgerMember(id, name) {
+  const ledger = getLedgerById(id);
+  if (!ledger) return null;
+  const memberName = normalizeMemberName(name);
+  if (!memberName) return null;
+  if (ledger.members.indexOf(memberName) >= 0) return ledger;
+  return updateLedger(id, {
+    members: ledger.members.concat(memberName)
+  });
+}
+
 function deleteLedger(id) {
   const ledgers = getLedgers().filter((ledger) => String(ledger.id) !== String(id));
   setLedgers(ledgers);
@@ -329,6 +340,7 @@ module.exports = {
   STORAGE_KEY,
   addExpense,
   addLedger,
+  addLedgerMember,
   calculateLedgerSummary,
   calculateSettlements,
   deleteExpense,

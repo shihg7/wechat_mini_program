@@ -75,6 +75,7 @@ page {
 
 .overview-grid,
 .quick-actions,
+.add-member-row,
 .amount-row,
 .split-row,
 .section-head,
@@ -162,6 +163,10 @@ page {
   border: 1rpx solid #cdd9f2;
 }
 
+.member-section {
+  padding-bottom: 22rpx;
+}
+
 .section-head {
   justify-content: space-between;
   align-items: flex-start;
@@ -236,6 +241,49 @@ page {
   color: #172033;
   font-size: 27rpx;
   line-height: 82rpx;
+}
+
+.member-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+  margin-top: 18rpx;
+}
+
+.member-chip {
+  min-height: 52rpx;
+  padding: 0 18rpx;
+  border-radius: 8rpx;
+  background: #eef2f5;
+  color: #263248;
+  font-size: 24rpx;
+  font-weight: 700;
+  line-height: 52rpx;
+}
+
+.add-member-row {
+  margin-top: 16rpx;
+}
+
+.add-member-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.add-member-button {
+  width: 128rpx;
+  height: 82rpx;
+  border-radius: 8rpx;
+  background: #172033;
+  color: #ffffff;
+  font-size: 26rpx;
+  font-weight: 800;
+  line-height: 82rpx;
+  padding: 0;
+}
+
+.add-member-button::after {
+  border: none;
 }
 
 .amount-input {

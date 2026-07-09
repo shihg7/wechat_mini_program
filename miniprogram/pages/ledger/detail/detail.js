@@ -1,6 +1,7 @@
 const {
   DEFAULT_CATEGORIES,
   addExpense,
+  addLedgerMember,
   calculateLedgerSummary,
   calculateSettlements,
   deleteExpense,
@@ -53,7 +54,8 @@ Page({
     memberOptions: [],
     editingExpenseId: "",
     participantSummary: "",
-    showExpenseForm: false
+    showExpenseForm: false,
+    newMemberName: ""
   },
 
   onLoad(options) {
@@ -115,6 +117,55 @@ Page({
     const field = event.currentTarget.dataset.field;
     this.setData({
       [`expenseForm.${field}`]: event.detail.value
+    });
+  },
+
+  onNewMemberInput(event) {
+    this.setData({
+      newMemberName: event.detail.value
+    });
+  },
+
+  addMember() {
+    const name = String(this.data.newMemberName || "").trim();
+    if (!name) {
+      wx.showToast({
+        title: "先填写成员名",
+        icon: "none"
+      });
+      return;
+    }
+    if (this.data.ledger.members.indexOf(name) >= 0) {
+      wx.showToast({
+        title: "成员已存在",
+        icon: "none"
+      });
+      this.setData({ newMemberName: "" });
+      return;
+    }
+    const updated = addLedgerMember(this.data.ledgerId, name);
+    if (!updated) {
+      wx.showToast({
+        title: "添加失败",
+        icon: "none"
+      });
+      return;
+    }
+    const expenseForm = this.data.editingExpenseId
+      ? this.data.expenseForm
+      : buildExpenseForm(updated);
+    this.setData({
+      newMemberName: "",
+      ledger: updated,
+      summary: calculateLedgerSummary(updated),
+      settlements: calculateSettlements(updated),
+      expenseForm,
+      memberOptions: buildMemberOptions(updated.members, expenseForm.participantValues),
+      participantSummary: `${expenseForm.participantValues.length}/${updated.members.length} 人参与`
+    });
+    wx.showToast({
+      title: "已添加成员",
+      icon: "success"
     });
   },
 

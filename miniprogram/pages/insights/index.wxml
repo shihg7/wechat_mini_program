@@ -1,0 +1,53 @@
+<scroll-view class="page" scroll-y wx:if="{{insights}}">
+  <view class="topbar">
+    <view><view class="eyebrow">PERSONAL INSIGHTS</view><view class="title">旅行洞察</view></view>
+    <picker mode="selector" range="{{yearLabels}}" value="{{yearIndex}}" bindchange="onYearChange"><view class="year-picker">{{yearLabels[yearIndex]}}</view></picker>
+  </view>
+
+  <view class="hero">
+    <view class="hero-stat"><view class="hero-value">{{insights.total}}</view><view class="hero-label">已完成体验</view></view>
+    <view class="hero-stat"><view class="hero-value">{{insights.cityTotal}}</view><view class="hero-label">到访城市</view></view>
+    <view class="hero-stat"><view class="hero-value">{{insights.revisitPlaceTotal}}</view><view class="hero-label">复访地点</view></view>
+    <view class="hero-stat"><view class="hero-value">{{insights.ratedTotal ? insights.averageScore : "--"}}</view><view class="hero-label">平均评分</view></view>
+  </view>
+
+  <view class="empty" wx:if="{{!insights.total}}"><view class="empty-title">这个年份还没有体验</view><view class="empty-desc">完成酒店或餐厅记录后，这里会自动生成个人洞察。</view></view>
+
+  <block wx:if="{{insights.total}}">
+    <view class="section">
+      <view class="section-head"><view class="section-title">年度构成</view><view class="section-meta">酒店 {{insights.hotelTotal}} · 餐厅 {{insights.restaurantTotal}}</view></view>
+      <view class="composition"><view class="composition-hotel" style="flex: {{insights.hotelTotal || 0.01}}"></view><view class="composition-restaurant" style="flex: {{insights.restaurantTotal || 0.01}}"></view></view>
+    </view>
+
+    <view class="section">
+      <view class="section-title">个人最佳</view>
+      <view class="best-grid">
+        <view class="best-item" wx:if="{{insights.best.hotel}}" data-id="{{insights.best.hotel.id}}" bindtap="goRecord"><view class="best-label">最佳酒店</view><view class="best-name">{{insights.best.hotel.name}}</view><view class="best-score">{{insights.best.hotel.score}}</view></view>
+        <view class="best-item" wx:if="{{insights.best.restaurant}}" data-id="{{insights.best.restaurant.id}}" bindtap="goRecord"><view class="best-label">最佳餐厅</view><view class="best-name">{{insights.best.restaurant.name}}</view><view class="best-score">{{insights.best.restaurant.score}}</view></view>
+        <view class="best-item" wx:if="{{insights.best.breakfast}}" data-id="{{insights.best.breakfast.id}}" bindtap="goRecord"><view class="best-label">最佳早餐</view><view class="best-name">{{insights.best.breakfast.name}}</view><view class="best-score">{{insights.best.breakfast.score}}</view></view>
+        <view class="best-item" wx:if="{{insights.best.lounge}}" data-id="{{insights.best.lounge.id}}" bindtap="goRecord"><view class="best-label">最佳酒廊</view><view class="best-name">{{insights.best.lounge.name}}</view><view class="best-score">{{insights.best.lounge.score}}</view></view>
+        <view class="best-item" wx:if="{{insights.best.pool}}" data-id="{{insights.best.pool.id}}" bindtap="goRecord"><view class="best-label">最佳泳池</view><view class="best-name">{{insights.best.pool.name}}</view><view class="best-score">{{insights.best.pool.score}}</view></view>
+      </view>
+    </view>
+
+    <view class="section">
+      <view class="section-title">每月体验</view>
+      <view class="bar-row" wx:for="{{insights.monthTrend}}" wx:key="key"><view class="bar-label">{{item.label}}</view><view class="bar-track"><view class="bar-fill blue" style="width: {{item.percent}}%"></view></view><view class="bar-value">{{item.count}}</view></view>
+    </view>
+
+    <view class="section" wx:if="{{insights.scoreTrend.length}}">
+      <view class="section-title">评分轨迹</view>
+      <view class="score-row" wx:for="{{insights.scoreTrend}}" wx:key="id" data-id="{{item.id}}" bindtap="goRecord"><view class="score-name">{{item.name}}</view><view class="score-track"><view class="score-fill" style="width: {{item.percent}}%"></view></view><view class="score-value">{{item.score}}</view></view>
+    </view>
+
+    <view class="section rank-columns">
+      <view class="rank-column"><view class="section-title compact">常去城市</view><view class="rank-row" wx:for="{{insights.cityRanking}}" wx:key="name"><view class="rank-name">{{item.name}}</view><view class="rank-count">{{item.count}}</view></view></view>
+      <view class="rank-column"><view class="section-title compact">常用标签</view><view class="rank-row" wx:for="{{insights.tagRanking}}" wx:key="name"><view class="rank-name">{{item.name}}</view><view class="rank-count">{{item.count}}</view></view></view>
+    </view>
+
+    <view class="section" wx:if="{{insights.revisitTrends.length}}">
+      <view class="section-title">复访变化</view>
+      <view class="revisit-row" wx:for="{{insights.revisitTrends}}" wx:key="name" data-id="{{item.placeId}}" bindtap="goPlace"><view><view class="revisit-name">{{item.name}}</view><view class="revisit-meta">{{item.visitCount}} 次到访 · 最近 {{item.latestScore}}</view></view><view class="delta {{item.delta > 0 ? 'up' : item.delta < 0 ? 'down' : ''}}">{{item.delta > 0 ? "+" + item.delta : item.delta}}</view></view>
+    </view>
+  </block>
+</scroll-view>

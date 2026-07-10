@@ -357,6 +357,75 @@ page {
   gap: 12rpx;
 }
 
+.split-mode-control {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  overflow: hidden;
+  border: 1rpx solid #d9dee8;
+  border-radius: 8rpx;
+  background: #f8fafc;
+}
+
+.split-mode-option {
+  min-width: 0;
+  height: 68rpx;
+  border-right: 1rpx solid #d9dee8;
+  color: #5b6678;
+  font-size: 23rpx;
+  font-weight: 700;
+  line-height: 68rpx;
+  text-align: center;
+}
+
+.split-mode-option:last-child { border-right: 0; }
+.split-mode-option.active { background: #2864d9; color: #ffffff; }
+
+.allocation-panel {
+  margin-top: 14rpx;
+  padding: 18rpx;
+  border-radius: 8rpx;
+  background: #f8fafc;
+}
+
+.allocation-hint {
+  margin-bottom: 10rpx;
+  color: #667085;
+  font-size: 22rpx;
+  line-height: 32rpx;
+}
+
+.allocation-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+  min-height: 74rpx;
+  border-top: 1rpx solid #e5e9f0;
+}
+
+.allocation-name {
+  flex: 1;
+  min-width: 0;
+  color: #263248;
+  font-size: 25rpx;
+  line-height: 34rpx;
+}
+
+.allocation-input-wrap {
+  display: flex;
+  align-items: center;
+  width: 220rpx;
+  height: 58rpx;
+  padding: 0 14rpx;
+  border: 1rpx solid #d9dee8;
+  border-radius: 8rpx;
+  background: #ffffff;
+  box-sizing: border-box;
+}
+
+.allocation-input { flex: 1; min-width: 0; height: 56rpx; font-size: 26rpx; text-align: right; }
+.allocation-unit { margin-left: 8rpx; color: #667085; font-size: 22rpx; }
+
 .member-check {
   min-height: 58rpx;
   padding: 0 16rpx;

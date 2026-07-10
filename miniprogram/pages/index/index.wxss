@@ -16,7 +16,8 @@ page { background: #eef2f5; color: #172033; font-family: -apple-system, BlinkMac
 .accent { background: #a34b32; color: #fff; }
 .secondary { background: #fff; color: #172033; }
 .recent-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14rpx; margin-top: 16rpx; }
-.snapshot { min-width: 0; padding: 22rpx; border-radius: 8rpx; background: #fff; }
+.snapshot { min-width: 0; padding: 22rpx; overflow: hidden; border-radius: 8rpx; background: #fff; }
+.snapshot-cover { width: calc(100% + 44rpx); height: 150rpx; margin: -22rpx -22rpx 16rpx; }
 .snapshot.wide { grid-column: 1 / -1; gap: 20rpx; }
 .snapshot-label { color: #667085; font-size: 21rpx; font-weight: 700; line-height: 30rpx; }
 .snapshot-title { margin-top: 7rpx; overflow: hidden; color: #172033; font-size: 27rpx; font-weight: 800; line-height: 38rpx; text-overflow: ellipsis; white-space: nowrap; }
@@ -51,6 +52,7 @@ page { background: #eef2f5; color: #172033; font-family: -apple-system, BlinkMac
 .empty-button, .clear-button { max-width: 360rpx; margin-top: 24rpx; }
 .record { gap: 20rpx; margin-top: 14rpx; padding: 24rpx; border-radius: 8rpx; background: #fff; }
 .place-card { gap: 20rpx; margin-top: 14rpx; padding: 24rpx; border-radius: 8rpx; background: #fff; }
+.record-cover { width: 146rpx; min-width: 146rpx; height: 132rpx; border-radius: 8rpx; background: #eef2f5; }
 .place-main { flex: 1; min-width: 0; }
 .duplicate-hint { display: inline-flex; min-height: 32rpx; margin-left: 7rpx; padding: 0 10rpx; border-radius: 8rpx; background: #fff0de; color: #a35b12; font-size: 19rpx; font-weight: 700; line-height: 32rpx; }
 .record-main { flex: 1; min-width: 0; }

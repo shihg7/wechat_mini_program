@@ -7,6 +7,7 @@ const {
   getVerdict,
   roundScore
 } = require("./hotelScore");
+const { fileExists, normalizePhoto } = require("./mediaStore");
 
 const STORAGE_KEY = "hotel_review_records";
 
@@ -60,6 +61,13 @@ function normalizeRecord(input = {}) {
   const publicNote = String(input.publicNote || "").trim();
   const stayDate = String(input.stayDate || "").trim();
   const isRated = input.isRated == null ? status !== "draft" : !!input.isRated;
+  const photos = Array.isArray(input.photos)
+    ? input.photos.filter((photo) => photo && photo.filePath).slice(0, 9).map((photo) => normalizePhoto(photo, recordType))
+    : [];
+  const coverPhotoId = photos.some((photo) => photo.id === String(input.coverPhotoId || ""))
+    ? String(input.coverPhotoId)
+    : (photos[0] ? photos[0].id : "");
+  const coverPhoto = photos.find((photo) => photo.id === coverPhotoId) || null;
   return {
     id: String(input.id || Date.now()),
     cloudRecordId: input.cloudRecordId ? String(input.cloudRecordId) : "",
@@ -94,6 +102,9 @@ function normalizeRecord(input = {}) {
     customTags: Array.isArray(input.customTags)
       ? input.customTags.map((tag) => String(tag).trim()).filter(Boolean)
       : [],
+    photos,
+    coverPhotoId,
+    coverPhotoPath: coverPhoto && fileExists(coverPhoto.filePath) ? coverPhoto.filePath : "",
     note: privateNote,
     privateNote,
     publicNote,
@@ -165,6 +176,8 @@ function duplicateRecord(id) {
     publicReviewId: "",
     publishStatus: "local",
     visibility: "private",
+    photos: [],
+    coverPhotoId: "",
     note: source.note
   });
 }

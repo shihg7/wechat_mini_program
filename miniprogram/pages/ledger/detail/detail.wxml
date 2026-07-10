@@ -96,7 +96,7 @@
 
     <view class="field">
       <view class="participant-head">
-        <view class="field-label">参与平分人 · {{participantSummary}}</view>
+        <view class="field-label">参与分摊人 · {{participantSummary}}</view>
         <view class="participant-actions">
           <view class="mini-link" bindtap="selectAllParticipants">全选</view>
           <view class="mini-danger" bindtap="clearParticipants">清空</view>
@@ -108,6 +108,26 @@
           <text>{{item.name}}{{item.status === "archived" ? "（已归档）" : ""}}</text>
         </label>
       </checkbox-group>
+    </view>
+
+    <view class="field">
+      <view class="field-label">分摊方式</view>
+      <view class="split-mode-control">
+        <view class="split-mode-option {{expenseForm.splitMode === item.key ? 'active' : ''}}" wx:for="{{splitModes}}" wx:key="key" data-mode="{{item.key}}" bindtap="onSplitModeTap">{{item.label}}</view>
+      </view>
+    </view>
+
+    <view class="allocation-panel" wx:if="{{expenseForm.splitMode !== 'equal'}}">
+      <view class="allocation-hint" wx:if="{{expenseForm.splitMode === 'amount'}}">各成员金额合计需要等于本笔支出</view>
+      <view class="allocation-hint" wx:elif="{{expenseForm.splitMode === 'ratio'}}">填写百分比，合计需要等于 100%</view>
+      <view class="allocation-hint" wx:else>填写正整数份数，例如 2、1、1</view>
+      <view class="allocation-row" wx:for="{{expenseForm.allocationRows}}" wx:key="id">
+        <view class="allocation-name">{{item.name}}{{item.status === "archived" ? " · 已归档" : ""}}</view>
+        <view class="allocation-input-wrap">
+          <input class="allocation-input" type="digit" value="{{item.value}}" data-id="{{item.id}}" bindinput="onAllocationInput" />
+          <text class="allocation-unit">{{expenseForm.splitMode === "amount" ? "元" : expenseForm.splitMode === "ratio" ? "%" : "份"}}</text>
+        </view>
+      </view>
     </view>
 
     <view class="field">
@@ -200,7 +220,7 @@
     <view class="expense" wx:for="{{expenseViews}}" wx:key="id">
       <view class="expense-main">
         <view class="expense-title">{{item.title}}</view>
-        <view class="expense-meta">{{item.category}} · {{item.payerName}} 付款 · {{item.participantNames}} 平分{{item.archivedHint}}</view>
+        <view class="expense-meta">{{item.category}} · {{item.payerName}} 付款 · {{item.participantNames}} · {{item.splitSummary}}{{item.archivedHint}}</view>
         <view class="expense-note">{{item.paidAt || "未填写日期"}} {{item.noteText}}</view>
       </view>
       <view class="expense-side">

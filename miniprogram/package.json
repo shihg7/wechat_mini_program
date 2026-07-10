@@ -1,14 +1,12 @@
 {
-  "name": "miniprogram",
+  "name": "experience-archive-miniprogram-client",
   "version": "1.0.0",
-  "description": "",
+  "description": "Travel experience archive Mini Program client",
   "main": "app.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
   "license": "ISC",
-  "dependencies": {
-    "tencentcloud-webar-wx": "^1.0.8"
-  }
+  "dependencies": {}
 }

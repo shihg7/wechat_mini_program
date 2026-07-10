@@ -102,6 +102,8 @@ page {
   line-height: 36rpx;
 }
 
+.media-warning { margin-top: 14rpx; color: #8a5a19; }
+
 .button {
   width: 100%;
   height: 84rpx;

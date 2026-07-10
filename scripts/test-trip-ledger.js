@@ -58,7 +58,7 @@ function testLegacyMigrationIsLosslessAndIdempotent() {
   }];
 
   const ledger = store.getLedgers()[0];
-  assert.strictEqual(ledger.schemaVersion, 2);
+  assert.strictEqual(ledger.schemaVersion, 3);
   assert.deepStrictEqual(ledger.members.map((item) => item.name), ["我", "张三"]);
   assert(ledger.members.every((item) => item.id && item.status === "active"));
   assert.strictEqual(ledger.expenses[0].payer, "我");
@@ -71,6 +71,61 @@ function testLegacyMigrationIsLosslessAndIdempotent() {
   assert(firstWrite[0].expenses[0].payerId);
   assert.deepStrictEqual(firstWrite[0].expenses[0].participantIds.length, 2);
   assert.strictEqual(Object.prototype.hasOwnProperty.call(firstWrite[0].expenses[0], "payer"), false);
+  assert.strictEqual(firstWrite[0].expenses[0].splitMode, "equal");
+  assert.strictEqual(firstWrite[0].expenses[0].allocations.reduce((sum, item) => sum + item.shareCents, 0), 10001);
+}
+
+function testAdvancedSplitModesAndRemainders() {
+  resetMemory();
+  const ledger = store.addLedger({ title: "高级分摊", members: ["A", "B", "C"] });
+  const a = member(ledger, "A");
+  const b = member(ledger, "B");
+  const c = member(ledger, "C");
+
+  const amountExpense = store.addExpense(ledger.id, {
+    title: "房费", amountCents: 10000, payerId: a.id, participantIds: [a.id, b.id, c.id], splitMode: "amount",
+    allocations: [{ memberId: a.id, inputValue: "50" }, { memberId: b.id, inputValue: "30" }, { memberId: c.id, inputValue: "20" }]
+  });
+  assert.deepStrictEqual(amountExpense.allocations.map((item) => item.shareCents), [5000, 3000, 2000]);
+
+  const ratioExpense = store.addExpense(ledger.id, {
+    title: "包车", amountCents: 10001, payerId: b.id, participantIds: [a.id, b.id, c.id], splitMode: "ratio",
+    allocations: [{ memberId: a.id, inputValue: "50" }, { memberId: b.id, inputValue: "25" }, { memberId: c.id, inputValue: "25" }]
+  });
+  assert.deepStrictEqual(ratioExpense.allocations.map((item) => item.shareCents), [5001, 2500, 2500]);
+
+  const sharesExpense = store.addExpense(ledger.id, {
+    title: "晚餐", amountCents: 10000, payerId: c.id, participantIds: [a.id, b.id, c.id], splitMode: "shares",
+    allocations: [{ memberId: a.id, inputValue: "2" }, { memberId: b.id, inputValue: "1" }, { memberId: c.id, inputValue: "1" }]
+  });
+  assert.deepStrictEqual(sharesExpense.allocations.map((item) => item.shareCents), [5000, 2500, 2500]);
+  assertConserved(store.calculateLedgerSummary(store.getLedgerById(ledger.id)));
+
+  const before = snapshot();
+  assert.throws(() => store.addExpense(ledger.id, {
+    title: "错误金额", amountCents: 10000, payerId: a.id, participantIds: [a.id, b.id], splitMode: "amount",
+    allocations: [{ memberId: a.id, inputValue: "30" }, { memberId: b.id, inputValue: "30" }]
+  }), /合计必须等于/);
+  assert.deepStrictEqual(snapshot(), before);
+  assert.throws(() => store.addExpense(ledger.id, {
+    title: "错误比例", amountCents: 10000, payerId: a.id, participantIds: [a.id, b.id], splitMode: "ratio",
+    allocations: [{ memberId: a.id, inputValue: "30" }, { memberId: b.id, inputValue: "30" }]
+  }), /100%/);
+}
+
+function testRandomSplitConservation() {
+  resetMemory();
+  const ledger = store.addLedger({ title: "随机守恒", members: ["A", "B", "C", "D", "E"] });
+  for (let index = 0; index < 100; index += 1) {
+    const weights = ledger.members.map((item, memberIndex) => ({ memberId: item.id, inputValue: String((index + memberIndex) % 5 + 1) }));
+    store.addExpense(ledger.id, {
+      title: `支出${index}`, amountCents: index * 97 + 1, payerId: ledger.members[index % ledger.members.length].id,
+      participantIds: ledger.members.map((item) => item.id), splitMode: "shares", allocations: weights
+    });
+  }
+  const current = store.getLedgerById(ledger.id);
+  current.expenses.forEach((expense) => assert.strictEqual(expense.allocations.reduce((sum, item) => sum + item.shareCents, 0), expense.amountCents));
+  assertConserved(store.calculateLedgerSummary(current));
 }
 
 function testHistoricalUnknownMemberMigration() {
@@ -228,7 +283,9 @@ function run() {
   testInvalidDataNeverPersists();
   testTransferCannotExceedOutstandingAndLastActiveMemberStays();
   testParserAndFormattingCompatibility();
-  console.log("trip ledger v2 tests passed");
+  testAdvancedSplitModesAndRemainders();
+  testRandomSplitConservation();
+  console.log("trip ledger v3 tests passed");
 }
 
 run();

@@ -230,6 +230,10 @@ Page({
     wx.navigateTo({ url: "/pages/data/index" });
   },
 
+  goInsights() {
+    wx.navigateTo({ url: "/pages/insights/index" });
+  },
+
   selectCity(event) {
     const city = event.currentTarget.dataset.city || "";
     const selectedCity = this.data.selectedCity === city ? "" : city;

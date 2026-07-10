@@ -1,7 +1,19 @@
 const { createStableId } = require("./id");
 const { assertValidLedger } = require("./ledgerValidation");
 
-const SCHEMA_VERSION = 2;
+const SCHEMA_VERSION = 3;
+
+function equalAllocations(amountCents, participantIds) {
+  const ids = participantIds || [];
+  if (!ids.length) return [];
+  const base = Math.floor(Number(amountCents || 0) / ids.length);
+  let remainder = Number(amountCents || 0) - base * ids.length;
+  return ids.map((memberId) => {
+    const extra = remainder > 0 ? 1 : 0;
+    remainder -= extra;
+    return { memberId, inputValue: "1", shareCents: base + extra };
+  });
+}
 
 function memberName(value) {
   return String(value && typeof value === "object" ? value.name : value || "").trim();
@@ -44,7 +56,20 @@ function migrateLedger(input, ledgerIndex = 0) {
     const participantIds = Array.isArray(expense.participantIds) && expense.participantIds.every((id) => idSet.has(String(id)))
       ? expense.participantIds.map(String)
       : (expense.participants || []).map((name, participantIndex) => ensureReferencedMember(name, `expense:${index}:participant:${participantIndex}`));
-    return { ...expense, payerId, participantIds: Array.from(new Set(participantIds)) };
+    const uniqueParticipantIds = Array.from(new Set(participantIds));
+    const splitMode = ["equal", "amount", "ratio", "shares"].indexOf(expense.splitMode) >= 0 ? expense.splitMode : "equal";
+    const hasValidAllocations = Array.isArray(expense.allocations)
+      && expense.allocations.length === uniqueParticipantIds.length
+      && expense.allocations.every((allocation) => uniqueParticipantIds.indexOf(String(allocation.memberId)) >= 0);
+    return {
+      ...expense,
+      payerId,
+      participantIds: uniqueParticipantIds,
+      splitMode,
+      allocations: hasValidAllocations
+        ? expense.allocations.map((allocation) => ({ ...allocation, memberId: String(allocation.memberId) }))
+        : equalAllocations(expense.amountCents, uniqueParticipantIds)
+    };
   });
 
   const transfers = (input.transfers || []).map((transfer, index) => ({

@@ -2,6 +2,7 @@ const ledgerStore = require("../../../utils/tripLedgerStore");
 
 const {
   DEFAULT_CATEGORIES,
+  SPLIT_MODES,
   addExpense,
   calculateLedgerSummary,
   calculateSettlements,
@@ -78,6 +79,22 @@ function buildExpenseForm(ledger, members, activeMembers, expense) {
   const participantMembers = optionMembers(activeMembers, members, participantIds);
   const payerIndex = Math.max(0, payerOptions.findIndex((member) => member.id === payerId));
   const categoryIndex = expense ? Math.max(0, DEFAULT_CATEGORIES.indexOf(expense.category)) : 0;
+  const splitMode = expense && expense.splitMode ? expense.splitMode : "equal";
+  const allocationMap = ((expense && expense.allocations) || []).reduce((map, item) => {
+    map[String(item.memberId)] = item;
+    return map;
+  }, {});
+  const participantCount = participantIds.length;
+  const allocationRows = participantMembers.filter((member) => participantIds.indexOf(member.id) >= 0).map((member, index) => {
+    const allocation = allocationMap[member.id] || {};
+    let value = allocation.inputValue == null ? "" : String(allocation.inputValue);
+    if (!value && splitMode === "shares") value = "1";
+    if (!value && splitMode === "ratio" && participantCount) {
+      const base = Math.floor(10000 / participantCount) / 100;
+      value = String(index === participantCount - 1 ? Number((100 - base * (participantCount - 1)).toFixed(2)) : base);
+    }
+    return { id: member.id, name: member.name, status: member.status, value, shareText: allocation.shareCents == null ? "" : formatCents(allocation.shareCents) };
+  });
   return {
     id: expense ? expense.id : "",
     title: expense ? expense.title : "",
@@ -88,6 +105,8 @@ function buildExpenseForm(ledger, members, activeMembers, expense) {
     payerOptions,
     participantIds,
     participantMembers,
+    splitMode,
+    allocationRows,
     categoryIndex,
     categoryName: DEFAULT_CATEGORIES[categoryIndex] || "其他",
     paidAt: expense ? expense.paidAt : "",
@@ -128,6 +147,7 @@ function expenseView(expense, members) {
   return Object.assign({}, expense, {
     payerName: payer ? payer.name : "未知成员",
     participantNames: participants.map((member) => member.name).join("、") || "无",
+    splitSummary: expense.splitModeLabel || ((SPLIT_MODES.find((mode) => mode.key === expense.splitMode) || SPLIT_MODES[0]).label),
     archivedHint: (payer && payer.status === "archived") || participants.some((member) => member.status === "archived") ? " · 含归档成员" : ""
   });
 }
@@ -173,6 +193,7 @@ Page({
     transfers: [],
     expenseViews: [],
     categories: DEFAULT_CATEGORIES,
+    splitModes: SPLIT_MODES,
     expenseForm: null,
     memberOptions: [],
     editingExpenseId: "",
@@ -303,6 +324,36 @@ Page({
     this.setData({ [`expenseForm.${field}`]: event.detail.value }, () => this.markExpenseDirty());
   },
 
+  rebuildAllocationRows(mode, selectedIds, preserve) {
+    const current = preserve ? (this.data.expenseForm.allocationRows || []).reduce((map, row) => { map[row.id] = row; return map; }, {}) : {};
+    const members = this.data.expenseForm.participantMembers.filter((member) => selectedIds.indexOf(member.id) >= 0);
+    const count = members.length;
+    return members.map((member, index) => {
+      const existing = current[member.id];
+      if (existing) return { ...existing, name: member.name, status: member.status };
+      let value = "";
+      if (mode === "shares") value = "1";
+      if (mode === "ratio" && count) {
+        const base = Math.floor(10000 / count) / 100;
+        value = String(index === count - 1 ? Number((100 - base * (count - 1)).toFixed(2)) : base);
+      }
+      return { id: member.id, name: member.name, status: member.status, value, shareText: "" };
+    });
+  },
+
+  onSplitModeTap(event) {
+    const mode = event.currentTarget.dataset.mode;
+    if (!SPLIT_MODES.some((item) => item.key === mode) || mode === this.data.expenseForm.splitMode) return;
+    const rows = this.rebuildAllocationRows(mode, this.data.expenseForm.participantIds, false);
+    this.setData({ "expenseForm.splitMode": mode, "expenseForm.allocationRows": rows }, () => this.markExpenseDirty());
+  },
+
+  onAllocationInput(event) {
+    const memberId = String(event.currentTarget.dataset.id);
+    const rows = this.data.expenseForm.allocationRows.map((row) => row.id === memberId ? { ...row, value: event.detail.value } : row);
+    this.setData({ "expenseForm.allocationRows": rows }, () => this.markExpenseDirty());
+  },
+
   onPayerChange(event) {
     const payerIndex = Number(event.detail.value || 0);
     const payer = this.data.expenseForm.payerOptions[payerIndex];
@@ -327,8 +378,10 @@ Page({
 
   onParticipantsChange(event) {
     const ids = (event.detail.value || []).map(String);
+    const allocationRows = this.rebuildAllocationRows(this.data.expenseForm.splitMode, ids, true);
     this.setData({
       "expenseForm.participantIds": ids,
+      "expenseForm.allocationRows": allocationRows,
       memberOptions: buildMemberOptions(this.data.expenseForm.participantMembers, ids),
       participantSummary: `${ids.length}/${this.data.expenseForm.participantMembers.length} 人参与`
     }, () => this.markExpenseDirty());
@@ -336,8 +389,10 @@ Page({
 
   selectAllParticipants() {
     const ids = this.data.expenseForm.participantMembers.map((member) => member.id);
+    const allocationRows = this.rebuildAllocationRows(this.data.expenseForm.splitMode, ids, true);
     this.setData({
       "expenseForm.participantIds": ids,
+      "expenseForm.allocationRows": allocationRows,
       memberOptions: buildMemberOptions(this.data.expenseForm.participantMembers, ids),
       participantSummary: `${ids.length}/${ids.length} 人参与`
     }, () => this.markExpenseDirty());
@@ -346,6 +401,7 @@ Page({
   clearParticipants() {
     this.setData({
       "expenseForm.participantIds": [],
+      "expenseForm.allocationRows": [],
       memberOptions: buildMemberOptions(this.data.expenseForm.participantMembers, []),
       participantSummary: `0/${this.data.expenseForm.participantMembers.length} 人参与`
     }, () => this.markExpenseDirty());
@@ -371,6 +427,8 @@ Page({
       amountCents,
       payerId: form.payerId,
       participantIds: form.participantIds,
+      splitMode: form.splitMode,
+      allocations: form.allocationRows.map((row) => ({ memberId: row.id, inputValue: row.value })),
       category: this.data.categories[form.categoryIndex] || "其他",
       paidAt: form.paidAt,
       note: form.note

@@ -1,14 +1,10 @@
 {
-  "name": "arsdk-miniprogram-demo",
+  "name": "experience-archive-miniprogram",
   "version": "1.0.0",
-  "description": "https://developers.weixin.qq.com/miniprogram/dev/devtools/npm.html",
+  "description": "Local-first travel experience archive and AA ledger WeChat Mini Program",
   "main": "index.js",
   "scripts": {
-    "test": "node scripts/test-trip-ledger.js && node scripts/test-place-store.js && node scripts/test-app-backup.js && node scripts/test-record-place-pages.js && node scripts/test-ledger-pages.js"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://git.woa.com/video_fe/arsdk-miniprogram-demo.git"
+    "test": "node scripts/test-trip-ledger.js && node scripts/test-place-store.js && node scripts/test-media-store.js && node scripts/test-travel-insights.js && node scripts/test-app-backup.js && node scripts/test-record-place-pages.js && node scripts/test-ledger-pages.js"
   },
   "author": "",
   "license": "ISC",

@@ -30,15 +30,16 @@
     <view class="section-head">
       <view>
         <view class="section-title">完整备份</view>
-        <view class="section-subtitle">记录、地点与账本一起保存为 schemaVersion 3</view>
+        <view class="section-subtitle">记录、地点、照片元数据与账本一起保存为 schemaVersion 4</view>
       </view>
     </view>
     <button class="button primary" loading="{{exportingBackup}}" bindtap="exportBackup">导出完整备份</button>
+    <view class="section-subtitle media-warning">照片文件保存在当前设备，JSON 只包含照片路径和说明，跨设备恢复不包含图片本身。</view>
   </view>
 
   <view class="section">
     <view class="section-title">恢复数据</view>
-    <view class="section-subtitle">支持 v3 完整备份，并兼容 v1 / v2</view>
+    <view class="section-subtitle">支持 v4 完整备份，并兼容 v1 / v2 / v3</view>
     <button class="button secondary" bindtap="chooseBackup">选择 JSON 文件</button>
 
     <view class="preview" wx:if="{{preview}}">

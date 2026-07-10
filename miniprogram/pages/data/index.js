@@ -127,7 +127,7 @@ Page({
       if (wx.shareFileMessage) {
         wx.shareFileMessage({
           filePath: result.filePath,
-          fileName: "体验档案-完整备份-v3.json",
+          fileName: "体验档案-完整备份-v4.json",
           fail: (error) => {
             if (String(error && error.errMsg).indexOf("cancel") < 0) wx.showToast({ title: "发送备份失败", icon: "none" });
           }

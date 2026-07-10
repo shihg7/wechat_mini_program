@@ -76,6 +76,47 @@ page {
   box-sizing: border-box;
 }
 
+.photo-head,
+.photo-list,
+.photo-meta-row,
+.photo-tools {
+  display: flex;
+  align-items: center;
+}
+
+.photo-head { justify-content: space-between; gap: 18rpx; }
+.photo-title { margin-bottom: 2rpx; color: #172033; font-size: 30rpx; font-weight: 800; }
+.photo-subtitle { color: #667085; font-size: 22rpx; line-height: 32rpx; }
+
+.photo-add-button {
+  width: 176rpx;
+  height: 68rpx;
+  margin: 0;
+  padding: 0;
+  border-radius: 8rpx;
+  background: #172033;
+  color: #ffffff;
+  font-size: 24rpx;
+  font-weight: 800;
+  line-height: 68rpx;
+}
+.photo-add-button::after { border: 0; }
+.photo-empty { margin-top: 18rpx; padding: 26rpx 18rpx; background: #f8fafc; color: #667085; font-size: 24rpx; line-height: 36rpx; text-align: center; }
+.photo-list { align-items: stretch; gap: 18rpx; margin-top: 18rpx; padding-top: 18rpx; border-top: 1rpx solid #e5e9f0; }
+.photo-preview-wrap { position: relative; width: 176rpx; min-width: 176rpx; height: 148rpx; overflow: hidden; border-radius: 8rpx; background: #eef2f5; }
+.photo-preview { width: 100%; height: 100%; }
+.photo-missing { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; color: #a34b32; font-size: 22rpx; }
+.cover-badge { position: absolute; left: 8rpx; bottom: 8rpx; padding: 2rpx 10rpx; border-radius: 6rpx; background: rgba(23, 32, 51, .86); color: #fff; font-size: 20rpx; line-height: 30rpx; }
+.photo-editor { flex: 1; min-width: 0; }
+.photo-meta-row { justify-content: space-between; gap: 10rpx; }
+.photo-category { min-width: 86rpx; padding: 8rpx 12rpx; border-radius: 6rpx; background: #eef5ff; color: #2864d9; font-size: 22rpx; font-weight: 700; line-height: 30rpx; text-align: center; }
+.photo-tools { justify-content: flex-end; gap: 14rpx; }
+.photo-icon { width: 38rpx; height: 38rpx; border: 1rpx solid #d9dee8; border-radius: 6rpx; color: #263248; font-size: 32rpx; line-height: 34rpx; text-align: center; }
+.photo-cover-action, .photo-delete { font-size: 22rpx; font-weight: 700; line-height: 34rpx; }
+.photo-cover-action { color: #2864d9; }
+.photo-delete { color: #a34b32; }
+.photo-caption { width: 100%; height: 66rpx; margin-top: 14rpx; padding: 0 16rpx; border: 1rpx solid #d9dee8; border-radius: 8rpx; background: #f8fafc; box-sizing: border-box; color: #263248; font-size: 24rpx; }
+
 .type-switch {
   display: flex;
   gap: 12rpx;

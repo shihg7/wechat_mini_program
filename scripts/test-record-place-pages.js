@@ -2,6 +2,8 @@ const assert = require("assert");
 
 const memory = {};
 const ui = { toasts: [], navigations: [], locationMode: "success" };
+const savedFiles = new Set();
+let photoIndex = 0;
 global.wx = {
   getStorageSync(key) { return memory[key]; },
   setStorageSync(key, value) { memory[key] = JSON.parse(JSON.stringify(value)); },
@@ -16,6 +18,19 @@ global.wx = {
   chooseLocation(options) {
     if (ui.locationMode === "success") options.success({ name: "地图酒店", address: "上海市浦东新区世纪大道", latitude: 31.2, longitude: 121.5 });
     else options.fail({ errMsg: "chooseLocation:fail auth deny" });
+  },
+  chooseMedia(options) { options.success({ tempFiles: [{ tempFilePath: "/tmp/photo.jpg" }] }); },
+  saveFile(options) {
+    const savedFilePath = `/saved/page-photo-${photoIndex += 1}.jpg`;
+    savedFiles.add(savedFilePath);
+    options.success({ savedFilePath });
+  },
+  previewImage() {},
+  getFileSystemManager() {
+    return {
+      accessSync(path) { if (!savedFiles.has(path)) throw new Error("missing"); },
+      unlinkSync(path) { savedFiles.delete(path); }
+    };
   }
 };
 
@@ -55,6 +70,33 @@ function reset() {
   ui.toasts = [];
   ui.navigations = [];
   ui.locationMode = "success";
+  savedFiles.clear();
+}
+
+async function testPhotoClickFlow() {
+  reset();
+  let page = loadPage();
+  page.onLoad({ type: "hotel" });
+  page.onFieldInput(input("hotelName", "照片酒店"));
+  await page.addPhotos();
+  assert.strictEqual(page.data.form.photos.length, 1);
+  const photo = page.data.form.photos[0];
+  assert.strictEqual(page.data.form.coverPhotoId, photo.id);
+  assert(savedFiles.has(photo.filePath));
+  page.onPhotoCaptionInput({ currentTarget: { dataset: { id: photo.id } }, detail: { value: "窗外景观" } });
+  page.saveRecord({ currentTarget: { dataset: { status: "completed" } } });
+  const saved = recordsApi.getRecords()[0];
+  assert.strictEqual(saved.photos[0].caption, "窗外景观");
+
+  page = loadPage();
+  page.onLoad({ id: saved.id });
+  assert.strictEqual(page.data.form.photos[0].available, true);
+  page.enterEdit();
+  page.removePhoto({ currentTarget: { dataset: { id: photo.id } } });
+  assert(savedFiles.has(photo.filePath), "existing photo is retained until the record save succeeds");
+  page.saveRecord({ currentTarget: { dataset: { status: "completed" } } });
+  assert.strictEqual(recordsApi.getRecords()[0].photos.length, 0);
+  assert.strictEqual(savedFiles.has(photo.filePath), false);
 }
 
 function testSuggestedPlaceAndRepeatedVisit() {
@@ -124,7 +166,15 @@ function testPlaceDetailMergeAndDeleteProtection() {
   assert.strictEqual(placesApi.getPlaces().length, 1);
 }
 
-testSuggestedPlaceAndRepeatedVisit();
-testQuickDraftAndOptionalMap();
-testPlaceDetailMergeAndDeleteProtection();
-console.log("record and place page tests passed");
+async function run() {
+  testSuggestedPlaceAndRepeatedVisit();
+  testQuickDraftAndOptionalMap();
+  testPlaceDetailMergeAndDeleteProtection();
+  await testPhotoClickFlow();
+  console.log("record and place page tests passed");
+}
+
+run().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});

@@ -1,5 +1,6 @@
 <scroll-view class="page" scroll-y wx:if="{{place}}">
   <view class="hero">
+    <image class="hero-cover" wx:if="{{stats.latestVisit.coverPhotoPath}}" src="{{stats.latestVisit.coverPhotoPath}}" mode="aspectFill" />
     <view class="eyebrow">{{place.typeLabel}} · PLACE ARCHIVE</view>
     <view class="title">{{place.name}}</view>
     <view class="hero-meta">{{place.city || "未填写城市"}}{{place.area ? " · " + place.area : ""}}</view>
@@ -35,6 +36,7 @@
     <view class="section-head"><view class="section-title">多次到访</view><view class="section-count">{{visits.length}} 次</view></view>
     <view class="empty" wx:if="{{!visits.length}}">还没有到访记录。</view>
     <view class="visit" wx:for="{{visits}}" wx:key="id" data-id="{{item.id}}" bindtap="goRecord">
+      <image class="visit-cover" wx:if="{{item.coverPhotoPath}}" src="{{item.coverPhotoPath}}" mode="aspectFill" />
       <view><view class="visit-date">{{item.stayDate || "未填写日期"}}</view><view class="visit-note">{{item.publicNote || item.note || item.verdict}}</view></view>
       <view class="visit-score">{{item.isRated ? item.overallScore : "--"}}</view>
     </view>

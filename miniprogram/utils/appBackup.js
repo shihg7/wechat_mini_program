@@ -4,7 +4,7 @@ const { STORAGE_KEY: LEDGERS_KEY, getLedgers, normalizeLedger } = require("./tri
 const { createStableId } = require("./id");
 
 const APP_ID = "experience-review-miniprogram";
-const SCHEMA_VERSION = 3;
+const SCHEMA_VERSION = 4;
 
 function clone(value) {
   if (value === undefined) return undefined;
@@ -82,11 +82,11 @@ function preflightBackup(payload) {
   }
   assertObject(data, "备份");
   const version = Number(data.schemaVersion || data.version);
-  if ([1, 2, 3].indexOf(version) < 0) throw new Error("仅支持 schemaVersion 1、2 或 3");
+  if ([1, 2, 3, 4].indexOf(version) < 0) throw new Error("仅支持 schemaVersion 1、2、3 或 4");
   if (data.app && data.app !== APP_ID) throw new Error("备份来源应用不匹配");
   assertItems(data.records, "records");
   if (version >= 2) assertItems(data.ledgers, "ledgers");
-  if (version === 3) assertItems(data.places, "places");
+  if (version >= 3) assertItems(data.places, "places");
   validateUniqueIds(data.records, "records");
   validateUniqueIds(data.ledgers || [], "ledgers");
   validateUniqueIds(data.places || [], "places");
@@ -101,7 +101,7 @@ function preflightBackup(payload) {
 
   let normalizedRecords;
   let normalizedPlaces;
-  if (version === 3) {
+  if (version >= 3) {
     normalizedPlaces = data.places.map(normalizePlace);
     const placeIds = normalizedPlaces.reduce((map, place) => { map[place.id] = true; return map; }, {});
     normalizedRecords = data.records.map(normalizeRecord);
@@ -151,7 +151,12 @@ function createBackup(records, places, ledgers) {
       recordCount: normalizedRecords.length,
       placeCount: normalizedPlaces.length,
       ledgerCount: normalizedLedgers.length,
-      expenseCount: normalizedLedgers.reduce((sum, ledger) => sum + ledger.expenses.length, 0)
+      expenseCount: normalizedLedgers.reduce((sum, ledger) => sum + ledger.expenses.length, 0),
+      photoCount: normalizedRecords.reduce((sum, record) => sum + record.photos.length, 0)
+    },
+    media: {
+      binariesIncluded: false,
+      note: "照片仅保存本地路径与说明，跨设备恢复不包含图片文件"
     },
     records: normalizedRecords,
     places: normalizedPlaces,
@@ -164,7 +169,7 @@ function exportFullBackup(records, places, ledgers) {
   const sourceRecords = records === undefined ? getRecords() : records;
   const sourceLedgers = ledgers === undefined ? getLedgers() : ledgers;
   const backup = createBackup(sourceRecords, sourcePlaces, sourceLedgers);
-  const filePath = `${wx.env.USER_DATA_PATH}/experience-review-full-backup-v3.json`;
+  const filePath = `${wx.env.USER_DATA_PATH}/experience-review-full-backup-v4.json`;
   wx.getFileSystemManager().writeFileSync(filePath, JSON.stringify(backup, null, 2), "utf8");
   return { filePath, backup, summary: backup.summary };
 }

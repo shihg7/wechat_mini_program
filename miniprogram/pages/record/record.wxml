@@ -236,6 +236,38 @@
     </view>
   </view>
 
+  <view class="section photo-section">
+    <view class="photo-head">
+      <view>
+        <view class="field-label photo-title">体验照片</view>
+        <view class="photo-subtitle">{{form.photos.length}} / {{maxPhotos}} 张{{form.photos.length ? " · 点击照片预览" : ""}}</view>
+      </view>
+      <button class="photo-add-button" wx:if="{{!isReadonly && form.photos.length < maxPhotos}}" loading="{{addingPhotos}}" bindtap="addPhotos">添加照片</button>
+    </view>
+    <view class="photo-empty" wx:if="{{!form.photos.length}}">还没有照片，可以记录房间、餐食和现场细节。</view>
+    <view class="photo-list" wx:for="{{form.photos}}" wx:key="id">
+      <view class="photo-preview-wrap" data-id="{{item.id}}" bindtap="previewPhoto">
+        <image class="photo-preview" wx:if="{{item.available !== false}}" src="{{item.filePath}}" mode="aspectFill" />
+        <view class="photo-missing" wx:else>文件已失效</view>
+        <view class="cover-badge" wx:if="{{form.coverPhotoId === item.id}}">封面</view>
+      </view>
+      <view class="photo-editor">
+        <view class="photo-meta-row">
+          <picker disabled="{{isReadonly}}" mode="selector" range="{{photoCategories}}" data-id="{{item.id}}" bindchange="onPhotoCategoryChange">
+            <view class="photo-category">{{item.category}}</view>
+          </picker>
+          <view class="photo-tools" wx:if="{{!isReadonly}}">
+            <view class="photo-icon" data-id="{{item.id}}" data-direction="-1" catchtap="movePhoto">‹</view>
+            <view class="photo-icon" data-id="{{item.id}}" data-direction="1" catchtap="movePhoto">›</view>
+            <view class="photo-cover-action" wx:if="{{form.coverPhotoId !== item.id}}" data-id="{{item.id}}" catchtap="setCoverPhoto">设封面</view>
+            <view class="photo-delete" data-id="{{item.id}}" catchtap="removePhoto">删除</view>
+          </view>
+        </view>
+        <input class="photo-caption" disabled="{{isReadonly}}" maxlength="40" placeholder="补充一句照片说明" value="{{item.caption}}" data-id="{{item.id}}" bindinput="onPhotoCaptionInput" />
+      </view>
+    </view>
+  </view>
+
   <view class="section">
     <view class="field-label">自定义标签</view>
     <view class="custom-tag-editor" wx:if="{{!isReadonly}}">

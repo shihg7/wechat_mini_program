@@ -87,6 +87,10 @@ function v3(records, places, ledgers) {
   return { schemaVersion: 3, app: backupApi.APP_ID, exportedAt: "2026-07-10T10:00:00.000Z", records, places, ledgers };
 }
 
+function v4(records, places, ledgers) {
+  return { schemaVersion: 4, app: backupApi.APP_ID, exportedAt: "2026-07-10T10:00:00.000Z", media: { binariesIncluded: false }, records, places, ledgers };
+}
+
 function testPreflight() {
   const checked = backupApi.preflightBackup(JSON.stringify(v2([record("r1", "A")], [ledger("l1", "r1")])));
   assert.deepStrictEqual(checked.summary, {
@@ -103,6 +107,7 @@ function testPreflight() {
   assert.throws(() => backupApi.preflightBackup(v2([record("same", "A"), record("same", "B")], [])), /重复 id/);
   assert.throws(() => backupApi.preflightBackup(v2([], [ledger("same", ""), ledger("same", "")])), /重复 id/);
   assert.throws(() => backupApi.preflightBackup(v3([record("r1", "A", { placeId: "missing" })], [place("p1", "A")], [])), /placeId 无效/);
+  assert.strictEqual(backupApi.preflightBackup(v4([record("r4", "D", { placeId: "p4" })], [place("p4", "D")], [])).summary.schemaVersion, 4);
 }
 
 function testMergeConflictMappingAndIdempotence() {
@@ -186,13 +191,14 @@ function testPrivacyCopy() {
   assert.deepStrictEqual(source, snapshot, "privacy policy must not mutate source data");
 }
 
-function testExportMigratesRecordsBeforeBuildingV3() {
+function testExportMigratesRecordsBeforeBuildingV4() {
   reset();
   memory[backupApi.RECORDS_KEY] = [record("legacy", "旧酒店", { placeId: "" })];
   memory[backupApi.LEDGERS_KEY] = [];
   global.wx.getFileSystemManager = () => ({ writeFileSync() {} });
   const exported = backupApi.exportFullBackup();
-  assert.strictEqual(exported.backup.schemaVersion, 3);
+  assert.strictEqual(exported.backup.schemaVersion, 4);
+  assert.strictEqual(exported.backup.media.binariesIncluded, false);
   assert.strictEqual(exported.backup.places.length, 1);
   assert.strictEqual(exported.backup.records[0].placeId, exported.backup.places[0].id);
 }
@@ -203,7 +209,7 @@ function run() {
   testLegacyReplacePreservesLedgers();
   testAtomicRollback();
   testPrivacyCopy();
-  testExportMigratesRecordsBeforeBuildingV3();
+  testExportMigratesRecordsBeforeBuildingV4();
   console.log("app backup tests passed");
 }
 

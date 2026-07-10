@@ -32,6 +32,7 @@
 
   <view class="recent-grid">
     <view class="snapshot" wx:if="{{recentRecord}}" data-id="{{recentRecord.id}}" bindtap="goDetail">
+      <image class="snapshot-cover" wx:if="{{recentRecord.coverPhotoPath}}" src="{{recentRecord.coverPhotoPath}}" mode="aspectFill" />
       <view class="snapshot-label">最近体验</view>
       <view class="snapshot-title">{{recentRecord.displayName}}</view>
       <view class="snapshot-meta">{{recentRecord.city || "未填写城市"}} · {{recentRecord.isRated ? recentRecord.overallScore + " 分" : "未评分"}}</view>
@@ -68,6 +69,10 @@
       </view>
       <view class="snapshot-link">去新建</view>
     </view>
+  </view>
+
+  <view class="data-entry" bindtap="goInsights">
+    <view><view class="data-title">旅行洞察</view><view class="data-desc">年度最佳、城市分布与复访变化</view></view><view class="chevron">›</view>
   </view>
 
   <view class="data-entry" bindtap="goDataManagement">
@@ -122,6 +127,7 @@
         <button class="button primary empty-button" bindtap="goQuickCreate">新增体验</button>
       </view>
       <view class="record" wx:for="{{visibleRecords}}" wx:key="id" data-id="{{item.id}}" bindtap="goDetail">
+        <image class="record-cover" wx:if="{{item.coverPhotoPath}}" src="{{item.coverPhotoPath}}" mode="aspectFill" />
         <view class="record-main">
           <view>
             <text class="record-type">{{item.typeLabel}}</text>
@@ -139,6 +145,7 @@
       <view class="section-head"><view class="section-title">地点档案</view><view class="section-count">{{placeCards.length}} 个</view></view>
       <view class="empty" wx:if="{{!placeCards.length}}"><view class="empty-title">还没有地点档案</view><view class="empty-desc">保存体验后会自动建立独立地点，你可以手动合并重复地点。</view></view>
       <view class="place-card" wx:for="{{placeCards}}" wx:key="id" data-id="{{item.id}}" bindtap="goPlace">
+        <image class="record-cover" wx:if="{{item.latestVisit.coverPhotoPath}}" src="{{item.latestVisit.coverPhotoPath}}" mode="aspectFill" />
         <view class="place-main">
           <view><text class="record-type">{{item.typeLabel}}</text><text class="duplicate-hint" wx:if="{{item.hasPossibleDuplicate}}">待整理</text></view>
           <view class="record-title">{{item.name}}</view>

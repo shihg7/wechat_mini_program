@@ -4,6 +4,12 @@ const { assertValidLedger } = require("./ledgerValidation");
 
 const STORAGE_KEY = "trip_split_ledgers";
 const DEFAULT_CATEGORIES = ["酒店", "餐饮", "交通", "门票", "购物", "其他"];
+const SPLIT_MODES = [
+  { key: "equal", label: "人均" },
+  { key: "amount", label: "按金额" },
+  { key: "ratio", label: "按比例" },
+  { key: "shares", label: "按份数" }
+];
 
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
@@ -54,6 +60,65 @@ function requireMember(ledger, reference, field) {
   return member;
 }
 
+function allocateByWeights(amountCents, participantIds, weights) {
+  const totalWeight = weights.reduce((sum, value) => sum + value, 0);
+  if (!(totalWeight > 0)) throw new Error("分摊数值合计必须大于 0");
+  const rows = participantIds.map((memberId, index) => {
+    const exact = amountCents * weights[index] / totalWeight;
+    const shareCents = Math.floor(exact);
+    return { memberId, shareCents, fraction: exact - shareCents, index };
+  });
+  let remainder = amountCents - rows.reduce((sum, row) => sum + row.shareCents, 0);
+  rows.slice().sort((a, b) => b.fraction - a.fraction || a.index - b.index).forEach((row) => {
+    if (remainder > 0) {
+      rows[row.index].shareCents += 1;
+      remainder -= 1;
+    }
+  });
+  return rows;
+}
+
+function normalizeAllocations(input, participantIds, amountCents, splitMode) {
+  const sourceMap = (input.allocations || []).reduce((map, allocation) => {
+    map[String(allocation.memberId)] = allocation;
+    return map;
+  }, {});
+  if (splitMode === "equal") {
+    return allocateByWeights(amountCents, participantIds, participantIds.map(() => 1))
+      .map((row) => ({ memberId: row.memberId, inputValue: "1", shareCents: row.shareCents }));
+  }
+  if (splitMode === "amount") {
+    const rows = participantIds.map((memberId) => {
+      const source = sourceMap[memberId] || {};
+      const shareCents = source.inputValue == null || source.inputValue === ""
+        ? Number(source.shareCents)
+        : parseAmountToCents(source.inputValue);
+      if (!Number.isSafeInteger(shareCents) || shareCents < 0) throw new Error("按金额分摊请输入有效金额");
+      return { memberId, inputValue: centsToPlainInput(shareCents), shareCents };
+    });
+    if (rows.reduce((sum, row) => sum + row.shareCents, 0) !== amountCents) throw new Error("各成员承担金额合计必须等于支出金额");
+    return rows;
+  }
+  const weights = participantIds.map((memberId) => {
+    const source = sourceMap[memberId] || {};
+    const value = Number(source.inputValue == null ? source.weight : source.inputValue);
+    if (!Number.isFinite(value) || value <= 0) throw new Error(splitMode === "ratio" ? "每位成员的比例必须大于 0" : "每位成员的份数必须大于 0");
+    if (splitMode === "shares" && !Number.isInteger(value)) throw new Error("份数必须是正整数");
+    return value;
+  });
+  const weightTotal = weights.reduce((sum, value) => sum + value, 0);
+  if (splitMode === "ratio" && Math.abs(weightTotal - 100) > 0.000001) throw new Error("比例合计必须等于 100% ");
+  return allocateByWeights(amountCents, participantIds, weights).map((row, index) => ({
+    memberId: row.memberId,
+    inputValue: String(weights[index]),
+    shareCents: row.shareCents
+  }));
+}
+
+function centsToPlainInput(cents) {
+  return `${Math.floor(cents / 100)}.${String(cents % 100).padStart(2, "0")}`;
+}
+
 function normalizeExpense(input, ledger) {
   const payer = requireMember(ledger, input.payerId || input.payer || ledger.members[0].id, "付款人");
   const participantRefs = input.participantIds && input.participantIds.length
@@ -63,6 +128,8 @@ function normalizeExpense(input, ledger) {
   const amountCents = input.amountCents == null || input.amountCents === ""
     ? parseAmountToCents(input.amount || input.amountText)
     : Number(input.amountCents);
+  const splitMode = SPLIT_MODES.some((mode) => mode.key === input.splitMode) ? input.splitMode : "equal";
+  const uniqueParticipantIds = Array.from(new Set(participantIds));
   const expense = {
     ...input,
     id: String(input.id || createId("expense")),
@@ -73,7 +140,9 @@ function normalizeExpense(input, ledger) {
     paidAt: String(input.paidAt || "").trim(),
     relatedRecordId: input.relatedRecordId ? String(input.relatedRecordId) : "",
     payerId: payer.id,
-    participantIds: Array.from(new Set(participantIds)),
+    participantIds: uniqueParticipantIds,
+    splitMode,
+    allocations: normalizeAllocations(input, uniqueParticipantIds, amountCents, splitMode),
     createdAt: input.createdAt || nowIso(),
     updatedAt: input.updatedAt || ""
   };
@@ -171,6 +240,7 @@ function toPublicLedger(internal) {
         payer: payer ? payer.name : "",
         participants: participants.map((member) => member.name),
         participantsText: participants.map((member) => member.name).join("、"),
+        splitModeLabel: (SPLIT_MODES.find((mode) => mode.key === expense.splitMode) || SPLIT_MODES[0]).label,
         noteText: expense.note ? `· ${expense.note}` : ""
       };
     }),
@@ -401,8 +471,7 @@ function calculateLedgerSummary(ledgerInput) {
     categoryMap[expense.category].totalCents += expense.amountCents;
     categoryMap[expense.category].count += 1;
     memberMap[expense.payerId].paidCents += expense.amountCents;
-    const shares = getParticipantShares(expense.amountCents, expense.participantIds);
-    Object.keys(shares).forEach((id) => { memberMap[id].shareCents += shares[id]; });
+    expense.allocations.forEach((allocation) => { memberMap[allocation.memberId].shareCents += allocation.shareCents; });
   });
   internal.transfers.filter((transfer) => transfer.status === "confirmed").forEach((transfer) => {
     memberMap[transfer.fromMemberId].transferredOutCents += transfer.amountCents;
@@ -475,6 +544,7 @@ function normalizeLedger(input) {
 
 module.exports = {
   DEFAULT_CATEGORIES,
+  SPLIT_MODES,
   SCHEMA_VERSION,
   STORAGE_KEY,
   addExpense,
@@ -487,6 +557,7 @@ module.exports = {
   deleteExpense,
   deleteLedger,
   formatCents,
+  getParticipantShares,
   getActiveMembers,
   getLedgerById,
   getLedgerListItems,

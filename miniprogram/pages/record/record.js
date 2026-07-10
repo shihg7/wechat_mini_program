@@ -13,8 +13,16 @@ const {
   deleteRecord,
   duplicateRecord,
   getRecordById,
+  getRecords,
   updateRecord
 } = require("../../utils/hotelReviewStore");
+const {
+  MAX_PHOTOS,
+  chooseAndSavePhotos,
+  getPhotoCategories,
+  removeSavedPhotos,
+  withAvailability
+} = require("../../utils/mediaStore");
 const {
   createPlace,
   deleteEmptyPlace,
@@ -56,6 +64,8 @@ function buildInitialForm(recordType = "hotel") {
     scores,
     selectedTags: buildSelectedTags(recordType),
     customTags: [],
+    photos: [],
+    coverPhotoId: "",
     status: "completed",
     categoryScores: getCategoryScores(scores, recordType),
     overallScore,
@@ -132,8 +142,15 @@ Page({
     scoreBars: buildScoreBars(buildInitialForm()),
     publicPreview: buildPublicPreview(buildInitialForm()),
     placeSuggestions: [],
-    placeChoiceConfirmed: false
+    placeChoiceConfirmed: false,
+    photoCategories: getPhotoCategories("hotel"),
+    maxPhotos: MAX_PHOTOS,
+    addingPhotos: false
   },
+
+  pendingPhotoDeletes: [],
+  newPhotoPaths: [],
+  photosCommitted: false,
 
   onLoad(options) {
     if (options && options.id) {
@@ -166,13 +183,16 @@ Page({
       scoreBars: buildScoreBars(form),
       publicPreview: buildPublicPreview(form),
       placeSuggestions: [],
-      placeChoiceConfirmed: false
+      placeChoiceConfirmed: false,
+      photoCategories: getPhotoCategories(recordType)
     });
     this.disableLeaveAlert();
   },
 
   onTypeChange(event) {
     if (this.data.mode === "detail") return;
+    this.cleanupUnsavedPhotos();
+    this.photosCommitted = false;
     this.setRecordType(event.currentTarget.dataset.type, this.data.isQuick);
   },
 
@@ -190,6 +210,7 @@ Page({
 
     const form = {
       ...record,
+      photos: withAvailability(record.photos, record.recordType),
       categoryScores: getCategoryScores(record.scores, record.recordType)
     };
     this.setData({
@@ -208,6 +229,9 @@ Page({
       scoreBars: buildScoreBars(form),
       publicPreview: buildPublicPreview(form)
     });
+    this.pendingPhotoDeletes = [];
+    this.newPhotoPaths = [];
+    this.photosCommitted = true;
     this.disableLeaveAlert();
   },
 
@@ -222,6 +246,9 @@ Page({
       originalForm
     });
     this.disableLeaveAlert();
+    this.pendingPhotoDeletes = [];
+    this.newPhotoPaths = [];
+    this.photosCommitted = false;
   },
 
   cancelEdit() {
@@ -240,6 +267,7 @@ Page({
   },
 
   restoreOriginalForm() {
+    this.cleanupUnsavedPhotos();
     const form = this.data.originalForm ? JSON.parse(this.data.originalForm) : this.data.form;
     this.setData({
       mode: "detail",
@@ -449,6 +477,95 @@ Page({
     this.setData({ customTagInput: event.detail.value });
   },
 
+  addPhotos() {
+    if (this.data.isReadonly || this.data.addingPhotos) return;
+    this.setData({ addingPhotos: true });
+    return chooseAndSavePhotos(this.data.recordType, (this.data.form.photos || []).length).then((photos) => {
+      this.newPhotoPaths = this.newPhotoPaths.concat(photos.map((photo) => photo.filePath));
+      const nextPhotos = (this.data.form.photos || []).concat(photos.map((photo) => ({ ...photo, available: true })));
+      const updates = { "form.photos": nextPhotos, addingPhotos: false };
+      if (!this.data.form.coverPhotoId && nextPhotos[0]) updates["form.coverPhotoId"] = nextPhotos[0].id;
+      this.setData(updates, () => this.markDirty());
+    }).catch((error) => {
+      this.setData({ addingPhotos: false });
+      if (String(error && error.errMsg).indexOf("cancel") < 0) wx.showToast({ title: error.message || "照片保存失败", icon: "none" });
+    });
+  },
+
+  previewPhoto(event) {
+    const photo = (this.data.form.photos || []).find((item) => item.id === event.currentTarget.dataset.id);
+    const available = (this.data.form.photos || []).filter((item) => item.available !== false);
+    if (!photo || photo.available === false || !wx.previewImage) {
+      wx.showToast({ title: "照片文件已失效", icon: "none" });
+      return;
+    }
+    wx.previewImage({ current: photo.filePath, urls: available.map((item) => item.filePath) });
+  },
+
+  setCoverPhoto(event) {
+    if (this.data.isReadonly) return;
+    this.setData({ "form.coverPhotoId": event.currentTarget.dataset.id }, () => this.markDirty());
+  },
+
+  removePhoto(event) {
+    if (this.data.isReadonly) return;
+    const id = event.currentTarget.dataset.id;
+    const photo = (this.data.form.photos || []).find((item) => item.id === id);
+    if (!photo) return;
+    if (this.newPhotoPaths.indexOf(photo.filePath) >= 0) {
+      removeSavedPhotos([photo.filePath]);
+      this.newPhotoPaths = this.newPhotoPaths.filter((path) => path !== photo.filePath);
+    } else {
+      this.pendingPhotoDeletes.push(photo.filePath);
+    }
+    const photos = this.data.form.photos.filter((item) => item.id !== id);
+    const coverPhotoId = this.data.form.coverPhotoId === id ? (photos[0] ? photos[0].id : "") : this.data.form.coverPhotoId;
+    this.setData({ "form.photos": photos, "form.coverPhotoId": coverPhotoId }, () => this.markDirty());
+  },
+
+  movePhoto(event) {
+    if (this.data.isReadonly) return;
+    const id = event.currentTarget.dataset.id;
+    const direction = Number(event.currentTarget.dataset.direction);
+    const photos = (this.data.form.photos || []).slice();
+    const index = photos.findIndex((item) => item.id === id);
+    const target = index + direction;
+    if (index < 0 || target < 0 || target >= photos.length) return;
+    const swap = photos[index];
+    photos[index] = photos[target];
+    photos[target] = swap;
+    this.setData({ "form.photos": photos }, () => this.markDirty());
+  },
+
+  onPhotoCategoryChange(event) {
+    if (this.data.isReadonly) return;
+    const id = event.currentTarget.dataset.id;
+    const category = this.data.photoCategories[Number(event.detail.value)] || this.data.photoCategories[0];
+    const photos = this.data.form.photos.map((item) => item.id === id ? { ...item, category } : item);
+    this.setData({ "form.photos": photos }, () => this.markDirty());
+  },
+
+  onPhotoCaptionInput(event) {
+    if (this.data.isReadonly) return;
+    const id = event.currentTarget.dataset.id;
+    const photos = this.data.form.photos.map((item) => item.id === id ? { ...item, caption: event.detail.value } : item);
+    this.setData({ "form.photos": photos }, () => this.markDirty());
+  },
+
+  cleanupUnsavedPhotos() {
+    if (this.photosCommitted) return;
+    removeSavedPhotos(this.newPhotoPaths);
+    this.newPhotoPaths = [];
+    this.pendingPhotoDeletes = [];
+  },
+
+  commitPhotoChanges() {
+    removeSavedPhotos(this.pendingPhotoDeletes);
+    this.pendingPhotoDeletes = [];
+    this.newPhotoPaths = [];
+    this.photosCommitted = true;
+  },
+
   addCustomTag() {
     if (this.data.isReadonly) return;
     const tag = String(this.data.customTagInput || "").trim();
@@ -531,8 +648,10 @@ Page({
       }
       const form = {
         ...updated,
+        photos: withAvailability(updated.photos, updated.recordType),
         categoryScores: getCategoryScores(updated.scores, updated.recordType)
       };
+      this.commitPhotoChanges();
       this.setData({
         mode: "detail",
         isReadonly: true,
@@ -560,6 +679,7 @@ Page({
       wx.showToast({ title: error.message || "记录保存失败", icon: "none" });
       return;
     }
+    this.commitPhotoChanges();
     this.disableLeaveAlert();
     wx.showToast({
       title: nextForm.status === "draft" ? "草稿已保存" : "已保存",
@@ -585,6 +705,7 @@ Page({
   },
 
   deleteRecord() {
+    const photoPaths = (this.data.form.photos || []).map((photo) => photo.filePath);
     wx.showModal({
       title: "删除记录",
       content: "删除后无法恢复，确认删除这条记录吗？",
@@ -593,6 +714,8 @@ Page({
       success: (res) => {
         if (!res.confirm) return;
         deleteRecord(this.data.recordId);
+        const referenced = getRecords().reduce((paths, record) => paths.concat((record.photos || []).map((photo) => photo.filePath)), []);
+        removeSavedPhotos(photoPaths.filter((path) => referenced.indexOf(path) < 0));
         wx.showToast({
           title: "已删除",
           icon: "none"
@@ -609,5 +732,6 @@ Page({
 
   onUnload() {
     this.disableLeaveAlert();
+    this.cleanupUnsavedPhotos();
   }
 });

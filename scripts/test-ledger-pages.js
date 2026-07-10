@@ -92,10 +92,13 @@ function testDetailClickFlowAndSettlementHistory() {
   page.openExpenseForm();
   page.onExpenseInput(input("title", "酒店"));
   page.onExpenseInput(input("amount", "900.00"));
+  page.onSplitModeTap({ currentTarget: { dataset: { mode: "shares" } } });
+  page.onAllocationInput({ currentTarget: { dataset: { id: page.data.expenseForm.allocationRows[0].id } }, detail: { value: "2" } });
   page.saveExpense();
 
   let saved = store.getLedgerById(ledger.id);
   assert.strictEqual(saved.expenses.length, 1);
+  assert.strictEqual(saved.expenses[0].splitMode, "shares");
   assert.strictEqual(store.calculateLedgerSummary(saved).totalCents, 90000);
   assert.strictEqual(page.data.settlements.length, 2);
 

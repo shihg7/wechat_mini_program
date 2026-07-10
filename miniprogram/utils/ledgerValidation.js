@@ -1,5 +1,6 @@
 const MEMBER_STATUSES = ["active", "archived"];
 const TRANSFER_STATUSES = ["confirmed", "void"];
+const SPLIT_MODES = ["equal", "amount", "ratio", "shares"];
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 function isValidDate(value) {
@@ -17,7 +18,7 @@ function validatePositiveCents(value, field) {
 function validateLedger(ledger) {
   const errors = [];
   if (!ledger || typeof ledger !== "object") return ["账本数据无效"];
-  if (ledger.schemaVersion !== 2) errors.push("schemaVersion 必须为 2");
+  if (ledger.schemaVersion !== 3) errors.push("schemaVersion 必须为 3");
   if (!Array.isArray(ledger.members) || !ledger.members.length) errors.push("至少需要一个成员");
   if (!isValidDate(ledger.startDate)) errors.push("开始日期无效");
   if (!isValidDate(ledger.endDate)) errors.push("结束日期无效");
@@ -53,6 +54,21 @@ function validateLedger(ledger) {
     uniqueIds.forEach((id) => {
       if (!memberIds.has(id)) errors.push(`${label}参与人引用无效: ${id}`);
     });
+    if (!SPLIT_MODES.includes(expense.splitMode)) errors.push(`${label}分摊方式无效`);
+    if (!Array.isArray(expense.allocations) || expense.allocations.length !== uniqueIds.size) {
+      errors.push(`${label}分摊明细与参与人数不一致`);
+    } else {
+      const allocationIds = new Set();
+      let allocatedCents = 0;
+      expense.allocations.forEach((allocation) => {
+        if (!allocation || !uniqueIds.has(allocation.memberId)) errors.push(`${label}分摊成员引用无效`);
+        if (allocationIds.has(allocation.memberId)) errors.push(`${label}分摊成员重复`);
+        if (!Number.isSafeInteger(allocation.shareCents) || allocation.shareCents < 0) errors.push(`${label}分摊金额必须是非负整数分`);
+        allocationIds.add(allocation.memberId);
+        allocatedCents += Number(allocation.shareCents || 0);
+      });
+      if (allocatedCents !== expense.amountCents) errors.push(`${label}分摊金额合计必须等于支出金额`);
+    }
     if (!isValidDate(expense.paidAt)) errors.push(`${label}日期无效`);
   });
 
@@ -82,6 +98,7 @@ function assertValidLedger(ledger) {
 
 module.exports = {
   MEMBER_STATUSES,
+  SPLIT_MODES,
   TRANSFER_STATUSES,
   assertValidLedger,
   isValidDate,

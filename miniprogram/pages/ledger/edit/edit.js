@@ -1,18 +1,26 @@
-const {
-  addLedger,
-  getLedgerById,
-  updateLedger
-} = require("../../../utils/tripLedgerStore");
+const ledgerStore = require("../../../utils/tripLedgerStore");
 
-function parseMembers(text) {
-  return String(text || "")
-    .split(/[\n,，、\s]+/)
-    .map((item) => item.trim())
-    .filter(Boolean)
-    .reduce((result, name) => {
-      if (result.indexOf(name) < 0) result.push(name);
-      return result;
-    }, []);
+function memberObject(member, index) {
+  if (typeof member === "string") {
+    return { id: member, name: member, status: "active", legacy: true };
+  }
+  return {
+    id: String(member.id || `member_${index}`),
+    name: String(member.name || "").trim(),
+    status: member.status === "archived" ? "archived" : "active"
+  };
+}
+
+function normalizeMembers(members) {
+  return (members || []).map(memberObject).filter((member) => member.name);
+}
+
+function createLocalMember(name) {
+  return {
+    id: `member_${Date.now()}_${Math.floor(Math.random() * 100000)}`,
+    name,
+    status: "active"
+  };
 }
 
 Page({
@@ -20,12 +28,14 @@ Page({
     mode: "create",
     ledgerId: "",
     newMemberName: "",
+    hasUnsavedChanges: false,
+    originalForm: "",
     form: {
       title: "",
       city: "",
       startDate: "",
       endDate: "",
-      members: ["我"],
+      members: [createLocalMember("我")],
       note: ""
     }
   },
@@ -33,140 +43,257 @@ Page({
   onLoad(options) {
     if (options && options.id) {
       this.loadLedger(options.id);
+      return;
     }
+    this.rememberForm();
+  },
+
+  onUnload() {
+    this.disableLeaveAlert();
+  },
+
+  rememberForm() {
+    this.setData({
+      originalForm: JSON.stringify(this.data.form),
+      hasUnsavedChanges: false
+    });
+    this.disableLeaveAlert();
+  },
+
+  markDirty() {
+    const changed = JSON.stringify(this.data.form) !== this.data.originalForm;
+    this.setData({ hasUnsavedChanges: changed });
+    if (changed) this.enableLeaveAlert();
+    else this.disableLeaveAlert();
+  },
+
+  enableLeaveAlert() {
+    if (!wx.enableAlertBeforeUnload) return;
+    wx.enableAlertBeforeUnload({ message: "账本修改尚未保存，确定离开吗？" });
+  },
+
+  disableLeaveAlert() {
+    if (wx.disableAlertBeforeUnload) wx.disableAlertBeforeUnload();
   },
 
   loadLedger(id) {
-    const ledger = getLedgerById(id);
+    const ledger = ledgerStore.getLedgerById(id);
     if (!ledger) {
-      wx.showToast({
-        title: "账本不存在",
-        icon: "none"
-      });
+      wx.showToast({ title: "账本不存在", icon: "none" });
       setTimeout(() => wx.navigateBack(), 600);
       return;
     }
+    const form = {
+      title: ledger.title,
+      city: ledger.city,
+      startDate: ledger.startDate,
+      endDate: ledger.endDate,
+      members: normalizeMembers(ledger.members),
+      note: ledger.note
+    };
     this.setData({
       mode: "edit",
       ledgerId: ledger.id,
-      form: {
-        title: ledger.title,
-        city: ledger.city,
-        startDate: ledger.startDate,
-        endDate: ledger.endDate,
-        members: ledger.members,
-        note: ledger.note
-      }
+      form,
+      originalForm: JSON.stringify(form),
+      hasUnsavedChanges: false
     });
+    this.disableLeaveAlert();
   },
 
   onFieldInput(event) {
     const field = event.currentTarget.dataset.field;
-    this.setData({
-      [`form.${field}`]: event.detail.value
-    });
+    this.setData({ [`form.${field}`]: event.detail.value }, () => this.markDirty());
   },
 
   onNewMemberInput(event) {
-    this.setData({
-      newMemberName: event.detail.value
-    });
+    this.setData({ newMemberName: event.detail.value });
   },
 
   addMember() {
     const name = String(this.data.newMemberName || "").trim();
     if (!name) {
-      wx.showToast({
-        title: "先填写成员名",
-        icon: "none"
-      });
+      wx.showToast({ title: "先填写成员名", icon: "none" });
       return;
     }
-    if (this.data.form.members.indexOf(name) >= 0) {
-      wx.showToast({
-        title: "成员已存在",
-        icon: "none"
-      });
-      this.setData({ newMemberName: "" });
+    if (this.data.form.members.some((member) => member.name === name)) {
+      wx.showToast({ title: "成员已存在", icon: "none" });
+      return;
+    }
+    if (this.data.mode === "edit" && ledgerStore.addLedgerMember) {
+      const updated = ledgerStore.addLedgerMember(this.data.ledgerId, name);
+      if (!updated) {
+        wx.showToast({ title: "添加失败", icon: "none" });
+        return;
+      }
+      this.syncPersistedMembers(updated);
       return;
     }
     this.setData({
-      "form.members": this.data.form.members.concat(name),
+      "form.members": this.data.form.members.concat(createLocalMember(name)),
       newMemberName: ""
+    }, () => this.markDirty());
+  },
+
+  syncPersistedMembers(updatedLedger) {
+    const members = normalizeMembers(updatedLedger.members);
+    const original = this.data.originalForm ? JSON.parse(this.data.originalForm) : this.data.form;
+    original.members = members;
+    this.setData({
+      "form.members": members,
+      newMemberName: "",
+      originalForm: JSON.stringify(original)
+    }, () => this.markDirty());
+  },
+
+  renameMember(event) {
+    const id = event.currentTarget.dataset.id;
+    const member = this.data.form.members.find((item) => String(item.id) === String(id));
+    if (!member) return;
+    wx.showModal({
+      title: "修改成员名",
+      editable: true,
+      placeholderText: "成员名",
+      content: member.name,
+      success: (res) => {
+        if (!res.confirm) return;
+        const name = String(res.content || "").trim();
+        if (!name || this.data.form.members.some((item) => item.id !== member.id && item.name === name)) {
+          wx.showToast({ title: name ? "成员名已存在" : "成员名不能为空", icon: "none" });
+          return;
+        }
+        if (this.data.mode === "create") {
+          const members = this.data.form.members.map((item) => {
+            return item.id === member.id ? Object.assign({}, item, { name }) : item;
+          });
+          this.setData({ "form.members": members }, () => this.markDirty());
+          return;
+        }
+        if (!ledgerStore.updateLedgerMember) return this.showContractToast();
+        const updated = ledgerStore.updateLedgerMember(this.data.ledgerId, member.id, { name });
+        if (updated) this.syncPersistedMembers(updated);
+      }
+    });
+  },
+
+  archiveMember(event) {
+    const id = event.currentTarget.dataset.id;
+    const member = this.data.form.members.find((item) => String(item.id) === String(id));
+    if (!member) return;
+    const activeCount = this.data.form.members.filter((item) => item.status !== "archived").length;
+    if (activeCount <= 1) {
+      wx.showToast({ title: "至少保留一位当前成员", icon: "none" });
+      return;
+    }
+    wx.showModal({
+      title: "归档成员",
+      content: `归档 ${member.name} 后，新支出不再默认包含该成员，历史支出仍会完整保留。`,
+      confirmText: "归档",
+      success: (res) => {
+        if (!res.confirm) return;
+        if (this.data.mode === "create") {
+          const members = this.data.form.members.map((item) => {
+            return item.id === member.id ? Object.assign({}, item, { status: "archived" }) : item;
+          });
+          this.setData({ "form.members": members }, () => this.markDirty());
+          return;
+        }
+        if (!ledgerStore.archiveLedgerMember) return this.showContractToast();
+        const updated = ledgerStore.archiveLedgerMember(this.data.ledgerId, member.id);
+        if (updated) this.syncPersistedMembers(updated);
+      }
     });
   },
 
   removeMember(event) {
-    const name = event.currentTarget.dataset.name;
-    if (this.data.form.members.length <= 1) {
-      wx.showToast({
-        title: "至少保留一个成员",
-        icon: "none"
-      });
+    const id = event.currentTarget.dataset.id;
+    const member = this.data.form.members.find((item) => String(item.id) === String(id));
+    if (!member) return;
+    const activeCount = this.data.form.members.filter((item) => item.status !== "archived").length;
+    if (member.status !== "archived" && activeCount <= 1) {
+      wx.showToast({ title: "至少保留一位当前成员", icon: "none" });
       return;
     }
-    this.setData({
-      "form.members": this.data.form.members.filter((member) => member !== name)
+    wx.showModal({
+      title: "移除成员",
+      content: "仅未被任何支出或转账引用的成员可以移除；有历史记录的成员请保留为归档。",
+      confirmText: "尝试移除",
+      confirmColor: "#a34b32",
+      success: (res) => {
+        if (!res.confirm) return;
+        if (this.data.mode === "create") {
+          const members = this.data.form.members.filter((item) => item.id !== member.id);
+          this.setData({ "form.members": members }, () => this.markDirty());
+          return;
+        }
+        if (!ledgerStore.removeLedgerMember) return this.showContractToast();
+        let updated;
+        try {
+          updated = ledgerStore.removeLedgerMember(this.data.ledgerId, member.id);
+        } catch (error) {
+          wx.showToast({ title: error.message || "成员移除失败", icon: "none" });
+          return;
+        }
+        if (!updated) {
+          wx.showToast({ title: "成员有历史记录，不能移除", icon: "none" });
+          return;
+        }
+        this.syncPersistedMembers(updated);
+      }
     });
+  },
+
+  showContractToast() {
+    wx.showToast({ title: "成员接口尚未就绪", icon: "none" });
   },
 
   onStartDateChange(event) {
-    this.setData({
-      "form.startDate": event.detail.value
-    });
+    this.setData({ "form.startDate": event.detail.value }, () => this.markDirty());
   },
 
   onEndDateChange(event) {
-    this.setData({
-      "form.endDate": event.detail.value
-    });
+    this.setData({ "form.endDate": event.detail.value }, () => this.markDirty());
   },
 
   saveLedger() {
-    const members = parseMembers(this.data.form.members.join("\n"));
-    if (!this.data.form.title.trim()) {
-      wx.showToast({
-        title: "先填写账本名称",
-        icon: "none"
-      });
+    const form = this.data.form;
+    const activeMembers = form.members.filter((member) => member.status !== "archived");
+    if (!form.title.trim()) {
+      wx.showToast({ title: "先填写账本名称", icon: "none" });
       return;
     }
-    if (!members.length) {
-      wx.showToast({
-        title: "至少填写一个成员",
-        icon: "none"
-      });
+    if (!activeMembers.length) {
+      wx.showToast({ title: "至少保留一位当前成员", icon: "none" });
       return;
     }
-
+    if (form.startDate && form.endDate && form.startDate > form.endDate) {
+      wx.showToast({ title: "结束日期不能早于开始日期", icon: "none" });
+      return;
+    }
     const payload = {
-      title: this.data.form.title,
-      city: this.data.form.city,
-      startDate: this.data.form.startDate,
-      endDate: this.data.form.endDate,
-      members,
-      note: this.data.form.note
+      title: form.title,
+      city: form.city,
+      startDate: form.startDate,
+      endDate: form.endDate,
+      members: form.members,
+      note: form.note
     };
-
-    if (this.data.mode === "edit") {
-      updateLedger(this.data.ledgerId, payload);
-      wx.showToast({
-        title: "已更新",
-        icon: "success"
-      });
-      setTimeout(() => wx.navigateBack(), 450);
-      return;
+    try {
+      if (this.data.mode === "edit") {
+        ledgerStore.updateLedger(this.data.ledgerId, payload);
+        this.rememberForm();
+        wx.showToast({ title: "已更新", icon: "success" });
+        setTimeout(() => wx.navigateBack(), 450);
+        return;
+      }
+      const ledger = ledgerStore.addLedger(payload);
+      this.rememberForm();
+      wx.showToast({ title: "已创建", icon: "success" });
+      setTimeout(() => {
+        wx.redirectTo({ url: `/pages/ledger/detail/detail?id=${ledger.id}` });
+      }, 450);
+    } catch (error) {
+      wx.showToast({ title: error.message || "账本保存失败", icon: "none" });
     }
-
-    const ledger = addLedger(payload);
-    wx.showToast({
-      title: "已创建",
-      icon: "success"
-    });
-    setTimeout(() => {
-      wx.redirectTo({
-        url: `/pages/ledger/detail/detail?id=${ledger.id}`
-      });
-    }, 450);
   }
 });

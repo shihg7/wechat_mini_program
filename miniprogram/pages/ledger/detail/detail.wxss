@@ -75,7 +75,6 @@ page {
 
 .overview-grid,
 .quick-actions,
-.add-member-row,
 .amount-row,
 .split-row,
 .section-head,
@@ -83,6 +82,8 @@ page {
 .settlement,
 .expense,
 .category-row,
+.settled-banner,
+.transfer-history,
 .participant-head,
 .participant-actions,
 .expense-actions,
@@ -94,6 +95,41 @@ page {
 
 .overview-grid {
   margin-top: 18rpx;
+}
+
+.settled-banner {
+  justify-content: space-between;
+  margin-top: 18rpx;
+  padding: 20rpx 24rpx;
+  border-left: 6rpx solid #a34b32;
+  border-radius: 8rpx;
+  background: #fff4ef;
+}
+
+.settled-banner.done {
+  border-left-color: #1f7a55;
+  background: #e8f5ee;
+}
+
+.settled-title {
+  color: #172033;
+  font-size: 28rpx;
+  font-weight: 800;
+  line-height: 38rpx;
+}
+
+.settled-desc {
+  color: #667085;
+  font-size: 22rpx;
+  line-height: 32rpx;
+}
+
+.copy-link,
+.confirm-link {
+  color: #2864d9;
+  font-size: 23rpx;
+  font-weight: 700;
+  line-height: 34rpx;
 }
 
 .overview-item {
@@ -261,6 +297,12 @@ page {
   line-height: 52rpx;
 }
 
+.member-chip.archived,
+.member-check.archived {
+  color: #667085;
+  background: #f0f1f3;
+}
+
 .add-member-row {
   margin-top: 16rpx;
 }
@@ -344,6 +386,65 @@ page {
   background: #eef5ff;
 }
 
+.settlement-side,
+.history-side {
+  min-width: 150rpx;
+  text-align: right;
+}
+
+.transfer-form {
+  margin-top: 14rpx;
+  padding: 20rpx;
+  border: 1rpx solid #cdd9f2;
+  border-radius: 8rpx;
+  background: #f8fafc;
+}
+
+.transfer-form-title {
+  color: #172033;
+  font-size: 27rpx;
+  font-weight: 800;
+  line-height: 38rpx;
+}
+
+.transfer-form-desc {
+  margin-top: 4rpx;
+  color: #667085;
+  font-size: 22rpx;
+  line-height: 32rpx;
+}
+
+.transfer-input {
+  margin-top: 14rpx;
+  font-size: 32rpx;
+  font-weight: 800;
+}
+
+.button.inset {
+  border: 1rpx solid #d9dee8;
+}
+
+.transfer-history {
+  justify-content: space-between;
+  margin-top: 14rpx;
+  padding: 20rpx;
+  border-radius: 8rpx;
+  background: #f8fafc;
+}
+
+.transfer-history.voided {
+  opacity: 0.58;
+}
+
+.history-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.history-side .delete-link {
+  margin-top: 6rpx;
+}
+
 .member-name,
 .settlement-flow,
 .expense-title {
@@ -409,4 +510,9 @@ page {
   font-size: 25rpx;
   line-height: 38rpx;
   text-align: center;
+}
+
+.success-empty {
+  color: #1f7a55;
+  background: #e8f5ee;
 }

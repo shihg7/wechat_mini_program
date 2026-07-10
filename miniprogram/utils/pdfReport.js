@@ -1,4 +1,6 @@
 const { getCategories, getRecordTitle } = require("./hotelScore");
+const { calculateLedgerSummary, calculateSettlements } = require("./tripLedgerStore");
+const { PRIVATE_MODE, createPrivacyCopy } = require("./privacyPolicy");
 
 const PAGE_WIDTH = 595;
 const PAGE_HEIGHT = 842;
@@ -90,24 +92,25 @@ function drawRule(ctx, y) {
   ctx.stroke();
 }
 
-function drawPageFooter(ctx, pageNumber) {
+function drawPageFooter(ctx, pageNumber, privacyLabel) {
   setText(ctx, 10, "#8a94a6");
+  ctx.fillText(`隐私版本：${privacyLabel}`, MARGIN, PAGE_HEIGHT - 28);
   ctx.fillText(`第 ${pageNumber} 页`, PAGE_WIDTH - MARGIN - 44, PAGE_HEIGHT - 28);
 }
 
-function drawHeader(ctx, title, pageNumber) {
+function drawHeader(ctx, title, pageNumber, privacyLabel) {
   setText(ctx, 11, "#667085", "600");
   ctx.fillText("EXPERIENCE REVIEW REPORT", MARGIN, 28);
   setText(ctx, 24, "#172033", "700");
   drawWrappedText(ctx, title, MARGIN, 48, CONTENT_WIDTH - 70, 30, 2);
-  drawPageFooter(ctx, pageNumber);
+  drawPageFooter(ctx, pageNumber, privacyLabel);
   drawRule(ctx, 92);
   return 112;
 }
 
-function drawSummaryPage(ctx, records, summary) {
+function drawSummaryPage(ctx, records, summary, pageNumber, privacyLabel) {
   clearPage(ctx);
-  let y = drawHeader(ctx, "体验档案测评报告", 1);
+  let y = drawHeader(ctx, "体验档案测评报告", pageNumber, privacyLabel);
   setText(ctx, 14, "#172033", "700");
   ctx.fillText("整体概览", MARGIN, y);
   y += 28;
@@ -147,6 +150,36 @@ function drawSummaryPage(ctx, records, summary) {
   }
 }
 
+function drawLedgerSummaryPage(ctx, ledgers, pageNumber, privacyLabel) {
+  clearPage(ctx);
+  let y = drawHeader(ctx, "旅行账本结算摘要", pageNumber, privacyLabel);
+  const expenseCount = ledgers.reduce((sum, ledger) => sum + ledger.expenses.length, 0);
+  setText(ctx, 13, "#4d596c");
+  ctx.fillText(`账本：${ledgers.length} 本`, MARGIN, y);
+  ctx.fillText(`支出：${expenseCount} 笔`, MARGIN + 180, y);
+  y += 34;
+
+  ledgers.slice(0, 8).forEach((ledger, index) => {
+    const summary = calculateLedgerSummary(ledger);
+    const settlements = calculateSettlements(ledger);
+    setText(ctx, 13, "#172033", "700");
+    ctx.fillText(`${index + 1}. ${ledger.title || "未命名账本"}`, MARGIN, y);
+    setText(ctx, 11, "#667085");
+    ctx.fillText(`${ledger.city || "未填写城市"} · ${ledger.members.length} 人 · ${summary.expenseCount} 笔 · ${summary.totalText}`, MARGIN, y + 20);
+    y += 43;
+    setText(ctx, 10.5, "#4d596c");
+    const settlementText = settlements.length
+      ? settlements.map((item) => item.text).join("；")
+      : "当前无需转账";
+    y = drawWrappedText(ctx, `结算：${settlementText}`, MARGIN + 12, y, CONTENT_WIDTH - 12, 16, 2) + 16;
+    drawRule(ctx, y - 7);
+  });
+  if (ledgers.length > 8) {
+    setText(ctx, 11, "#8a94a6");
+    ctx.fillText(`另有 ${ledgers.length - 8} 本账本未在摘要页展开`, MARGIN, y);
+  }
+}
+
 function drawMetricRows(ctx, record, y) {
   getCategories(record.recordType).forEach((category) => {
     const categoryScores = record.scores[category.key] || {};
@@ -172,9 +205,9 @@ function drawMetricRows(ctx, record, y) {
   return y;
 }
 
-function drawRecordPage(ctx, record, pageNumber) {
+function drawRecordPage(ctx, record, pageNumber, privacyLabel) {
   clearPage(ctx);
-  let y = drawHeader(ctx, `${record.typeLabel || "酒店"} · ${getRecordTitle(record)}`, pageNumber);
+  let y = drawHeader(ctx, `${record.typeLabel || "酒店"} · ${getRecordTitle(record)}`, pageNumber, privacyLabel);
   setText(ctx, 12, "#4d596c");
   ctx.fillText(`城市/地区：${record.city || "未填写"}`, MARGIN, y);
   ctx.fillText(`${record.recordType === "restaurant" ? "用餐日期" : "入住日期"}：${record.stayDate || "未填写"}`, MARGIN + 250, y);
@@ -217,17 +250,26 @@ function drawRecordPage(ctx, record, pageNumber) {
   drawWrappedText(ctx, record.privateNote || record.note || "未填写", MARGIN, y, CONTENT_WIDTH, 17, 8);
 }
 
-async function renderReportPages(page, canvas, ctx, records, summary) {
+async function renderReportPages(page, canvas, ctx, records, summary, ledgers, privacyMode) {
   const jpgPages = [];
+  const privacyLabel = privacyMode === "redacted" ? "脱敏版" : "私人版";
 
-  drawSummaryPage(ctx, records, summary);
+  drawSummaryPage(ctx, records, summary, 1, privacyLabel);
   await sleep(80);
   jpgPages.push(await canvasToJpg(page, canvas, 1));
 
+  let pageOffset = 1;
+  if (ledgers.length) {
+    drawLedgerSummaryPage(ctx, ledgers, 2, privacyLabel);
+    await sleep(60);
+    jpgPages.push(await canvasToJpg(page, canvas, 2));
+    pageOffset += 1;
+  }
+
   for (let i = 0; i < records.length; i += 1) {
-    drawRecordPage(ctx, records[i], i + 2);
+    drawRecordPage(ctx, records[i], i + 1 + pageOffset, privacyLabel);
     await sleep(50);
-    jpgPages.push(await canvasToJpg(page, canvas, i + 2));
+    jpgPages.push(await canvasToJpg(page, canvas, i + 1 + pageOffset));
   }
 
   return jpgPages;
@@ -310,9 +352,10 @@ function readFileArrayBuffer(filePath) {
   return wx.getFileSystemManager().readFileSync(filePath);
 }
 
-async function exportHotelReport({ page, records, summary }) {
+async function exportHotelReport({ page, records, summary, ledgers = [], privacyMode = PRIVATE_MODE }) {
+  const protectedData = createPrivacyCopy({ records, ledgers }, privacyMode);
   const { canvas, ctx } = await getCanvas(page);
-  const jpgPages = await renderReportPages(page, canvas, ctx, records, summary);
+  const jpgPages = await renderReportPages(page, canvas, ctx, protectedData.records, summary, protectedData.ledgers, privacyMode);
   const imageBuffers = jpgPages.map((item) => readFileArrayBuffer(item.path));
   const pdfBytes = buildPdf(imageBuffers);
   const filePath = `${wx.env.USER_DATA_PATH}/hotel-review-report.pdf`;
@@ -331,5 +374,6 @@ async function exportHotelReport({ page, records, summary }) {
 }
 
 module.exports = {
+  PRIVATE_MODE,
   exportHotelReport
 };

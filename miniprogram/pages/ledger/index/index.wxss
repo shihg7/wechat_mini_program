@@ -13,7 +13,8 @@ page {
 .topbar,
 .hero,
 .ledger-card,
-.mini-actions {
+.mini-actions,
+.ledger-heading {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -58,6 +59,12 @@ page {
   color: #ffffff;
 }
 
+.summary-divider {
+  width: 1rpx;
+  height: 72rpx;
+  background: rgba(255, 255, 255, 0.22);
+}
+
 .summary-item {
   width: 150rpx;
   text-align: center;
@@ -81,6 +88,30 @@ page {
   color: rgba(255, 255, 255, 0.78);
   font-size: 26rpx;
   line-height: 40rpx;
+}
+
+.ledger-heading {
+  justify-content: flex-start;
+  gap: 12rpx;
+}
+
+.status-tag {
+  flex: none;
+  padding: 3rpx 10rpx;
+  border-radius: 6rpx;
+  font-size: 20rpx;
+  font-weight: 700;
+  line-height: 30rpx;
+}
+
+.status-tag.active {
+  background: #eaf1ff;
+  color: #2864d9;
+}
+
+.status-tag.settled {
+  background: #e8f5ee;
+  color: #1f7a55;
 }
 
 .empty,
@@ -164,6 +195,17 @@ page {
   font-size: 30rpx;
   font-weight: 800;
   line-height: 42rpx;
+}
+
+.remaining {
+  margin-top: 5rpx;
+  color: #a34b32;
+  font-size: 22rpx;
+  line-height: 32rpx;
+}
+
+.remaining.settled {
+  color: #1f7a55;
 }
 
 .mini-actions {

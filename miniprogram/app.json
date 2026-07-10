@@ -2,6 +2,7 @@
   "pages": [
     "pages/index/index",
     "pages/record/record",
+    "pages/data/index",
     "pages/ledger/index/index",
     "pages/ledger/edit/edit",
     "pages/ledger/detail/detail"
@@ -9,8 +10,24 @@
   "window": {
     "backgroundTextStyle": "light",
     "navigationBarBackgroundColor": "#ffffff",
-    "navigationBarTitleText": "酒店测评",
+    "navigationBarTitleText": "体验档案",
     "navigationBarTextStyle": "black"
+  },
+  "tabBar": {
+    "color": "#667085",
+    "selectedColor": "#172033",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "black",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "体验档案"
+      },
+      {
+        "pagePath": "pages/ledger/index/index",
+        "text": "AA账本"
+      }
+    ]
   },
   "style": "v2",
   "darkmode": false,

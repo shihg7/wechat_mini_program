@@ -1,0 +1,232 @@
+page {
+  background: #eef2f5;
+  color: #172033;
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", Arial, sans-serif;
+}
+
+.page {
+  min-height: 100vh;
+  box-sizing: border-box;
+  padding: 36rpx 28rpx calc(env(safe-area-inset-bottom) + 48rpx);
+}
+
+.topbar,
+.summary-band,
+.section-head,
+.privacy-option,
+.action-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.eyebrow {
+  color: #667085;
+  font-size: 22rpx;
+  line-height: 32rpx;
+}
+
+.title {
+  margin-top: 8rpx;
+  font-size: 48rpx;
+  font-weight: 800;
+  line-height: 64rpx;
+}
+
+.shield {
+  padding: 12rpx 16rpx;
+  border: 1rpx solid #b6c2d2;
+  border-radius: 8rpx;
+  color: #4d596c;
+  font-size: 22rpx;
+  font-weight: 700;
+}
+
+.summary-band {
+  margin-top: 30rpx;
+  padding: 30rpx 20rpx;
+  border-radius: 8rpx;
+  background: #172033;
+  color: #ffffff;
+}
+
+.summary-item {
+  flex: 1;
+  text-align: center;
+}
+
+.summary-value,
+.summary-label,
+.metric,
+.metric-label {
+  display: block;
+}
+
+.summary-value {
+  font-size: 42rpx;
+  font-weight: 800;
+  line-height: 52rpx;
+}
+
+.summary-label {
+  color: rgba(255, 255, 255, 0.68);
+  font-size: 22rpx;
+  line-height: 32rpx;
+}
+
+.summary-divider {
+  width: 1rpx;
+  height: 68rpx;
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.section {
+  margin-top: 22rpx;
+  padding: 28rpx;
+  border-radius: 8rpx;
+  background: #ffffff;
+}
+
+.section-title {
+  font-size: 30rpx;
+  font-weight: 800;
+  line-height: 42rpx;
+}
+
+.section-subtitle,
+.option-desc,
+.preview-meta,
+.preview-time {
+  color: #667085;
+  font-size: 24rpx;
+  line-height: 36rpx;
+}
+
+.button {
+  width: 100%;
+  height: 84rpx;
+  margin-top: 24rpx;
+  border-radius: 8rpx;
+  font-size: 27rpx;
+  font-weight: 800;
+  line-height: 84rpx;
+}
+
+.button::after,
+.small-button::after {
+  border: none;
+}
+
+.primary,
+.blue {
+  background: #2864d9;
+  color: #ffffff;
+}
+
+.secondary {
+  background: #eef2f5;
+  color: #172033;
+}
+
+.preview {
+  margin-top: 24rpx;
+  padding-top: 24rpx;
+  border-top: 1rpx solid #e4e8ef;
+}
+
+.file-name {
+  overflow: hidden;
+  font-size: 27rpx;
+  font-weight: 800;
+  line-height: 40rpx;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.preview-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  margin-top: 20rpx;
+  padding: 20rpx 0;
+  background: #f8fafc;
+  text-align: center;
+}
+
+.metric {
+  font-size: 34rpx;
+  font-weight: 800;
+  line-height: 44rpx;
+}
+
+.metric-label {
+  color: #667085;
+  font-size: 22rpx;
+}
+
+.preview-time {
+  margin-top: 14rpx;
+}
+
+.action-row {
+  gap: 14rpx;
+}
+
+.action-row .button {
+  flex: 1;
+}
+
+.merge {
+  background: #dce8ff;
+  color: #184da9;
+}
+
+.danger {
+  background: #f7e3df;
+  color: #913626;
+}
+
+.privacy-option {
+  gap: 20rpx;
+  padding: 24rpx 0 4rpx;
+}
+
+.privacy-option.divider {
+  margin-top: 20rpx;
+  padding-top: 24rpx;
+  border-top: 1rpx solid #e4e8ef;
+}
+
+.privacy-copy {
+  flex: 1;
+  min-width: 0;
+}
+
+.option-title {
+  font-size: 27rpx;
+  font-weight: 800;
+  line-height: 38rpx;
+}
+
+.small-button {
+  width: 132rpx;
+  height: 68rpx;
+  margin: 0;
+  border-radius: 8rpx;
+  font-size: 24rpx;
+  font-weight: 800;
+  line-height: 68rpx;
+}
+
+.dark {
+  background: #172033;
+  color: #ffffff;
+}
+
+.pdf-canvas {
+  position: fixed;
+  left: -2000px;
+  top: 0;
+  width: 595px;
+  height: 842px;
+  pointer-events: none;
+}

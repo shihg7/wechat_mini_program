@@ -3,12 +3,20 @@
     <view class="hero-main">
       <view class="eyebrow">SPLIT LEDGER</view>
       <view class="title">{{ledger.title}}</view>
-      <view class="summary">{{ledger.city || "未填写城市"}} · {{ledger.members.length}} 人 · {{summary.expenseCount}} 笔</view>
+      <view class="summary">{{ledger.city || "未填写城市"}} · {{memberCount}} 位当前成员 · {{summary.expenseCount}} 笔</view>
     </view>
     <view class="total-card">
       <view class="total-value">{{summary.totalText}}</view>
       <view class="total-label">总支出</view>
     </view>
+  </view>
+
+  <view class="settled-banner {{isSettled ? 'done' : 'pending'}}">
+    <view>
+      <view class="settled-title">{{isSettled ? "已结清" : "进行中"}}</view>
+      <view class="settled-desc">{{isSettled ? "所有支出与已确认转账已平衡" : "剩余待结算 " + remainingText}}</view>
+    </view>
+    <view class="copy-link" bindtap="copySettlementText">复制结算文本</view>
   </view>
 
   <view class="overview-grid">
@@ -21,29 +29,26 @@
       <view class="overview-label">待转账</view>
     </view>
     <view class="overview-item">
-      <view class="overview-value">{{summary.categories.length}}</view>
-      <view class="overview-label">分类</view>
+      <view class="overview-value">{{transfers.length}}</view>
+      <view class="overview-label">结算记录</view>
     </view>
   </view>
 
   <view class="quick-actions">
     <button class="button primary" bindtap="openExpenseForm">{{showExpenseForm ? "继续填写" : "记一笔支出"}}</button>
-    <button class="button secondary" bindtap="editLedger">编辑账本</button>
+    <button class="button secondary" bindtap="editLedger">成员与账本</button>
   </view>
 
   <view class="section member-section">
     <view class="section-head">
       <view>
         <view class="section-title">成员</view>
-        <view class="section-subtitle">新增成员只影响后续支出，不会改历史分摊</view>
+        <view class="section-subtitle">归档成员仍保留在历史账目中</view>
       </view>
+      <view class="mini-link" bindtap="editLedger">管理</view>
     </view>
     <view class="member-chips">
-      <view class="member-chip" wx:for="{{ledger.members}}" wx:key="*this">{{item}}</view>
-    </view>
-    <view class="add-member-row">
-      <input class="input add-member-input" placeholder="新增成员名" value="{{newMemberName}}" bindinput="onNewMemberInput" />
-      <button class="add-member-button" bindtap="addMember">添加</button>
+      <view class="member-chip {{item.status}}" wx:for="{{members}}" wx:key="id">{{item.name}}{{item.status === "archived" ? " · 已归档" : ""}}</view>
     </view>
   </view>
 
@@ -51,7 +56,7 @@
     <view class="section-head">
       <view>
         <view class="section-title">{{editingExpenseId ? "编辑支出" : "记一笔支出"}}</view>
-        <view class="section-subtitle">{{editingExpenseId ? "修改后会重新计算结算" : "只选择实际参与平分的人"}}</view>
+        <view class="section-subtitle">{{editingExpenseId ? "历史归档成员会完整保留" : "新支出默认只包含当前成员"}}</view>
       </view>
       <view class="close-link" bindtap="closeExpenseForm">收起</view>
     </view>
@@ -68,7 +73,7 @@
       </view>
       <view class="field payer-field">
         <view class="field-label">付款人</view>
-        <picker mode="selector" range="{{ledger.members}}" value="{{expenseForm.payerIndex}}" bindchange="onPayerChange">
+        <picker mode="selector" range="{{expenseForm.payerOptions}}" range-key="name" value="{{expenseForm.payerIndex}}" bindchange="onPayerChange">
           <view class="input picker-value">{{expenseForm.payerName}}</view>
         </picker>
       </view>
@@ -98,9 +103,9 @@
         </view>
       </view>
       <checkbox-group class="member-checks" bindchange="onParticipantsChange">
-        <label class="member-check" wx:for="{{memberOptions}}" wx:key="name">
-          <checkbox value="{{item.name}}" checked="{{item.checked}}" color="#2864d9" />
-          <text>{{item.name}}</text>
+        <label class="member-check {{item.status}}" wx:for="{{memberOptions}}" wx:key="id">
+          <checkbox value="{{item.id}}" checked="{{item.checked}}" color="#2864d9" />
+          <text>{{item.name}}{{item.status === "archived" ? "（已归档）" : ""}}</text>
         </label>
       </checkbox-group>
     </view>
@@ -112,24 +117,59 @@
 
     <view class="form-actions">
       <button class="button primary" bindtap="saveExpense">{{editingExpenseId ? "保存修改" : "保存支出"}}</button>
-      <button class="button secondary" wx:if="{{editingExpenseId}}" bindtap="resetExpenseForm">取消编辑</button>
+      <button class="button secondary" bindtap="closeExpenseForm">取消</button>
     </view>
   </view>
 
   <view class="section priority-section">
     <view class="section-head">
       <view>
-        <view class="section-title">结算建议</view>
-        <view class="section-subtitle">{{settlements.length ? "按最少转账次数撮合" : "当前无需转账"}}</view>
+        <view class="section-title">推荐转账方案</view>
+        <view class="section-subtitle">{{settlements.length ? "可按实际到账金额分次确认" : "当前无需转账"}}</view>
       </view>
     </view>
-    <view class="empty-inner" wx:if="{{!settlements.length}}">账目已经平衡。</view>
-    <view class="settlement" wx:for="{{settlements}}" wx:key="text">
-      <view>
-        <view class="settlement-flow">{{item.from}} → {{item.to}}</view>
-        <view class="settlement-hint">建议转账</view>
+    <view class="empty-inner success-empty" wx:if="{{!settlements.length}}">账目已经平衡。</view>
+    <view class="settlement-wrap" wx:for="{{settlements}}" wx:key="key">
+      <view class="settlement">
+        <view>
+          <view class="settlement-flow">{{item.fromName}} → {{item.toName}}</view>
+          <view class="settlement-hint">建议转账</view>
+        </view>
+        <view class="settlement-side">
+          <view class="settlement-amount">{{item.amountText}}</view>
+          <view class="confirm-link" data-index="{{index}}" bindtap="openTransfer">确认转账</view>
+        </view>
       </view>
-      <view class="settlement-amount">{{item.amountText}}</view>
+    </view>
+
+    <view class="transfer-form" wx:if="{{pendingTransfer}}">
+      <view class="transfer-form-title">确认 {{pendingTransfer.fromName}} → {{pendingTransfer.toName}}</view>
+      <view class="transfer-form-desc">可输入部分到账金额，剩余金额会继续保留在推荐方案中。</view>
+      <input class="input transfer-input" type="digit" value="{{pendingTransfer.amount}}" bindinput="onTransferAmountInput" />
+      <view class="form-actions">
+        <button class="button primary" bindtap="confirmTransfer">确认到账</button>
+        <button class="button secondary inset" bindtap="cancelTransfer">取消</button>
+      </view>
+    </view>
+  </view>
+
+  <view class="section">
+    <view class="section-head">
+      <view>
+        <view class="section-title">结算历史</view>
+        <view class="section-subtitle">已确认与已撤销记录均保留</view>
+      </view>
+    </view>
+    <view class="empty-inner" wx:if="{{!transfers.length}}">还没有确认过转账。</view>
+    <view class="transfer-history {{item.voided ? 'voided' : ''}}" wx:for="{{transfers}}" wx:key="id">
+      <view class="history-main">
+        <view class="member-name">{{item.fromName}} → {{item.toName}}</view>
+        <view class="member-meta">{{item.time || "时间未记录"}} · {{item.statusText}}</view>
+      </view>
+      <view class="history-side">
+        <view class="expense-amount">{{item.amountText}}</view>
+        <view class="delete-link" wx:if="{{!item.voided}}" data-id="{{item.id}}" bindtap="voidTransfer">撤销</view>
+      </view>
     </view>
   </view>
 
@@ -137,12 +177,12 @@
     <view class="section-head">
       <view>
         <view class="section-title">成员净额</view>
-        <view class="section-subtitle">正数应收，负数应付</view>
+        <view class="section-subtitle">已计入确认转账；正数应收，负数应付</view>
       </view>
     </view>
-    <view class="member-row" wx:for="{{summary.members}}" wx:key="name">
+    <view class="member-row" wx:for="{{summaryMembers}}" wx:key="key">
       <view>
-        <view class="member-name">{{item.name}}</view>
+        <view class="member-name">{{item.name}}{{item.status === "archived" ? " · 已归档" : ""}}</view>
         <view class="member-meta">已付 {{item.paidText}} · 应摊 {{item.shareText}}</view>
       </view>
       <view class="balance {{item.balanceCents >= 0 ? 'balance-positive' : 'balance-negative'}}">{{item.balanceText}}</view>
@@ -156,11 +196,11 @@
         <view class="section-subtitle">{{summary.expenseCount}} 笔</view>
       </view>
     </view>
-    <view class="empty-inner" wx:if="{{!ledger.expenses.length}}">还没有支出。</view>
-    <view class="expense" wx:for="{{ledger.expenses}}" wx:key="id">
+    <view class="empty-inner" wx:if="{{!expenseViews.length}}">还没有支出。</view>
+    <view class="expense" wx:for="{{expenseViews}}" wx:key="id">
       <view class="expense-main">
         <view class="expense-title">{{item.title}}</view>
-        <view class="expense-meta">{{item.category}} · {{item.payer}} 付款 · {{item.participantsText}} 平分</view>
+        <view class="expense-meta">{{item.category}} · {{item.payerName}} 付款 · {{item.participantNames}} 平分{{item.archivedHint}}</view>
         <view class="expense-note">{{item.paidAt || "未填写日期"}} {{item.noteText}}</view>
       </view>
       <view class="expense-side">

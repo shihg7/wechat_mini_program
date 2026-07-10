@@ -1,0 +1,77 @@
+<view class="page">
+  <view class="topbar">
+    <view>
+      <view class="eyebrow">DATA &amp; PRIVACY</view>
+      <view class="title">数据管理</view>
+    </view>
+    <view class="shield">隐私优先</view>
+  </view>
+
+  <view class="summary-band">
+    <view class="summary-item">
+      <text class="summary-value">{{localSummary.recordCount}}</text>
+      <text class="summary-label">体验记录</text>
+    </view>
+    <view class="summary-divider"></view>
+    <view class="summary-item">
+      <text class="summary-value">{{localSummary.ledgerCount}}</text>
+      <text class="summary-label">旅行账本</text>
+    </view>
+    <view class="summary-divider"></view>
+    <view class="summary-item">
+      <text class="summary-value">{{localSummary.expenseCount}}</text>
+      <text class="summary-label">支出明细</text>
+    </view>
+  </view>
+
+  <view class="section">
+    <view class="section-head">
+      <view>
+        <view class="section-title">完整备份</view>
+        <view class="section-subtitle">记录与账本一起保存为 schemaVersion 2</view>
+      </view>
+    </view>
+    <button class="button primary" loading="{{exportingBackup}}" bindtap="exportBackup">导出完整备份</button>
+  </view>
+
+  <view class="section">
+    <view class="section-title">恢复数据</view>
+    <view class="section-subtitle">支持 v2 完整备份和 v1 记录备份</view>
+    <button class="button secondary" bindtap="chooseBackup">选择 JSON 文件</button>
+
+    <view class="preview" wx:if="{{preview}}">
+      <view class="file-name">{{selectedFileName}}</view>
+      <view class="preview-meta">版本 v{{preview.schemaVersion}} · {{preview.ledgersLabel}}</view>
+      <view class="preview-grid">
+        <view><text class="metric">{{preview.recordCount}}</text><text class="metric-label">记录</text></view>
+        <view><text class="metric">{{preview.ledgerCount}}</text><text class="metric-label">账本</text></view>
+        <view><text class="metric">{{preview.expenseCount}}</text><text class="metric-label">支出</text></view>
+      </view>
+      <view class="preview-time">导出时间：{{preview.exportedAtText}}</view>
+      <view class="action-row">
+        <button class="button merge" loading="{{importing}}" data-mode="merge" bindtap="confirmImport">合并导入</button>
+        <button class="button danger" loading="{{importing}}" data-mode="replace" bindtap="confirmImport">覆盖本地</button>
+      </view>
+    </view>
+  </view>
+
+  <view class="section">
+    <view class="section-title">PDF 隐私版本</view>
+    <view class="privacy-option">
+      <view class="privacy-copy">
+        <view class="option-title">私人版</view>
+        <view class="option-desc">保留完整字段，仅供自己归档</view>
+      </view>
+      <button class="small-button dark" loading="{{exportingPdf}}" data-mode="private" bindtap="exportPdf">导出</button>
+    </view>
+    <view class="privacy-option divider">
+      <view class="privacy-copy">
+        <view class="option-title">脱敏版</view>
+        <view class="option-desc">隐藏精确日期、价格、等级、私密备注与成员姓名</view>
+      </view>
+      <button class="small-button blue" loading="{{exportingPdf}}" data-mode="redacted" bindtap="exportPdf">导出</button>
+    </view>
+  </view>
+
+  <canvas type="2d" id="pdfCanvas" class="pdf-canvas"></canvas>
+</view>

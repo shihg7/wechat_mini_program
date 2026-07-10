@@ -95,30 +95,64 @@ page {
   min-height: 220rpx;
 }
 
-.member-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12rpx;
+.member-list {
+  display: block;
 }
 
-.member-chip {
+.member-row {
   display: flex;
   align-items: center;
-  gap: 10rpx;
-  min-height: 56rpx;
-  padding: 0 18rpx;
+  justify-content: space-between;
+  gap: 18rpx;
+  min-height: 88rpx;
+  padding: 14rpx 18rpx;
   border-radius: 8rpx;
   background: #eef2f5;
+  box-sizing: border-box;
+}
+
+.member-row + .member-row {
+  margin-top: 10rpx;
+}
+
+.member-row.archived {
+  background: #f3f4f6;
+}
+
+.member-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.member-name {
   color: #263248;
   font-size: 25rpx;
   font-weight: 700;
-  line-height: 56rpx;
+  line-height: 36rpx;
 }
 
-.member-remove {
+.member-status {
+  color: #667085;
+  font-size: 21rpx;
+  line-height: 30rpx;
+}
+
+.member-actions {
+  display: flex;
+  align-items: center;
+  gap: 18rpx;
+}
+
+.member-link,
+.member-danger {
+  color: #2864d9;
+  font-size: 23rpx;
+  font-weight: 700;
+  line-height: 34rpx;
+}
+
+.member-danger {
   color: #a34b32;
-  font-size: 30rpx;
-  line-height: 56rpx;
 }
 
 .add-member-row {

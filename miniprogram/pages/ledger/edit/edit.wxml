@@ -2,7 +2,7 @@
   <view class="hero">
     <view class="eyebrow">SPLIT LEDGER</view>
     <view class="title">{{mode === "edit" ? "编辑账本" : "新建账本"}}</view>
-    <view class="summary">先建账本，后续也可以在账本详情里继续加人。</view>
+    <view class="summary">成员归档后仍保留在历史支出与结算记录中。</view>
   </view>
 
   <view class="section">
@@ -30,10 +30,17 @@
     </view>
     <view class="field">
       <view class="field-label">成员</view>
-      <view class="member-chips">
-        <view class="member-chip" wx:for="{{form.members}}" wx:key="*this">
-          <text>{{item}}</text>
-          <text class="member-remove" data-name="{{item}}" bindtap="removeMember">×</text>
+      <view class="member-list">
+        <view class="member-row {{item.status}}" wx:for="{{form.members}}" wx:key="id">
+          <view class="member-info">
+            <view class="member-name">{{item.name}}</view>
+            <view class="member-status">{{item.status === "archived" ? "已归档 · 仅保留历史" : "当前成员"}}</view>
+          </view>
+          <view class="member-actions">
+            <view class="member-link" data-id="{{item.id}}" bindtap="renameMember">改名</view>
+            <view class="member-link" wx:if="{{item.status !== 'archived'}}" data-id="{{item.id}}" bindtap="archiveMember">归档</view>
+            <view class="member-danger" wx:if="{{item.status === 'archived'}}" data-id="{{item.id}}" bindtap="removeMember">移除</view>
+          </view>
         </view>
       </view>
       <view class="add-member-row">

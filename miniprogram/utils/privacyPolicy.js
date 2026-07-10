@@ -63,18 +63,23 @@ function redactRecords(records) {
     privateNote: "",
     cloudRecordId: "",
     publicReviewId: "",
-    placeId: ""
+    placeId: "",
+    address: "",
+    latitude: null,
+    longitude: null
   }));
 }
 
 function createPrivacyCopy(input = {}, mode = PRIVATE_MODE) {
   const copied = clone({
     records: input.records || [],
+    places: input.places || [],
     ledgers: input.ledgers || []
   });
   if (mode !== REDACTED_MODE) return copied;
   return {
     records: redactRecords(copied.records),
+    places: copied.places.map((place) => ({ ...place, address: "", latitude: null, longitude: null, cloudPlaceId: "" })),
     ledgers: anonymizeLedgers(copied.ledgers)
   };
 }

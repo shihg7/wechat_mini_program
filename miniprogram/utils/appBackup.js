@@ -1,8 +1,10 @@
-const { STORAGE_KEY: RECORDS_KEY, normalizeRecord } = require("./hotelReviewStore");
-const { STORAGE_KEY: LEDGERS_KEY, normalizeLedger } = require("./tripLedgerStore");
+const { STORAGE_KEY: RECORDS_KEY, getRecords, normalizeRecord } = require("./hotelReviewStore");
+const { STORAGE_KEY: PLACES_KEY, getPlaces, normalizePlace } = require("./placeStore");
+const { STORAGE_KEY: LEDGERS_KEY, getLedgers, normalizeLedger } = require("./tripLedgerStore");
+const { createStableId } = require("./id");
 
 const APP_ID = "experience-review-miniprogram";
-const SCHEMA_VERSION = 2;
+const SCHEMA_VERSION = 3;
 
 function clone(value) {
   if (value === undefined) return undefined;
@@ -27,18 +29,47 @@ function hashText(text) {
 }
 
 function assertObject(value, label) {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    throw new Error(`${label}必须是对象`);
-  }
+  if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error(`${label}必须是对象`);
 }
 
 function assertItems(items, label) {
   if (!Array.isArray(items)) throw new Error(`${label}必须是数组`);
   items.forEach((item, index) => {
     assertObject(item, `${label}[${index}]`);
-    if (item.id === undefined || item.id === null || String(item.id).trim() === "") {
-      throw new Error(`${label}[${index}]缺少 id`);
+    if (item.id === undefined || item.id === null || String(item.id).trim() === "") throw new Error(`${label}[${index}]缺少 id`);
+  });
+}
+
+function placesFromLegacyRecords(records) {
+  const placeMap = {};
+  const normalizedRecords = records.map(normalizeRecord).map((record) => {
+    const placeId = record.placeId || createStableId("place", `backup-record:${record.id}`);
+    if (!placeMap[placeId]) {
+      placeMap[placeId] = normalizePlace({
+        id: placeId,
+        type: record.recordType,
+        name: record.placeName || record.displayName,
+        city: record.city,
+        area: record.area,
+        address: record.address,
+        latitude: record.latitude,
+        longitude: record.longitude,
+        aliases: record.placeAlias ? [record.placeAlias] : [],
+        createdAt: record.createdAt,
+        updatedAt: record.updatedAt
+      });
     }
+    return normalizeRecord({ ...record, placeId });
+  });
+  return { records: normalizedRecords, places: Object.keys(placeMap).map((id) => placeMap[id]) };
+}
+
+function validateUniqueIds(items, label) {
+  const ids = {};
+  items.forEach((item) => {
+    const id = String(item.id);
+    if (ids[id]) throw new Error(`${label} 存在重复 id: ${id}`);
+    ids[id] = true;
   });
 }
 
@@ -51,46 +82,46 @@ function preflightBackup(payload) {
   }
   assertObject(data, "备份");
   const version = Number(data.schemaVersion || data.version);
-  if (version !== 1 && version !== SCHEMA_VERSION) throw new Error("仅支持 schemaVersion 1 或 2");
+  if ([1, 2, 3].indexOf(version) < 0) throw new Error("仅支持 schemaVersion 1、2 或 3");
   if (data.app && data.app !== APP_ID) throw new Error("备份来源应用不匹配");
   assertItems(data.records, "records");
-  if (version === SCHEMA_VERSION) assertItems(data.ledgers, "ledgers");
-  if (version === 1 && data.ledgers !== undefined) throw new Error("version 1 备份不应包含 ledgers");
+  if (version >= 2) assertItems(data.ledgers, "ledgers");
+  if (version === 3) assertItems(data.places, "places");
+  validateUniqueIds(data.records, "records");
+  validateUniqueIds(data.ledgers || [], "ledgers");
+  validateUniqueIds(data.places || [], "places");
 
-  const recordIds = {};
   data.records.forEach((record, index) => {
     if (!record.hotelName && !record.restaurantName) throw new Error(`records[${index}]缺少体验名称`);
-    const id = String(record.id);
-    if (recordIds[id]) throw new Error(`records 存在重复 id: ${id}`);
-    recordIds[id] = true;
   });
-  const ledgerIds = {};
   (data.ledgers || []).forEach((ledger, ledgerIndex) => {
-    const ledgerId = String(ledger.id);
-    if (ledgerIds[ledgerId]) throw new Error(`ledgers 存在重复 id: ${ledgerId}`);
-    ledgerIds[ledgerId] = true;
-    if (!Array.isArray(ledger.members) || !Array.isArray(ledger.expenses)) {
-      throw new Error(`ledgers[${ledgerIndex}]的 members/expenses 必须是数组`);
-    }
-    const expenseIds = {};
-    ledger.expenses.forEach((expense, expenseIndex) => {
-      assertObject(expense, `ledgers[${ledgerIndex}].expenses[${expenseIndex}]`);
-      if (expense.id === undefined || String(expense.id).trim() === "") {
-        throw new Error(`ledgers[${ledgerIndex}].expenses[${expenseIndex}]缺少 id`);
-      }
-      const id = String(expense.id);
-      if (expenseIds[id]) throw new Error(`账本 ${ledger.id} 存在重复支出 id: ${id}`);
-      expenseIds[id] = true;
-    });
+    if (!Array.isArray(ledger.members) || !Array.isArray(ledger.expenses)) throw new Error(`ledgers[${ledgerIndex}]的 members/expenses 必须是数组`);
+    validateUniqueIds(ledger.expenses, `账本 ${ledger.id} 的支出`);
   });
+
+  let normalizedRecords;
+  let normalizedPlaces;
+  if (version === 3) {
+    normalizedPlaces = data.places.map(normalizePlace);
+    const placeIds = normalizedPlaces.reduce((map, place) => { map[place.id] = true; return map; }, {});
+    normalizedRecords = data.records.map(normalizeRecord);
+    normalizedRecords.forEach((record, index) => {
+      if (!record.placeId || !placeIds[record.placeId]) throw new Error(`records[${index}]的 placeId 无效`);
+    });
+  } else {
+    const legacy = placesFromLegacyRecords(data.records);
+    normalizedRecords = legacy.records;
+    normalizedPlaces = legacy.places;
+  }
 
   const normalized = {
     schemaVersion: version,
     app: data.app || APP_ID,
     exportedAt: data.exportedAt || "",
     importToken: hashText(stableStringify(data)),
-    records: data.records.map(normalizeRecord),
-    ledgers: version === SCHEMA_VERSION ? data.ledgers.map(normalizeLedger) : null
+    records: normalizedRecords,
+    places: normalizedPlaces,
+    ledgers: version >= 2 ? data.ledgers.map(normalizeLedger) : null
   };
   const expenseCount = (normalized.ledgers || []).reduce((sum, ledger) => sum + ledger.expenses.length, 0);
   return {
@@ -99,6 +130,7 @@ function preflightBackup(payload) {
       schemaVersion: version,
       exportedAt: normalized.exportedAt,
       recordCount: normalized.records.length,
+      placeCount: normalized.places.length,
       ledgerCount: normalized.ledgers ? normalized.ledgers.length : 0,
       expenseCount,
       ledgersIncluded: normalized.ledgers !== null
@@ -106,8 +138,9 @@ function preflightBackup(payload) {
   };
 }
 
-function createBackup(records, ledgers) {
+function createBackup(records, places, ledgers) {
   const normalizedRecords = (records || []).map(normalizeRecord);
+  const normalizedPlaces = (places || []).map(normalizePlace);
   const normalizedLedgers = (ledgers || []).map(normalizeLedger);
   return {
     schemaVersion: SCHEMA_VERSION,
@@ -116,18 +149,22 @@ function createBackup(records, ledgers) {
     exportedAt: new Date().toISOString(),
     summary: {
       recordCount: normalizedRecords.length,
+      placeCount: normalizedPlaces.length,
       ledgerCount: normalizedLedgers.length,
       expenseCount: normalizedLedgers.reduce((sum, ledger) => sum + ledger.expenses.length, 0)
     },
     records: normalizedRecords,
+    places: normalizedPlaces,
     ledgers: normalizedLedgers
   };
 }
 
-function exportFullBackup(records, ledgers) {
-  const backup = createBackup(records === undefined ? wx.getStorageSync(RECORDS_KEY) || [] : records,
-    ledgers === undefined ? wx.getStorageSync(LEDGERS_KEY) || [] : ledgers);
-  const filePath = `${wx.env.USER_DATA_PATH}/experience-review-full-backup-v2.json`;
+function exportFullBackup(records, places, ledgers) {
+  const sourcePlaces = places === undefined ? getPlaces() : places;
+  const sourceRecords = records === undefined ? getRecords() : records;
+  const sourceLedgers = ledgers === undefined ? getLedgers() : ledgers;
+  const backup = createBackup(sourceRecords, sourcePlaces, sourceLedgers);
+  const filePath = `${wx.env.USER_DATA_PATH}/experience-review-full-backup-v3.json`;
   wx.getFileSystemManager().writeFileSync(filePath, JSON.stringify(backup, null, 2), "utf8");
   return { filePath, backup, summary: backup.summary };
 }
@@ -137,9 +174,7 @@ function comparable(item) {
     if (Array.isArray(value)) return value.map(stripRuntimeFields);
     if (!value || typeof value !== "object") return value;
     return Object.keys(value).reduce((result, key) => {
-      if (key !== "id" && key !== "createdAt" && key !== "updatedAt") {
-        result[key] = stripRuntimeFields(value[key]);
-      }
+      if (["id", "createdAt", "updatedAt"].indexOf(key) < 0) result[key] = stripRuntimeFields(value[key]);
       return result;
     }, {});
   }
@@ -147,10 +182,7 @@ function comparable(item) {
 }
 
 function planCollection(existing, incoming, kind, backupToken) {
-  const byId = existing.reduce((map, item) => {
-    map[String(item.id)] = item;
-    return map;
-  }, {});
+  const byId = existing.reduce((map, item) => { map[String(item.id)] = item; return map; }, {});
   const idMap = {};
   const additions = [];
   let skipped = 0;
@@ -181,18 +213,22 @@ function planCollection(existing, incoming, kind, backupToken) {
   return { result: additions.concat(existing), additions, skipped, idMap };
 }
 
-function buildMerge(existingRecords, existingLedgers, backup) {
+function buildMerge(existingRecords, existingPlaces, existingLedgers, backup) {
   const backupToken = backup.importToken || hashText(stableStringify(backup));
-  const recordsPlan = planCollection(existingRecords, backup.records, "record", backupToken);
+  const placesPlan = planCollection(existingPlaces, backup.places, "place", backupToken);
+  const remappedRecords = backup.records.map((record) => ({ ...record, placeId: placesPlan.idMap[record.placeId] || record.placeId }));
+  const recordsPlan = planCollection(existingRecords, remappedRecords, "record", backupToken);
   const remappedLedgers = (backup.ledgers || []).map((ledger) => ({
     ...ledger,
-    expenses: ledger.expenses.map((expense) => ({
-      ...expense,
-      relatedRecordId: recordsPlan.idMap[String(expense.relatedRecordId)] || expense.relatedRecordId
-    }))
+    expenses: ledger.expenses.map((expense) => ({ ...expense, relatedRecordId: recordsPlan.idMap[String(expense.relatedRecordId)] || expense.relatedRecordId }))
   }));
   const ledgersPlan = planCollection(existingLedgers, remappedLedgers, "ledger", backupToken);
-  return { recordsPlan, ledgersPlan };
+  return { recordsPlan, placesPlan, ledgersPlan };
+}
+
+function snapshotFor(key) {
+  const value = wx.getStorageSync(key);
+  return { exists: value !== undefined && value !== "", value: clone(value) };
 }
 
 function restoreStorage(key, snapshot) {
@@ -202,67 +238,70 @@ function restoreStorage(key, snapshot) {
 }
 
 function applyBackup(preflightOrPayload, mode = "merge") {
-  if (mode !== "merge" && mode !== "replace" && mode !== "overwrite") {
-    throw new Error("导入模式必须是 merge 或 replace");
-  }
-  const checked = preflightOrPayload && preflightOrPayload.data && preflightOrPayload.summary
-    ? preflightOrPayload
-    : preflightBackup(preflightOrPayload);
+  if (["merge", "replace", "overwrite"].indexOf(mode) < 0) throw new Error("导入模式必须是 merge 或 replace");
+  const checked = preflightOrPayload && preflightOrPayload.data && preflightOrPayload.summary ? preflightOrPayload : preflightBackup(preflightOrPayload);
   const backup = checked.data;
-  const rawRecords = wx.getStorageSync(RECORDS_KEY);
-  const rawLedgers = wx.getStorageSync(LEDGERS_KEY);
-  const recordSnapshot = { exists: rawRecords !== undefined && rawRecords !== "", value: clone(rawRecords) };
-  const ledgerSnapshot = { exists: rawLedgers !== undefined && rawLedgers !== "", value: clone(rawLedgers) };
+  const snapshots = {
+    records: snapshotFor(RECORDS_KEY),
+    places: snapshotFor(PLACES_KEY),
+    ledgers: snapshotFor(LEDGERS_KEY)
+  };
+  const rawRecords = snapshots.records.value;
+  const rawPlaces = snapshots.places.value;
+  const rawLedgers = snapshots.ledgers.value;
   const existingRecords = Array.isArray(rawRecords) ? rawRecords.map(normalizeRecord) : [];
+  const existingPlaces = Array.isArray(rawPlaces) ? rawPlaces.map(normalizePlace) : [];
   const existingLedgers = Array.isArray(rawLedgers) ? rawLedgers.map(normalizeLedger) : [];
   let nextRecords;
+  let nextPlaces;
   let nextLedgers;
   let result;
 
   if (mode === "replace" || mode === "overwrite") {
     nextRecords = backup.records;
+    nextPlaces = backup.places;
     nextLedgers = backup.ledgers === null ? existingLedgers : backup.ledgers;
-    result = {
-      mode: "replace",
-      recordsAdded: nextRecords.length,
-      ledgersAdded: backup.ledgers === null ? 0 : nextLedgers.length,
-      recordsSkipped: 0,
-      ledgersSkipped: 0
-    };
+    result = { mode: "replace", recordsAdded: nextRecords.length, placesAdded: nextPlaces.length, ledgersAdded: backup.ledgers === null ? 0 : nextLedgers.length, recordsSkipped: 0, placesSkipped: 0, ledgersSkipped: 0 };
   } else {
-    const plan = buildMerge(existingRecords, existingLedgers, backup);
+    const plan = buildMerge(existingRecords, existingPlaces, existingLedgers, backup);
     nextRecords = plan.recordsPlan.result;
+    nextPlaces = plan.placesPlan.result;
     nextLedgers = backup.ledgers === null ? existingLedgers : plan.ledgersPlan.result;
     result = {
       mode: "merge",
       recordsAdded: plan.recordsPlan.additions.length,
+      placesAdded: plan.placesPlan.additions.length,
       ledgersAdded: backup.ledgers === null ? 0 : plan.ledgersPlan.additions.length,
       recordsSkipped: plan.recordsPlan.skipped,
+      placesSkipped: plan.placesPlan.skipped,
       ledgersSkipped: backup.ledgers === null ? 0 : plan.ledgersPlan.skipped,
       recordIdMap: plan.recordsPlan.idMap,
+      placeIdMap: plan.placesPlan.idMap,
       ledgerIdMap: plan.ledgersPlan.idMap
     };
   }
 
   try {
     wx.setStorageSync(RECORDS_KEY, nextRecords.map(normalizeRecord));
+    wx.setStorageSync(PLACES_KEY, nextPlaces.map(normalizePlace));
     wx.setStorageSync(LEDGERS_KEY, nextLedgers.map(normalizeLedger));
   } catch (error) {
     const rollbackErrors = [];
-    try { restoreStorage(RECORDS_KEY, recordSnapshot); } catch (rollbackError) { rollbackErrors.push(rollbackError); }
-    try { restoreStorage(LEDGERS_KEY, ledgerSnapshot); } catch (rollbackError) { rollbackErrors.push(rollbackError); }
+    [[RECORDS_KEY, snapshots.records], [PLACES_KEY, snapshots.places], [LEDGERS_KEY, snapshots.ledgers]].forEach(([key, snapshot]) => {
+      try { restoreStorage(key, snapshot); } catch (rollbackError) { rollbackErrors.push(rollbackError); }
+    });
     const message = rollbackErrors.length ? "导入失败，且回滚未完整完成" : "导入失败，已自动回滚";
     const wrapped = new Error(`${message}: ${error.message || error}`);
-    wrapped.cause = error;
     wrapped.rollbackErrors = rollbackErrors;
     throw wrapped;
   }
-  return { ...result, recordCount: nextRecords.length, ledgerCount: nextLedgers.length };
+  return { ...result, recordCount: nextRecords.length, placeCount: nextPlaces.length, ledgerCount: nextLedgers.length };
 }
 
 module.exports = {
   APP_ID,
   LEDGERS_KEY,
+  PLACES_KEY,
   RECORDS_KEY,
   SCHEMA_VERSION,
   applyBackup,

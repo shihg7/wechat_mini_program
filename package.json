@@ -4,7 +4,7 @@
   "description": "https://developers.weixin.qq.com/miniprogram/dev/devtools/npm.html",
   "main": "index.js",
   "scripts": {
-    "test": "node scripts/test-trip-ledger.js && node scripts/test-app-backup.js && node scripts/test-ledger-pages.js"
+    "test": "node scripts/test-trip-ledger.js && node scripts/test-place-store.js && node scripts/test-app-backup.js && node scripts/test-record-place-pages.js && node scripts/test-ledger-pages.js"
   },
   "repository": {
     "type": "git",

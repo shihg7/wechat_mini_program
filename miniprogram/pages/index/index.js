@@ -7,6 +7,7 @@ const {
   searchAndSortRecords
 } = require("../../utils/hotelReviewStore");
 const { getLedgerListItems } = require("../../utils/tripLedgerStore");
+const { findPlaceSuggestions, getPlaceStats, getPlaces } = require("../../utils/placeStore");
 
 const SORT_OPTIONS = [
   { label: "最近创建", value: "created_desc" },
@@ -17,6 +18,7 @@ const SORT_OPTIONS = [
 
 const VIEW_TABS = [
   { key: "records", label: "记录" },
+  { key: "places", label: "地点" },
   { key: "timeline", label: "时间线" },
   { key: "cities", label: "城市" },
   { key: "tags", label: "标签" }
@@ -29,6 +31,7 @@ Page({
     timelineGroups: [],
     cityStats: [],
     tagStats: [],
+    placeCards: [],
     selectedCity: "",
     cityRecords: [],
     keyword: "",
@@ -62,6 +65,7 @@ Page({
   },
 
   refreshRecords() {
+    getPlaces();
     const records = getRecords();
     const ledgers = getLedgerListItems();
     this.setData({
@@ -105,6 +109,23 @@ Page({
 
   refreshVisibleRecords() {
     const visibleRecords = this.getVisibleRecords();
+    const visibleIds = visibleRecords.reduce((map, record) => { map[record.placeId] = true; return map; }, {});
+    const keyword = String(this.data.keyword || "").trim().toLowerCase();
+    const hasRecordOnlyFilter = this.data.activeStatus !== "all" || !!this.data.activeTag;
+    const placeCards = getPlaces().filter((place) => {
+      if (this.data.activeType !== "all" && place.type !== this.data.activeType) return false;
+      if (hasRecordOnlyFilter && !visibleIds[place.id]) return false;
+      if (!keyword) return true;
+      const placeText = [place.name, place.city, place.area, place.address].concat(place.aliases || []).join(" ").toLowerCase();
+      return placeText.indexOf(keyword) >= 0 || !!visibleIds[place.id];
+    }).map((place) => {
+      const stats = getPlaceStats(place.id, this.data.records);
+      return {
+        ...place,
+        ...stats,
+        hasPossibleDuplicate: findPlaceSuggestions({ type: place.type, name: place.name, city: place.city }).some((item) => item.id !== place.id)
+      };
+    }).sort((a, b) => String(b.latestVisit && (b.latestVisit.stayDate || b.latestVisit.createdAt) || "").localeCompare(String(a.latestVisit && (a.latestVisit.stayDate || a.latestVisit.createdAt) || "")));
     const cityStats = getCityStats(visibleRecords);
     const selectedCity = this.data.selectedCity
       && cityStats.some((item) => item.city === this.data.selectedCity)
@@ -115,6 +136,7 @@ Page({
       timelineGroups: getTimelineGroups(visibleRecords),
       cityStats,
       tagStats: getTagStats(visibleRecords),
+      placeCards,
       selectedCity,
       cityRecords: selectedCity ? this.getCityRecords(visibleRecords, selectedCity) : [],
       ...this.getFilterState()
@@ -185,6 +207,10 @@ Page({
 
   goDetail(event) {
     wx.navigateTo({ url: `/pages/record/record?id=${event.currentTarget.dataset.id}` });
+  },
+
+  goPlace(event) {
+    wx.navigateTo({ url: `/pages/place/detail?id=${event.currentTarget.dataset.id}` });
   },
 
   goLedgers() {

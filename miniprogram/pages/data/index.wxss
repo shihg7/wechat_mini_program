@@ -145,7 +145,7 @@ page {
 
 .preview-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   margin-top: 20rpx;
   padding: 20rpx 0;
   background: #f8fafc;

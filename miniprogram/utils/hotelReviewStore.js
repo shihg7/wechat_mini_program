@@ -59,6 +59,7 @@ function normalizeRecord(input = {}) {
   const privateNote = String(input.privateNote || input.note || "").trim();
   const publicNote = String(input.publicNote || "").trim();
   const stayDate = String(input.stayDate || "").trim();
+  const isRated = input.isRated == null ? status !== "draft" : !!input.isRated;
   return {
     id: String(input.id || Date.now()),
     cloudRecordId: input.cloudRecordId ? String(input.cloudRecordId) : "",
@@ -72,6 +73,10 @@ function normalizeRecord(input = {}) {
     restaurantName,
     displayName: getRecordTitle({ recordType, hotelName, restaurantName }),
     city: String(input.city || "").trim(),
+    area: String(input.area || "").trim(),
+    address: String(input.address || "").trim(),
+    latitude: Number.isFinite(Number(input.latitude)) && input.latitude !== null && input.latitude !== "" ? Number(input.latitude) : null,
+    longitude: Number.isFinite(Number(input.longitude)) && input.longitude !== null && input.longitude !== "" ? Number(input.longitude) : null,
     stayDate,
     visitMonth: getVisitMonth(stayDate, input.visitMonth),
     roomType: String(input.roomType || "").trim(),
@@ -81,7 +86,9 @@ function normalizeRecord(input = {}) {
     mealPeriod: String(input.mealPeriod || "").trim(),
     priceRange: String(input.priceRange || "").trim(),
     overallScore,
-    verdict: input.verdict || getVerdict(overallScore, recordType),
+    isRated,
+    scoreLabel: isRated ? String(overallScore) : "未评分",
+    verdict: isRated ? (input.verdict || getVerdict(overallScore, recordType)) : "尚未评分",
     scores: clone(scores),
     selectedTags: clone(input.selectedTags || buildSelectedTags(recordType)),
     customTags: Array.isArray(input.customTags)
@@ -189,7 +196,7 @@ function getSummary(records = getRecords()) {
     };
   }
 
-  const completedRecords = records.filter((record) => record.status !== "draft");
+  const completedRecords = records.filter((record) => record.status !== "draft" && record.isRated);
   const scoredRecords = completedRecords.length ? completedRecords : [];
   const totalScore = scoredRecords.reduce((sum, record) => sum + Number(record.overallScore || 0), 0);
   const bestRecord = scoredRecords.length
@@ -206,9 +213,9 @@ function getSummary(records = getRecords()) {
     publicTotal: records.filter((record) => record.visibility === "public").length,
     cityTotal: getUniqueCities(records).length,
     averageScore: scoredRecords.length ? roundScore(totalScore / scoredRecords.length) : 0,
-    bestHotelName: bestRecord.displayName,
+    bestHotelName: scoredRecords.length ? bestRecord.displayName : "",
     latestHotelName: records[0].displayName,
-    bestRecordName: bestRecord.displayName,
+    bestRecordName: scoredRecords.length ? bestRecord.displayName : "",
     latestRecordName: records[0].displayName
   };
 }
@@ -221,6 +228,8 @@ function getSearchText(record) {
     record.placeName,
     record.placeAlias,
     record.city,
+    record.area,
+    record.address,
     record.stayDate,
     record.visitMonth,
     record.roomType,
@@ -341,16 +350,16 @@ function getCityStats(records = getRecords()) {
     item.total += 1;
     item.hotelTotal += record.recordType === "restaurant" ? 0 : 1;
     item.restaurantTotal += record.recordType === "restaurant" ? 1 : 0;
-    if (record.status !== "draft") item.totalScore += Number(record.overallScore || 0);
+    if (record.status !== "draft" && record.isRated) item.totalScore += Number(record.overallScore || 0);
     item.records.push(record);
-    if (Number(record.overallScore || 0) >= item.bestRecordScore) {
+    if (record.status !== "draft" && record.isRated && Number(record.overallScore || 0) >= item.bestRecordScore) {
       item.bestRecordName = record.displayName;
       item.bestRecordScore = Number(record.overallScore || 0);
     }
   });
   return Object.keys(cityMap).map((city) => {
     const item = cityMap[city];
-    const completedTotal = item.records.filter((record) => record.status !== "draft").length;
+    const completedTotal = item.records.filter((record) => record.status !== "draft" && record.isRated).length;
     item.averageScore = completedTotal ? roundScore(item.totalScore / completedTotal) : 0;
     delete item.totalScore;
     return item;
@@ -373,7 +382,7 @@ function getTagStats(records = getRecords()) {
         };
       }
       tagMap[tag].total += 1;
-      if (record.status !== "draft") {
+      if (record.status !== "draft" && record.isRated) {
         tagMap[tag].completedTotal += 1;
         tagMap[tag].totalScore += Number(record.overallScore || 0);
       }

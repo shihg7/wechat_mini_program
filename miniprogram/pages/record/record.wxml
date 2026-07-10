@@ -3,11 +3,23 @@
     <view>
       <view class="eyebrow">{{pageText.eyebrow}}</view>
       <view class="title">{{pageText.title}}</view>
-      <view class="summary">{{form.overallScore}} · {{form.verdict}} · {{form.status === "draft" ? "草稿" : "已完成"}}</view>
+      <view class="summary">{{form.isRated ? form.overallScore : "未评分"}} · {{form.verdict}} · {{form.status === "draft" ? "草稿" : "已完成"}}</view>
     </view>
     <view class="score-card" wx:if="{{!isQuick}}">
-      <view class="score-value">{{form.overallScore}}</view>
+      <view class="score-value">{{form.isRated ? form.overallScore : "--"}}</view>
       <view class="score-label">总分</view>
+    </view>
+    <view class="place-choice" wx:if="{{placeSuggestions.length && !isReadonly}}">
+      <view class="place-choice-title">可能是你去过的地点</view>
+      <view class="place-suggestion" wx:for="{{placeSuggestions}}" wx:key="id" data-id="{{item.id}}" bindtap="selectPlaceSuggestion">
+        <view><view class="suggestion-name">{{item.name}}</view><view class="suggestion-meta">{{item.city || "未填写城市"}} · {{item.address || "地址未填写"}}</view></view>
+        <view class="suggestion-action">关联</view>
+      </view>
+      <button class="new-place-button" bindtap="createAsNewPlace">都不是，创建新地点</button>
+    </view>
+    <view class="linked-place" wx:if="{{form.placeId}}">
+      <view><view class="linked-label">已关联地点</view><view class="linked-name">{{form.placeName || (recordType === 'restaurant' ? form.restaurantName : form.hotelName)}}</view></view>
+      <view class="linked-action" wx:if="{{!isReadonly}}" bindtap="resetPlaceChoice">更换</view>
     </view>
   </view>
 
@@ -60,6 +72,20 @@
           bindinput="onFieldInput"
         />
       </view>
+    </view>
+    <view class="grid">
+      <view class="field">
+        <view class="field-label">地区/分店</view>
+        <input class="input" disabled="{{isReadonly}}" placeholder="浦东 / 银座店" value="{{form.area}}" data-field="area" bindinput="onFieldInput" />
+      </view>
+      <view class="field">
+        <view class="field-label">地图位置</view>
+        <button class="location-button" disabled="{{isReadonly}}" bindtap="chooseLocation">{{form.address ? "重新选择" : "从地图选择"}}</button>
+      </view>
+    </view>
+    <view class="field" wx:if="{{form.address}}">
+      <view class="field-label">地址</view>
+      <input class="input" disabled="{{isReadonly}}" value="{{form.address}}" data-field="address" bindinput="onFieldInput" />
     </view>
     <view class="grid">
       <view class="field">
@@ -266,7 +292,7 @@
     <view class="public-preview">
       <view class="preview-head">
         <view class="preview-title">{{publicPreview.title}}</view>
-        <view class="preview-score">{{form.overallScore}}</view>
+        <view class="preview-score">{{form.isRated ? form.overallScore : "--"}}</view>
       </view>
       <view class="preview-meta">{{publicPreview.typeLabel}} · {{form.city || "未填写城市"}} · {{publicPreview.visitMonth}}</view>
       <view class="preview-note">{{publicPreview.summary}}</view>
@@ -282,6 +308,7 @@
   </view>
 
   <view class="actions detail-actions" wx:if="{{mode === 'detail'}}">
+    <button class="button secondary" wx:if="{{form.placeId}}" bindtap="goPlaceDetail">查看地点</button>
     <button class="button primary" bindtap="enterEdit">编辑记录</button>
     <button class="button secondary" bindtap="copyRecord">复制记录</button>
     <button class="button danger" bindtap="deleteRecord">删除记录</button>

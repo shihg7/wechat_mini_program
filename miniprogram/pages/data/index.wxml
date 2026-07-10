@@ -18,6 +18,8 @@
       <text class="summary-label">旅行账本</text>
     </view>
     <view class="summary-divider"></view>
+    <view class="summary-item"><text class="summary-value">{{localSummary.placeCount}}</text><text class="summary-label">地点档案</text></view>
+    <view class="summary-divider"></view>
     <view class="summary-item">
       <text class="summary-value">{{localSummary.expenseCount}}</text>
       <text class="summary-label">支出明细</text>
@@ -28,7 +30,7 @@
     <view class="section-head">
       <view>
         <view class="section-title">完整备份</view>
-        <view class="section-subtitle">记录与账本一起保存为 schemaVersion 2</view>
+        <view class="section-subtitle">记录、地点与账本一起保存为 schemaVersion 3</view>
       </view>
     </view>
     <button class="button primary" loading="{{exportingBackup}}" bindtap="exportBackup">导出完整备份</button>
@@ -36,7 +38,7 @@
 
   <view class="section">
     <view class="section-title">恢复数据</view>
-    <view class="section-subtitle">支持 v2 完整备份和 v1 记录备份</view>
+    <view class="section-subtitle">支持 v3 完整备份，并兼容 v1 / v2</view>
     <button class="button secondary" bindtap="chooseBackup">选择 JSON 文件</button>
 
     <view class="preview" wx:if="{{preview}}">
@@ -44,6 +46,7 @@
       <view class="preview-meta">版本 v{{preview.schemaVersion}} · {{preview.ledgersLabel}}</view>
       <view class="preview-grid">
         <view><text class="metric">{{preview.recordCount}}</text><text class="metric-label">记录</text></view>
+        <view><text class="metric">{{preview.placeCount}}</text><text class="metric-label">地点</text></view>
         <view><text class="metric">{{preview.ledgerCount}}</text><text class="metric-label">账本</text></view>
         <view><text class="metric">{{preview.expenseCount}}</text><text class="metric-label">支出</text></view>
       </view>

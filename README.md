@@ -7,24 +7,31 @@
 ### 酒店与餐厅档案
 
 - 原生底部导航区分“体验档案”和“AA 账本”。
-- 首页记录中心：记录、时间线、城市、标签四个视图。
+- 首页记录中心：记录、地点、时间线、城市、标签五个视图。
 - 首页展示最近体验、最近草稿和最近账本；备份与 PDF 统一放在“数据管理”。
 - 支持新增、查看、编辑、复制、删除记录。
 - 支持酒店记录：行政酒廊、早餐、泳池评分。
 - 支持米其林餐厅记录：菜品、服务、酒水/饮品、环境评分。
 - 支持草稿、快速记录、自定义标签、搜索、筛选、排序。
+- 同一家酒店或餐厅可关联多次入住/用餐，地点页展示到访次数、个人均分、最高分和评分变化。
+- 新增记录时按类型、名称和城市提示可能重复地点，必须由用户确认关联，不会自动合并。
+- 支持编辑地点、维护别名、手动合并重复地点；有到访记录的地点不能直接删除。
+- 支持可选微信地图位置；拒绝位置权限后仍可手工填写城市、地区和地址。
+- 快速草稿标记为“未评分”，地点和首页统计只计算已完成且已评分的记录。
 - 搜索和筛选会同步作用于列表、时间线、城市和标签统计，并支持一键清除。
 - 支持用 canvas 生成多页 PDF 并打开预览。
 
 ### 公开评论预留
 
-当前不连接后端，但本地记录已经预留未来同步和公开评论字段：
+当前不连接后端，但本地地点与记录已经预留未来同步和公开评论字段：
 
 - `placeId`, `placeName`, `placeAlias`
 - `cloudRecordId`, `publicReviewId`
 - `visibility`: `private` / `unlisted` / `public`
 - `publishStatus`: `local` / `pending` / `published` / `rejected` / `hidden`
 - `visitMonth`, `publicNote`, `privateNote`
+
+地点独立保存在 `experience_places`，包含本地 `id`、可选 `cloudPlaceId`、名称、别名、城市、地址和经纬度。公开预览和脱敏导出不会包含精确地址、经纬度或内部同步 ID。
 
 公开预览默认不展示精确日期、会员等级、价格和私密备注。
 
@@ -62,10 +69,11 @@ trip_split_ledgers
 
 ### 数据管理与隐私导出
 
-- 完整 JSON 备份同时包含酒店、餐厅、账本、成员、支出和结算记录。
-- 完整备份格式为 `schemaVersion: 2`，继续兼容旧版仅包含体验记录的 v1 文件。
+- 完整 JSON 备份同时包含酒店、餐厅、地点、账本、成员、支出和结算记录。
+- 完整备份格式为 `schemaVersion: 3`，继续兼容 v1 记录备份和 v2 记录加账本备份。
+- v1 / v2 导入时会为没有地点对象的记录生成独立地点，不会按同名自动合并。
 - 导入前展示记录、账本和支出数量，支持合并或覆盖。
-- 恢复同时写入两个缓存；任一写入失败时自动回滚到导入前数据。
+- 恢复同时写入记录、地点、账本三个缓存；任一写入失败时自动回滚到导入前数据。
 - 同一备份重复合并会跳过已有内容，ID 冲突时会稳定重映射关联字段。
 - PDF 支持“私人版”和“脱敏版”。
 - 脱敏版把精确日期降为月份，隐藏会员等级、价格、私密备注和真实成员姓名。
@@ -74,10 +82,11 @@ trip_split_ledgers
 
 ```js
 {
-  schemaVersion: 2,
+  schemaVersion: 3,
   app: "experience-review-miniprogram",
   exportedAt: "...",
   records: [],
+  places: [],
   ledgers: []
 }
 ```
@@ -88,12 +97,14 @@ trip_split_ledgers
 miniprogram/
   pages/index/          首页体验档案
   pages/record/         酒店/餐厅记录新增、详情、编辑
+  pages/place/          地点详情、多次到访、编辑和合并
   pages/data/           完整备份、恢复和隐私 PDF
   pages/ledger/index/   AA 账本列表
   pages/ledger/edit/    AA 账本新增/编辑
   pages/ledger/detail/  AA 账本详情、支出录入、结算
   utils/hotelScore.js
   utils/hotelReviewStore.js
+  utils/placeStore.js
   utils/pdfReport.js
   utils/tripLedgerStore.js
   utils/ledgerMigration.js
@@ -123,7 +134,7 @@ npm i
 
 ## 本地检查
 
-AA 账本金额、迁移、结算与备份回归测试：
+地点档案、AA 金额、迁移、结算与备份回归测试：
 
 ```bash
 npm test
@@ -139,14 +150,19 @@ npm test
 - 部分结算、完整结算和撤销转账
 - 余额守恒、无待结算转账和超额转账拦截
 - 完整备份预检、v1 兼容、重复导入和 ID 重映射
-- 两个缓存写入失败时的自动回滚
+- 三个缓存写入失败时的自动回滚
 - 私人副本与脱敏副本不修改原始数据
+- 旧记录地点迁移幂等且不会按同名自动合并
+- 相似地点建议、重复到访、地点统计、合并和删除保护
+- 快速草稿未评分、地图授权成功和拒绝后的手工回退
+- v1 / v2 / v3 备份兼容和三缓存回滚
 - 页面事件流：创建账本、录入支出、确认部分结算、撤销结算和日期错误提示
 
 常用语法检查：
 
 ```bash
 node --check miniprogram/utils/hotelReviewStore.js
+node --check miniprogram/utils/placeStore.js
 node --check miniprogram/utils/tripLedgerStore.js
 node --check miniprogram/utils/ledgerMigration.js
 node --check miniprogram/utils/ledgerValidation.js
@@ -154,6 +170,7 @@ node --check miniprogram/utils/appBackup.js
 node --check miniprogram/utils/privacyPolicy.js
 node --check miniprogram/pages/index/index.js
 node --check miniprogram/pages/record/record.js
+node --check miniprogram/pages/place/detail.js
 node --check miniprogram/pages/data/index.js
 node --check miniprogram/pages/ledger/index/index.js
 node --check miniprogram/pages/ledger/edit/edit.js
@@ -169,6 +186,7 @@ node --check miniprogram/pages/ledger/detail/detail.js
   "pages": [
     "pages/index/index",
     "pages/record/record",
+    "pages/place/detail",
     "pages/data/index",
     "pages/ledger/index/index",
     "pages/ledger/edit/edit",

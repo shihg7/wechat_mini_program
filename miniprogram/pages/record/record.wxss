@@ -138,6 +138,43 @@ page {
   line-height: 84rpx;
 }
 
+.location-button,
+.new-place-button {
+  width: 100%;
+  height: 84rpx;
+  padding: 0 18rpx;
+  border-radius: 8rpx;
+  background: #eef2f5;
+  color: #2864d9;
+  font-size: 24rpx;
+  font-weight: 800;
+  line-height: 84rpx;
+}
+
+.location-button::after,
+.new-place-button::after { border: none; }
+
+.place-choice,
+.linked-place {
+  margin-top: 18rpx;
+  padding: 18rpx;
+  border-radius: 8rpx;
+  background: #f4f7fb;
+  border: 1rpx solid #d9dee8;
+}
+
+.place-choice-title,
+.linked-label { color: #667085; font-size: 22rpx; font-weight: 700; line-height: 32rpx; }
+.place-suggestion,
+.linked-place { display: flex; align-items: center; justify-content: space-between; gap: 18rpx; }
+.place-suggestion { padding: 16rpx 0; border-bottom: 1rpx solid #e3e7ed; }
+.suggestion-name,
+.linked-name { font-size: 26rpx; font-weight: 800; line-height: 38rpx; }
+.suggestion-meta { margin-top: 3rpx; color: #667085; font-size: 21rpx; line-height: 30rpx; }
+.suggestion-action,
+.linked-action { flex-shrink: 0; color: #2864d9; font-size: 23rpx; font-weight: 800; }
+.new-place-button { margin-top: 12rpx; background: #fff; }
+
 .textarea {
   min-height: 176rpx;
   padding: 20rpx 22rpx;

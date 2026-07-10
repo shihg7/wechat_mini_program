@@ -1,6 +1,6 @@
 page { background: #eef2f5; color: #172033; font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", Arial, sans-serif; }
 .page { min-height: 100vh; box-sizing: border-box; padding: 32rpx 28rpx calc(env(safe-area-inset-bottom) + 40rpx); }
-.topbar, .hero, .quick-actions, .section-head, .record, .data-entry, .snapshot.wide { display: flex; align-items: center; justify-content: space-between; }
+.topbar, .hero, .quick-actions, .section-head, .record, .place-card, .data-entry, .snapshot.wide { display: flex; align-items: center; justify-content: space-between; }
 .eyebrow { color: #667085; font-size: 21rpx; line-height: 30rpx; }
 .title { margin-top: 4rpx; font-size: 44rpx; font-weight: 800; line-height: 58rpx; }
 .icon-button { width: 72rpx; height: 72rpx; padding: 0; border-radius: 8rpx; background: #172033; color: #fff; font-size: 40rpx; line-height: 68rpx; }
@@ -50,6 +50,9 @@ page { background: #eef2f5; color: #172033; font-family: -apple-system, BlinkMac
 .empty-desc { margin-top: 10rpx; color: #667085; font-size: 24rpx; line-height: 38rpx; word-break: break-all; }
 .empty-button, .clear-button { max-width: 360rpx; margin-top: 24rpx; }
 .record { gap: 20rpx; margin-top: 14rpx; padding: 24rpx; border-radius: 8rpx; background: #fff; }
+.place-card { gap: 20rpx; margin-top: 14rpx; padding: 24rpx; border-radius: 8rpx; background: #fff; }
+.place-main { flex: 1; min-width: 0; }
+.duplicate-hint { display: inline-flex; min-height: 32rpx; margin-left: 7rpx; padding: 0 10rpx; border-radius: 8rpx; background: #fff0de; color: #a35b12; font-size: 19rpx; font-weight: 700; line-height: 32rpx; }
 .record-main { flex: 1; min-width: 0; }
 .record-title { font-size: 28rpx; font-weight: 800; line-height: 40rpx; word-break: break-all; }
 .record-type, .record-status { display: inline-flex; min-height: 32rpx; padding: 0 10rpx; border-radius: 8rpx; font-size: 19rpx; font-weight: 700; line-height: 32rpx; margin-bottom: 6rpx; }

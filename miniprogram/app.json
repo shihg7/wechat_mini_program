@@ -2,6 +2,7 @@
   "pages": [
     "pages/index/index",
     "pages/record/record",
+    "pages/place/detail",
     "pages/data/index",
     "pages/ledger/index/index",
     "pages/ledger/edit/edit",
@@ -13,6 +14,14 @@
     "navigationBarTitleText": "体验档案",
     "navigationBarTextStyle": "black"
   },
+  "permission": {
+    "scope.userLocation": {
+      "desc": "用于可选地保存酒店或餐厅的位置，拒绝后仍可手工填写"
+    }
+  },
+  "requiredPrivateInfos": [
+    "chooseLocation"
+  ],
   "tabBar": {
     "color": "#667085",
     "selectedColor": "#172033",

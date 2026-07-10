@@ -140,7 +140,7 @@ function drawSummaryPage(ctx, records, summary, pageNumber, privacyLabel) {
     setText(ctx, 12, "#172033", "700");
     ctx.fillText(`${index + 1}. ${record.typeLabel || "酒店"} · ${getRecordTitle(record)}`, MARGIN, y);
     setText(ctx, 11, "#667085");
-    ctx.fillText(`${record.city || "未填写城市"} · ${record.stayDate || "未填写日期"} · ${record.overallScore}分 · ${record.visibilityLabel || "私密"}`, MARGIN, y + 19);
+    ctx.fillText(`${record.city || "未填写城市"} · ${record.stayDate || "未填写日期"} · ${record.isRated ? `${record.overallScore}分` : "未评分"} · ${record.visibilityLabel || "私密"}`, MARGIN, y + 19);
     y += 46;
   });
 
@@ -228,14 +228,20 @@ function drawRecordPage(ctx, record, pageNumber, privacyLabel) {
   y += 30;
 
   setText(ctx, 22, "#172033", "700");
-  ctx.fillText(`${record.overallScore}分`, MARGIN, y);
+  ctx.fillText(record.isRated ? `${record.overallScore}分` : "未评分", MARGIN, y);
   setText(ctx, 12, "#667085");
   ctx.fillText(record.verdict, MARGIN + 82, y + 8);
   y += 40;
   drawRule(ctx, y);
   y += 22;
 
-  y = drawMetricRows(ctx, record, y);
+  if (record.isRated) {
+    y = drawMetricRows(ctx, record, y);
+  } else {
+    setText(ctx, 12, "#667085");
+    ctx.fillText("这条草稿尚未完成维度评分。", MARGIN, y);
+    y += 34;
+  }
   drawRule(ctx, y);
   y += 20;
   setText(ctx, 13, "#172033", "700");

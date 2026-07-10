@@ -15,6 +15,13 @@ const {
   getRecordById,
   updateRecord
 } = require("../../utils/hotelReviewStore");
+const {
+  createPlace,
+  deleteEmptyPlace,
+  ensurePlacesForRecords,
+  findPlaceSuggestions,
+  getPlaceById
+} = require("../../utils/placeStore");
 
 function buildInitialForm(recordType = "hotel") {
   const scores = buildScores(recordType);
@@ -26,6 +33,10 @@ function buildInitialForm(recordType = "hotel") {
     placeId: "",
     placeName: "",
     placeAlias: "",
+    area: "",
+    address: "",
+    latitude: null,
+    longitude: null,
     cloudRecordId: "",
     publicReviewId: "",
     city: "",
@@ -48,6 +59,7 @@ function buildInitialForm(recordType = "hotel") {
     status: "completed",
     categoryScores: getCategoryScores(scores, recordType),
     overallScore,
+    isRated: true,
     verdict: getVerdict(overallScore, recordType)
   };
 }
@@ -118,7 +130,9 @@ Page({
     originalForm: null,
     customTagInput: "",
     scoreBars: buildScoreBars(buildInitialForm()),
-    publicPreview: buildPublicPreview(buildInitialForm())
+    publicPreview: buildPublicPreview(buildInitialForm()),
+    placeSuggestions: [],
+    placeChoiceConfirmed: false
   },
 
   onLoad(options) {
@@ -128,11 +142,16 @@ Page({
     }
     const recordType = options && options.type === "restaurant" ? "restaurant" : "hotel";
     this.setRecordType(recordType, options && options.quick === "1");
+    if (options && options.placeId) this.applyPlace(options.placeId);
   },
 
   setRecordType(recordType, isQuick = false) {
     const form = buildInitialForm(recordType);
-    if (isQuick) form.status = "draft";
+    if (isQuick) {
+      form.status = "draft";
+      form.isRated = false;
+      form.verdict = "尚未评分";
+    }
     this.setData({
       recordType,
       typeConfig: getTypeConfig(recordType),
@@ -145,7 +164,9 @@ Page({
       originalForm: JSON.stringify(form),
       customTagInput: "",
       scoreBars: buildScoreBars(form),
-      publicPreview: buildPublicPreview(form)
+      publicPreview: buildPublicPreview(form),
+      placeSuggestions: [],
+      placeChoiceConfirmed: false
     });
     this.disableLeaveAlert();
   },
@@ -156,6 +177,7 @@ Page({
   },
 
   loadDetail(id) {
+    ensurePlacesForRecords();
     const record = getRecordById(id);
     if (!record) {
       wx.showToast({
@@ -264,7 +286,103 @@ Page({
     }
     this.setData(updates, () => {
       this.setData({ publicPreview: buildPublicPreview(this.data.form) });
+      if (["hotelName", "restaurantName", "placeName", "city"].indexOf(field) >= 0) {
+        this.refreshPlaceSuggestions();
+      }
       this.markDirty();
+    });
+  },
+
+  getPlaceInput() {
+    const form = this.data.form;
+    return {
+      type: form.recordType,
+      name: form.placeName || getRecordTitle(form),
+      city: form.city,
+      area: form.area,
+      address: form.address,
+      latitude: form.latitude,
+      longitude: form.longitude,
+      aliases: form.placeAlias ? [form.placeAlias] : []
+    };
+  },
+
+  refreshPlaceSuggestions() {
+    if (this.data.isReadonly || this.data.placeChoiceConfirmed) return;
+    const suggestions = findPlaceSuggestions(this.getPlaceInput())
+      .filter((place) => String(place.id) !== String(this.data.form.placeId || ""))
+      .slice(0, 4);
+    this.setData({ placeSuggestions: suggestions });
+  },
+
+  applyPlace(placeId) {
+    const place = getPlaceById(placeId);
+    if (!place) return;
+    const nameField = place.type === "restaurant" ? "restaurantName" : "hotelName";
+    this.setData({
+      recordType: place.type,
+      typeConfig: getTypeConfig(place.type),
+      categories: getCategories(place.type),
+      [`form.${nameField}`]: place.name,
+      "form.recordType": place.type,
+      "form.placeId": place.id,
+      "form.placeName": place.name,
+      "form.placeAlias": (place.aliases || []).join("、"),
+      "form.city": place.city,
+      "form.area": place.area,
+      "form.address": place.address,
+      "form.latitude": place.latitude,
+      "form.longitude": place.longitude,
+      placeSuggestions: [],
+      placeChoiceConfirmed: true
+    }, () => {
+      this.setData({ publicPreview: buildPublicPreview(this.data.form) });
+      this.markDirty();
+    });
+  },
+
+  selectPlaceSuggestion(event) {
+    this.applyPlace(event.currentTarget.dataset.id);
+  },
+
+  createAsNewPlace() {
+    this.setData({
+      "form.placeId": "",
+      placeSuggestions: [],
+      placeChoiceConfirmed: true
+    }, () => this.markDirty());
+  },
+
+  resetPlaceChoice() {
+    this.setData({ placeChoiceConfirmed: false }, () => this.refreshPlaceSuggestions());
+  },
+
+  chooseLocation() {
+    if (this.data.isReadonly || !wx.chooseLocation) return;
+    wx.chooseLocation({
+      success: (location) => {
+        const currentTitle = getRecordTitle(this.data.form);
+        const updates = {
+          "form.address": location.address || "",
+          "form.latitude": location.latitude,
+          "form.longitude": location.longitude,
+          placeChoiceConfirmed: false
+        };
+        if ((!currentTitle || currentTitle.indexOf("未命名") === 0) && location.name) {
+          const field = this.data.recordType === "restaurant" ? "restaurantName" : "hotelName";
+          updates[`form.${field}`] = location.name;
+          updates["form.placeName"] = location.name;
+        }
+        this.setData(updates, () => {
+          this.refreshPlaceSuggestions();
+          this.markDirty();
+        });
+      },
+      fail: (error) => {
+        if (String(error && error.errMsg).indexOf("cancel") < 0) {
+          wx.showToast({ title: "可继续手工填写地点", icon: "none" });
+        }
+      }
     });
   },
 
@@ -383,11 +501,34 @@ Page({
       placeName: this.data.form.placeName || title,
       privateNote: this.data.form.note,
       visitMonth: this.data.form.visitMonth || (this.data.form.stayDate ? this.data.form.stayDate.slice(0, 7) : ""),
-      status: targetStatus || this.data.form.status || "completed"
+      status: targetStatus || this.data.form.status || "completed",
+      isRated: (targetStatus || this.data.form.status) === "draft" ? false : true
     };
 
+    let createdPlaceId = "";
+    if (!nextForm.placeId) {
+      try {
+        const place = createPlace(this.getPlaceInput());
+        nextForm.placeId = place.id;
+        nextForm.placeName = place.name;
+        createdPlaceId = place.id;
+      } catch (error) {
+        wx.showToast({ title: error.message || "地点创建失败", icon: "none" });
+        return;
+      }
+    }
+
     if (this.data.mode === "edit") {
-      const updated = updateRecord(this.data.recordId, nextForm);
+      let updated;
+      try {
+        updated = updateRecord(this.data.recordId, nextForm);
+      } catch (error) {
+        if (createdPlaceId) {
+          try { deleteEmptyPlace(createdPlaceId); } catch (cleanupError) { console.error("cleanup place failed", cleanupError); }
+        }
+        wx.showToast({ title: error.message || "记录保存失败", icon: "none" });
+        return;
+      }
       const form = {
         ...updated,
         categoryScores: getCategoryScores(updated.scores, updated.recordType)
@@ -410,7 +551,15 @@ Page({
       return;
     }
 
-    addRecord(nextForm);
+    try {
+      addRecord(nextForm);
+    } catch (error) {
+      if (createdPlaceId) {
+        try { deleteEmptyPlace(createdPlaceId); } catch (cleanupError) { console.error("cleanup place failed", cleanupError); }
+      }
+      wx.showToast({ title: error.message || "记录保存失败", icon: "none" });
+      return;
+    }
     this.disableLeaveAlert();
     wx.showToast({
       title: nextForm.status === "draft" ? "草稿已保存" : "已保存",
@@ -451,6 +600,11 @@ Page({
         setTimeout(() => wx.navigateBack(), 450);
       }
     });
+  },
+
+  goPlaceDetail() {
+    if (!this.data.form.placeId) return;
+    wx.navigateTo({ url: `/pages/place/detail?id=${this.data.form.placeId}` });
   },
 
   onUnload() {

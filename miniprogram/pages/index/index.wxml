@@ -34,7 +34,7 @@
     <view class="snapshot" wx:if="{{recentRecord}}" data-id="{{recentRecord.id}}" bindtap="goDetail">
       <view class="snapshot-label">最近体验</view>
       <view class="snapshot-title">{{recentRecord.displayName}}</view>
-      <view class="snapshot-meta">{{recentRecord.city || "未填写城市"}} · {{recentRecord.overallScore}} 分</view>
+      <view class="snapshot-meta">{{recentRecord.city || "未填写城市"}} · {{recentRecord.isRated ? recentRecord.overallScore + " 分" : "未评分"}}</view>
     </view>
     <view class="snapshot" wx:else data-type="hotel" bindtap="goCreate">
       <view class="snapshot-label">最近体验</view>
@@ -104,13 +104,13 @@
     <view class="clear-filter" bindtap="clearFilters">清除</view>
   </view>
 
-  <view class="filtered-empty" wx:if="{{hasActiveFilters && !visibleRecords.length}}">
-    <view class="empty-title">没有符合条件的体验</view>
+  <view class="filtered-empty" wx:if="{{hasActiveFilters && (activeView === 'places' ? !placeCards.length : !visibleRecords.length)}}">
+    <view class="empty-title">没有符合条件的{{activeView === "places" ? "地点" : "体验"}}</view>
     <view class="empty-desc">当前条件：{{filterSummary}}</view>
     <button class="button secondary clear-button" bindtap="clearFilters">清除全部筛选</button>
   </view>
 
-  <block wx:if="{{visibleRecords.length || !hasActiveFilters}}">
+  <block wx:if="{{(activeView === 'places' ? placeCards.length : visibleRecords.length) || !hasActiveFilters}}">
     <block wx:if="{{activeView === 'records'}}">
       <view class="section-head">
         <view class="section-title">体验记录</view>
@@ -131,7 +131,21 @@
           <view class="record-meta">{{item.city || "未填写城市"}} · {{item.stayDate || "未填写日期"}}</view>
           <view class="record-note">{{item.publicNote || item.verdict}}</view>
         </view>
-        <view class="record-score">{{item.overallScore}}</view>
+        <view class="record-score">{{item.isRated ? item.overallScore : "--"}}</view>
+      </view>
+    </block>
+
+    <block wx:if="{{activeView === 'places'}}">
+      <view class="section-head"><view class="section-title">地点档案</view><view class="section-count">{{placeCards.length}} 个</view></view>
+      <view class="empty" wx:if="{{!placeCards.length}}"><view class="empty-title">还没有地点档案</view><view class="empty-desc">保存体验后会自动建立独立地点，你可以手动合并重复地点。</view></view>
+      <view class="place-card" wx:for="{{placeCards}}" wx:key="id" data-id="{{item.id}}" bindtap="goPlace">
+        <view class="place-main">
+          <view><text class="record-type">{{item.typeLabel}}</text><text class="duplicate-hint" wx:if="{{item.hasPossibleDuplicate}}">待整理</text></view>
+          <view class="record-title">{{item.name}}</view>
+          <view class="record-meta">{{item.city || "未填写城市"}}{{item.area ? " · " + item.area : ""}} · {{item.visitCount}} 次到访</view>
+          <view class="record-note">最近：{{item.latestVisit ? (item.latestVisit.stayDate || "未填写日期") : "暂无"}}{{item.ratedCount > 1 ? " · 较上次 " + (item.scoreDelta > 0 ? "+" : "") + item.scoreDelta : ""}}</view>
+        </view>
+        <view class="record-score">{{item.ratedCount ? item.averageScore : "--"}}</view>
       </view>
     </block>
 
@@ -142,7 +156,7 @@
         <view class="timeline-title">{{group.title}}</view>
         <view class="record timeline-record" wx:for="{{group.records}}" wx:key="id" wx:for-item="item" data-id="{{item.id}}" bindtap="goDetail">
           <view class="record-main"><view class="record-type">{{item.typeLabel}}</view><view class="record-title">{{item.displayName}}</view><view class="record-meta">{{item.city || "未填写城市"}} · {{item.statusLabel}}</view></view>
-          <view class="record-score">{{item.overallScore}}</view>
+          <view class="record-score">{{item.isRated ? item.overallScore : "--"}}</view>
         </view>
       </view>
     </block>
@@ -158,7 +172,7 @@
         <view class="section-head city-detail-head"><view class="section-title">{{selectedCity}}</view><view class="section-count">{{cityRecords.length}} 条</view></view>
         <view class="record" wx:for="{{cityRecords}}" wx:key="id" data-id="{{item.id}}" bindtap="goDetail">
           <view class="record-main"><view class="record-type">{{item.typeLabel}}</view><view class="record-title">{{item.displayName}}</view><view class="record-meta">{{item.stayDate || "未填写日期"}} · {{item.statusLabel}}</view></view>
-          <view class="record-score">{{item.overallScore}}</view>
+          <view class="record-score">{{item.isRated ? item.overallScore : "--"}}</view>
         </view>
       </view>
     </block>

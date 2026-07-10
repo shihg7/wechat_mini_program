@@ -75,6 +75,10 @@
     <view><view class="data-title">旅行洞察</view><view class="data-desc">年度最佳、城市分布与复访变化</view></view><view class="chevron">›</view>
   </view>
 
+  <view class="data-entry" bindtap="goWishlistCreate">
+    <view><view class="data-title">想去清单</view><view class="data-desc">{{wishlist.length}} 个计划 · 预订和到访状态</view></view><view class="chevron">›</view>
+  </view>
+
   <view class="data-entry" bindtap="goDataManagement">
     <view>
       <view class="data-title">数据管理</view>
@@ -82,6 +86,8 @@
     </view>
     <view class="chevron">›</view>
   </view>
+
+  <view class="data-entry" bindtap="goCleanup"><view><view class="data-title">待整理中心</view><view class="data-desc">重复地点、缺失信息与照片健康</view></view><view class="chevron">›</view></view>
 
   <view class="view-tabs">
     <view class="view-tab {{activeView === item.key ? 'view-active' : ''}}" wx:for="{{viewTabs}}" wx:key="key" data-view="{{item.key}}" bindtap="onViewChange">{{item.label}}</view>
@@ -109,13 +115,13 @@
     <view class="clear-filter" bindtap="clearFilters">清除</view>
   </view>
 
-  <view class="filtered-empty" wx:if="{{hasActiveFilters && (activeView === 'places' ? !placeCards.length : !visibleRecords.length)}}">
-    <view class="empty-title">没有符合条件的{{activeView === "places" ? "地点" : "体验"}}</view>
+  <view class="filtered-empty" wx:if="{{hasActiveFilters && (activeView === 'places' ? !placeCards.length : activeView === 'wishlist' ? !visibleWishlist.length : !visibleRecords.length)}}">
+    <view class="empty-title">没有符合条件的{{activeView === "places" ? "地点" : activeView === "wishlist" ? "计划" : "体验"}}</view>
     <view class="empty-desc">当前条件：{{filterSummary}}</view>
     <button class="button secondary clear-button" bindtap="clearFilters">清除全部筛选</button>
   </view>
 
-  <block wx:if="{{(activeView === 'places' ? placeCards.length : visibleRecords.length) || !hasActiveFilters}}">
+  <block wx:if="{{(activeView === 'places' ? placeCards.length : activeView === 'wishlist' ? visibleWishlist.length : visibleRecords.length) || !hasActiveFilters}}">
     <block wx:if="{{activeView === 'records'}}">
       <view class="section-head">
         <view class="section-title">体验记录</view>
@@ -153,6 +159,16 @@
           <view class="record-note">最近：{{item.latestVisit ? (item.latestVisit.stayDate || "未填写日期") : "暂无"}}{{item.ratedCount > 1 ? " · 较上次 " + (item.scoreDelta > 0 ? "+" : "") + item.scoreDelta : ""}}</view>
         </view>
         <view class="record-score">{{item.ratedCount ? item.averageScore : "--"}}</view>
+      </view>
+    </block>
+
+    <block wx:if="{{activeView === 'wishlist'}}">
+      <view class="section-head"><view class="section-title">想去清单</view><view class="section-count">{{visibleWishlist.length}} 个</view></view>
+      <view class="wish-filter"><view class="wish-filter-item {{wishlistStatus === 'wishlist' ? 'active' : ''}}" data-status="wishlist" bindtap="onWishlistStatus">想去</view><view class="wish-filter-item {{wishlistStatus === 'booked' ? 'active' : ''}}" data-status="booked" bindtap="onWishlistStatus">已预订</view><view class="wish-filter-item {{wishlistStatus === 'visited' ? 'active' : ''}}" data-status="visited" bindtap="onWishlistStatus">已到访</view></view>
+      <view class="empty" wx:if="{{!visibleWishlist.length}}"><view class="empty-title">还没有旅行计划</view><view class="empty-desc">先记下想住的酒店或想吃的餐厅，到访后可以直接转成体验。</view><button class="button primary empty-button" bindtap="goWishlistCreate">新增想去地点</button></view>
+      <view class="wish-card" wx:for="{{visibleWishlist}}" wx:key="id" data-id="{{item.id}}" bindtap="goWishlistDetail">
+        <view class="wish-main"><view><text class="record-type">{{item.typeLabel}}</text><text class="wish-status {{item.status}}">{{item.statusLabel}}</text></view><view class="record-title">{{item.name}}</view><view class="record-meta">{{item.city || "未填写城市"}}{{item.targetDate ? " · " + item.targetDate : ""}}</view><view class="record-note">{{item.note || item.budgetText || "还没有补充计划"}}</view></view>
+        <view class="wish-priority {{item.priority}}">{{item.priorityLabel}}</view>
       </view>
     </block>
 

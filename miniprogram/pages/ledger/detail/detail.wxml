@@ -37,6 +37,12 @@
   <view class="quick-actions">
     <button class="button primary" bindtap="openExpenseForm">{{showExpenseForm ? "继续填写" : "记一笔支出"}}</button>
     <button class="button secondary" bindtap="editLedger">成员与账本</button>
+    <button class="button secondary" bindtap="toggleExportPanel">导出结算</button>
+  </view>
+
+  <view class="section export-panel" wx:if="{{showExportPanel}}">
+    <view class="section-head"><view><view class="section-title">导出结算</view><view class="section-subtitle">分享版会稳定匿名化成员和支出备注</view></view><view class="close-link" bindtap="toggleExportPanel">收起</view></view>
+    <view class="export-grid"><button class="export-button" loading="{{exporting}}" data-format="image" data-mode="redacted" bindtap="exportLedger">结算图片</button><button class="export-button" loading="{{exporting}}" data-format="pdf" data-mode="private" bindtap="exportLedger">私人 PDF</button><button class="export-button" loading="{{exporting}}" data-format="pdf" data-mode="redacted" bindtap="exportLedger">分享 PDF</button><button class="export-button" loading="{{exporting}}" data-format="json" data-mode="private" bindtap="exportLedger">明细 JSON</button></view>
   </view>
 
   <view class="section member-section">
@@ -249,4 +255,5 @@
       <view class="expense-amount">{{item.totalText}}</view>
     </view>
   </view>
+  <canvas type="2d" id="ledgerExportCanvas" class="export-canvas"></canvas>
 </scroll-view>

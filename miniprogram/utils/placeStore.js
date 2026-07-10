@@ -1,4 +1,5 @@
 const { createId, createStableId } = require("./id");
+const { getDeviceId, normalizeSyncMetadata } = require("./syncMetadata");
 
 const STORAGE_KEY = "experience_places";
 
@@ -26,6 +27,7 @@ function normalizePlace(input = {}) {
   const type = input.type === "restaurant" ? "restaurant" : "hotel";
   const name = String(input.name || input.placeName || "").trim();
   return {
+    ...normalizeSyncMetadata(input),
     id: String(input.id || createId("place")),
     cloudPlaceId: input.cloudPlaceId ? String(input.cloudPlaceId) : "",
     type,
@@ -38,6 +40,7 @@ function normalizePlace(input = {}) {
     latitude: Number.isFinite(Number(input.latitude)) && input.latitude !== null && input.latitude !== "" ? Number(input.latitude) : null,
     longitude: Number.isFinite(Number(input.longitude)) && input.longitude !== null && input.longitude !== "" ? Number(input.longitude) : null,
     aliases: normalizeAliases(input.aliases),
+    conflictSnapshot: input.conflictSnapshot && typeof input.conflictSnapshot === "object" ? clone(input.conflictSnapshot) : null,
     createdAt: input.createdAt || new Date().toISOString(),
     updatedAt: input.updatedAt || ""
   };
@@ -101,8 +104,8 @@ function ensurePlacesForRecords() {
   return places;
 }
 
-function getPlaces() {
-  return ensurePlacesForRecords().sort((a, b) => String(b.updatedAt || b.createdAt).localeCompare(String(a.updatedAt || a.createdAt)));
+function getPlaces(options = {}) {
+  return ensurePlacesForRecords().filter((place) => options.includeDeleted || !place.deletedAt).sort((a, b) => String(b.updatedAt || b.createdAt).localeCompare(String(a.updatedAt || a.createdAt)));
 }
 
 function getPlaceById(id) {
@@ -111,7 +114,7 @@ function getPlaceById(id) {
 
 function createPlace(input) {
   const places = getStoredPlaces();
-  const place = normalizePlace({ ...input, id: input.id || createId("place"), updatedAt: new Date().toISOString() });
+  const place = normalizePlace({ ...input, id: input.id || createId("place"), updatedAt: new Date().toISOString(), revision: 1, syncStatus: "dirty", deviceId: getDeviceId(), deletedAt: "" });
   if (!place.name) throw new Error("地点名称不能为空");
   setPlaces([place].concat(places));
   return place;
@@ -121,7 +124,7 @@ function updatePlace(id, patch) {
   let updated = null;
   const places = getStoredPlaces().map((place) => {
     if (String(place.id) !== String(id)) return place;
-    updated = normalizePlace({ ...place, ...patch, id: place.id, createdAt: place.createdAt, updatedAt: new Date().toISOString() });
+    updated = normalizePlace({ ...place, ...patch, id: place.id, createdAt: place.createdAt, updatedAt: new Date().toISOString(), revision: Number(place.revision || 1) + 1, syncStatus: "dirty", deviceId: getDeviceId() });
     if (!updated.name) throw new Error("地点名称不能为空");
     return updated;
   });
@@ -172,9 +175,10 @@ function getPlaceStats(placeId, records) {
 
 function deleteEmptyPlace(id) {
   if (getPlaceRecords(id).length) throw new Error("该地点仍有关联记录，不能删除");
-  const next = getStoredPlaces().filter((place) => String(place.id) !== String(id));
+  const now = new Date().toISOString();
+  const next = getStoredPlaces().map((place) => String(place.id) === String(id) ? normalizePlace({ ...place, deletedAt: now, updatedAt: now, revision: Number(place.revision || 1) + 1, syncStatus: "dirty" }) : place);
   setPlaces(next);
-  return next;
+  return next.filter((place) => !place.deletedAt);
 }
 
 function mergePlaces(sourceId, targetId) {
@@ -184,12 +188,14 @@ function mergePlaces(sourceId, targetId) {
   if (!source || !target) throw new Error("地点不存在");
   if (source.type !== target.type) throw new Error("酒店和餐厅不能互相合并");
   const recordStore = require("./hotelReviewStore");
-  const records = recordStore.getRecords().map((record) => (
-    String(record.placeId) === String(sourceId) ? { ...record, placeId: target.id } : record
+  const records = recordStore.getRecords({ includeDeleted: true }).map((record) => (
+    String(record.placeId) === String(sourceId) ? { ...record, placeId: target.id, revision: Number(record.revision || 1) + 1, syncStatus: "dirty", updatedAt: new Date().toISOString() } : record
   ));
   const aliases = normalizeAliases((target.aliases || []).concat(source.aliases || [], source.name));
-  const places = getStoredPlaces().filter((place) => String(place.id) !== String(sourceId)).map((place) => (
-    String(place.id) === String(targetId) ? normalizePlace({ ...place, aliases, updatedAt: new Date().toISOString() }) : place
+  const places = getStoredPlaces().map((place) => (
+    String(place.id) === String(sourceId)
+      ? normalizePlace({ ...place, deletedAt: new Date().toISOString(), revision: Number(place.revision || 1) + 1, syncStatus: "dirty" })
+      : String(place.id) === String(targetId) ? normalizePlace({ ...place, aliases, revision: Number(place.revision || 1) + 1, syncStatus: "dirty", updatedAt: new Date().toISOString() }) : place
   ));
   const oldRecords = recordStore.getRecords();
   const oldPlaces = getStoredPlaces();

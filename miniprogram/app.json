@@ -4,6 +4,8 @@
     "pages/record/record",
     "pages/place/detail",
     "pages/insights/index",
+    "pages/wishlist/edit",
+    "pages/cleanup/index",
     "pages/data/index",
     "pages/ledger/index/index",
     "pages/ledger/edit/edit",

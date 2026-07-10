@@ -8,6 +8,7 @@ const {
   roundScore
 } = require("./hotelScore");
 const { fileExists, normalizePhoto } = require("./mediaStore");
+const { getDeviceId, normalizeSyncMetadata } = require("./syncMetadata");
 
 const STORAGE_KEY = "hotel_review_records";
 
@@ -69,6 +70,7 @@ function normalizeRecord(input = {}) {
     : (photos[0] ? photos[0].id : "");
   const coverPhoto = photos.find((photo) => photo.id === coverPhotoId) || null;
   return {
+    ...normalizeSyncMetadata(input),
     id: String(input.id || Date.now()),
     cloudRecordId: input.cloudRecordId ? String(input.cloudRecordId) : "",
     publicReviewId: input.publicReviewId ? String(input.publicReviewId) : "",
@@ -116,16 +118,19 @@ function normalizeRecord(input = {}) {
     statusLabel: status === "draft" ? "草稿" : "已完成",
     createdAt: input.createdAt || new Date().toISOString(),
     updatedAt: input.updatedAt || "",
-    sourceRecordId: input.sourceRecordId ? String(input.sourceRecordId) : ""
+    sourceRecordId: input.sourceRecordId ? String(input.sourceRecordId) : "",
+    wishlistId: input.wishlistId ? String(input.wishlistId) : "",
+    conflictSnapshot: input.conflictSnapshot && typeof input.conflictSnapshot === "object" ? clone(input.conflictSnapshot) : null
   };
 }
 
-function getRecords() {
+function getRecords(options = {}) {
   const rawRecords = wx.getStorageSync(STORAGE_KEY);
   if (!Array.isArray(rawRecords)) return [];
   return rawRecords
     .filter((record) => record && (record.hotelName || record.restaurantName))
     .map(normalizeRecord)
+    .filter((record) => options.includeDeleted || !record.deletedAt)
     .sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
 }
 
@@ -142,7 +147,11 @@ function addRecord(record) {
     ...record,
     id: Date.now(),
     createdAt: now,
-    updatedAt: now
+    updatedAt: now,
+    revision: 1,
+    syncStatus: "dirty",
+    deviceId: getDeviceId(),
+    deletedAt: ""
   });
   setRecords([nextRecord].concat(records));
   return nextRecord;
@@ -158,7 +167,10 @@ function updateRecord(id, patch) {
       ...patch,
       id: record.id,
       createdAt: record.createdAt,
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
+      revision: Number(record.revision || 1) + 1,
+      syncStatus: "dirty",
+      deviceId: getDeviceId()
     });
     return updatedRecord;
   });
@@ -178,14 +190,23 @@ function duplicateRecord(id) {
     visibility: "private",
     photos: [],
     coverPhotoId: "",
+    wishlistId: "",
     note: source.note
   });
 }
 
 function deleteRecord(id) {
-  const records = getRecords().filter((record) => String(record.id) !== String(id));
-  setRecords(records);
-  return records;
+  const records = getRecords({ includeDeleted: true });
+  const now = new Date().toISOString();
+  const next = records.map((record) => String(record.id) === String(id) ? normalizeRecord({
+    ...record,
+    deletedAt: now,
+    updatedAt: now,
+    revision: Number(record.revision || 1) + 1,
+    syncStatus: "dirty"
+  }) : record);
+  setRecords(next);
+  return next.filter((record) => !record.deletedAt);
 }
 
 function getRecordById(id) {

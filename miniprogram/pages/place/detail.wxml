@@ -16,6 +16,7 @@
 
   <view class="actions">
     <button class="button primary" bindtap="addVisit">{{place.type === "restaurant" ? "再次用餐" : "再次入住"}}</button>
+    <button class="button secondary" bindtap="addWishlist">加入想去</button>
     <button class="button secondary" bindtap="startEdit">编辑地点</button>
   </view>
 

@@ -15,7 +15,7 @@ const {
   getRecordById,
   getRecords,
   updateRecord
-} = require("../../utils/hotelReviewStore");
+} = require("../../utils/repositories/recordRepository");
 const {
   MAX_PHOTOS,
   chooseAndSavePhotos,
@@ -29,7 +29,8 @@ const {
   ensurePlacesForRecords,
   findPlaceSuggestions,
   getPlaceById
-} = require("../../utils/placeStore");
+} = require("../../utils/repositories/placeRepository");
+const { getWishlistItem, markWishlistVisited } = require("../../utils/repositories/wishlistRepository");
 
 function buildInitialForm(recordType = "hotel") {
   const scores = buildScores(recordType);
@@ -145,7 +146,8 @@ Page({
     placeChoiceConfirmed: false,
     photoCategories: getPhotoCategories("hotel"),
     maxPhotos: MAX_PHOTOS,
-    addingPhotos: false
+    addingPhotos: false,
+    sourceWishlistId: ""
   },
 
   pendingPhotoDeletes: [],
@@ -160,6 +162,7 @@ Page({
     const recordType = options && options.type === "restaurant" ? "restaurant" : "hotel";
     this.setRecordType(recordType, options && options.quick === "1");
     if (options && options.placeId) this.applyPlace(options.placeId);
+    if (options && options.wishlistId) this.applyWishlist(options.wishlistId);
   },
 
   setRecordType(recordType, isQuick = false) {
@@ -365,6 +368,40 @@ Page({
       placeChoiceConfirmed: true
     }, () => {
       this.setData({ publicPreview: buildPublicPreview(this.data.form) });
+      this.markDirty();
+    });
+  },
+
+  applyWishlist(wishlistId) {
+    const item = getWishlistItem(wishlistId);
+    if (!item) return;
+    const nameField = item.type === "restaurant" ? "restaurantName" : "hotelName";
+    const updates = {
+      sourceWishlistId: item.id,
+      recordType: item.type,
+      typeConfig: getTypeConfig(item.type),
+      categories: getCategories(item.type),
+      [`form.${nameField}`]: item.name,
+      "form.recordType": item.type,
+      "form.wishlistId": item.id,
+      "form.placeName": item.name,
+      "form.city": item.city,
+      "form.area": item.area,
+      "form.address": item.address,
+      "form.latitude": item.latitude,
+      "form.longitude": item.longitude,
+      "form.stayDate": item.targetDate || "",
+      "form.visitMonth": item.targetDate ? item.targetDate.slice(0, 7) : "",
+      "form.note": item.note || "",
+      "form.privateNote": item.note || ""
+    };
+    if (item.placeId) {
+      updates["form.placeId"] = item.placeId;
+      updates.placeChoiceConfirmed = true;
+    }
+    this.setData(updates, () => {
+      this.setData({ pageText: getPageText("create", item.type, this.data.form), publicPreview: buildPublicPreview(this.data.form) });
+      if (!item.placeId) this.refreshPlaceSuggestions();
       this.markDirty();
     });
   },
@@ -613,6 +650,10 @@ Page({
       });
       return;
     }
+    if (this.data.placeSuggestions.length && !this.data.placeChoiceConfirmed) {
+      wx.showToast({ title: "先确认是否关联已有地点", icon: "none" });
+      return;
+    }
     const nextForm = {
       ...this.data.form,
       placeName: this.data.form.placeName || title,
@@ -652,6 +693,7 @@ Page({
         categoryScores: getCategoryScores(updated.scores, updated.recordType)
       };
       this.commitPhotoChanges();
+      if (updated.wishlistId && updated.status !== "draft") markWishlistVisited(updated.wishlistId, updated.placeId);
       this.setData({
         mode: "detail",
         isReadonly: true,
@@ -670,8 +712,9 @@ Page({
       return;
     }
 
+    let createdRecord;
     try {
-      addRecord(nextForm);
+      createdRecord = addRecord(nextForm);
     } catch (error) {
       if (createdPlaceId) {
         try { deleteEmptyPlace(createdPlaceId); } catch (cleanupError) { console.error("cleanup place failed", cleanupError); }
@@ -680,6 +723,7 @@ Page({
       return;
     }
     this.commitPhotoChanges();
+    if (createdRecord.wishlistId && createdRecord.status !== "draft") markWishlistVisited(createdRecord.wishlistId, createdRecord.placeId);
     this.disableLeaveAlert();
     wx.showToast({
       title: nextForm.status === "draft" ? "草稿已保存" : "已保存",

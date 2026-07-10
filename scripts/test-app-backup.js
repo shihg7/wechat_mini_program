@@ -91,6 +91,10 @@ function v4(records, places, ledgers) {
   return { schemaVersion: 4, app: backupApi.APP_ID, exportedAt: "2026-07-10T10:00:00.000Z", media: { binariesIncluded: false }, records, places, ledgers };
 }
 
+function v5(records, places, ledgers, wishlist) {
+  return { schemaVersion: 5, app: backupApi.APP_ID, exportedAt: "2026-07-10T10:00:00.000Z", records, places, ledgers, wishlist };
+}
+
 function testPreflight() {
   const checked = backupApi.preflightBackup(JSON.stringify(v2([record("r1", "A")], [ledger("l1", "r1")])));
   assert.deepStrictEqual(checked.summary, {
@@ -100,7 +104,9 @@ function testPreflight() {
     placeCount: 1,
     ledgerCount: 1,
     expenseCount: 1,
-    ledgersIncluded: true
+    wishlistCount: 0,
+    ledgersIncluded: true,
+    wishlistIncluded: false
   });
   assert.throws(() => backupApi.preflightBackup("{"), /有效的 JSON/);
   assert.throws(() => backupApi.preflightBackup({ schemaVersion: 2, records: [], ledgers: "bad" }), /ledgers必须是数组/);
@@ -108,6 +114,9 @@ function testPreflight() {
   assert.throws(() => backupApi.preflightBackup(v2([], [ledger("same", ""), ledger("same", "")])), /重复 id/);
   assert.throws(() => backupApi.preflightBackup(v3([record("r1", "A", { placeId: "missing" })], [place("p1", "A")], [])), /placeId 无效/);
   assert.strictEqual(backupApi.preflightBackup(v4([record("r4", "D", { placeId: "p4" })], [place("p4", "D")], [])).summary.schemaVersion, 4);
+  const checkedV5 = backupApi.preflightBackup(v5([record("r5", "E", { placeId: "p5" })], [place("p5", "E")], [], [{ id: "w5", type: "hotel", name: "E", placeId: "p5" }]));
+  assert.strictEqual(checkedV5.summary.wishlistCount, 1);
+  assert.strictEqual(checkedV5.summary.wishlistIncluded, true);
 }
 
 function testMergeConflictMappingAndIdempotence() {
@@ -159,6 +168,7 @@ function testAtomicRollback() {
   memory[backupApi.RECORDS_KEY] = JSON.parse(JSON.stringify(originalRecords));
   memory[backupApi.LEDGERS_KEY] = JSON.parse(JSON.stringify(originalLedgers));
   memory[backupApi.PLACES_KEY] = JSON.parse(JSON.stringify(originalPlaces));
+  memory[backupApi.WISHLIST_KEY] = [{ id: "wish-old", type: "hotel", name: "原计划" }];
   failKey = backupApi.LEDGERS_KEY;
   failCount = 1;
   assert.throws(
@@ -168,6 +178,35 @@ function testAtomicRollback() {
   assert.deepStrictEqual(memory[backupApi.RECORDS_KEY], originalRecords);
   assert.deepStrictEqual(memory[backupApi.LEDGERS_KEY], originalLedgers);
   assert.deepStrictEqual(memory[backupApi.PLACES_KEY], originalPlaces);
+  assert.deepStrictEqual(memory[backupApi.WISHLIST_KEY], [{ id: "wish-old", type: "hotel", name: "原计划" }]);
+}
+
+function testV5WishlistMappingAndFourthWriteRollback() {
+  reset();
+  memory[backupApi.RECORDS_KEY] = [];
+  memory[backupApi.PLACES_KEY] = [];
+  memory[backupApi.LEDGERS_KEY] = [];
+  memory[backupApi.WISHLIST_KEY] = [];
+  const payload = v5(
+    [record("r5", "计划酒店", { placeId: "p5" })],
+    [place("p5", "计划酒店")],
+    [],
+    [{ id: "w5", type: "hotel", name: "计划酒店", placeId: "p5" }]
+  );
+  const merged = backupApi.applyBackup(payload, "merge");
+  assert.strictEqual(merged.wishlistAdded, 1);
+  assert.strictEqual(memory[backupApi.WISHLIST_KEY][0].placeId, memory[backupApi.PLACES_KEY][0].id);
+
+  const before = JSON.parse(JSON.stringify(memory));
+  failKey = backupApi.WISHLIST_KEY;
+  failCount = 1;
+  assert.throws(() => backupApi.applyBackup(v5(
+    [record("next", "下一家", { placeId: "next-place" })],
+    [place("next-place", "下一家")],
+    [],
+    [{ id: "next-wish", type: "hotel", name: "下一家", placeId: "next-place" }]
+  ), "replace"), /已自动回滚/);
+  [backupApi.RECORDS_KEY, backupApi.PLACES_KEY, backupApi.LEDGERS_KEY, backupApi.WISHLIST_KEY].forEach((key) => assert.deepStrictEqual(memory[key], before[key]));
 }
 
 function testPrivacyCopy() {
@@ -191,16 +230,17 @@ function testPrivacyCopy() {
   assert.deepStrictEqual(source, snapshot, "privacy policy must not mutate source data");
 }
 
-function testExportMigratesRecordsBeforeBuildingV4() {
+function testExportMigratesRecordsBeforeBuildingV5() {
   reset();
   memory[backupApi.RECORDS_KEY] = [record("legacy", "旧酒店", { placeId: "" })];
   memory[backupApi.LEDGERS_KEY] = [];
   global.wx.getFileSystemManager = () => ({ writeFileSync() {} });
   const exported = backupApi.exportFullBackup();
-  assert.strictEqual(exported.backup.schemaVersion, 4);
+  assert.strictEqual(exported.backup.schemaVersion, 5);
   assert.strictEqual(exported.backup.media.binariesIncluded, false);
   assert.strictEqual(exported.backup.places.length, 1);
   assert.strictEqual(exported.backup.records[0].placeId, exported.backup.places[0].id);
+  assert.deepStrictEqual(exported.backup.wishlist, []);
 }
 
 function run() {
@@ -208,8 +248,9 @@ function run() {
   testMergeConflictMappingAndIdempotence();
   testLegacyReplacePreservesLedgers();
   testAtomicRollback();
+  testV5WishlistMappingAndFourthWriteRollback();
   testPrivacyCopy();
-  testExportMigratesRecordsBeforeBuildingV4();
+  testExportMigratesRecordsBeforeBuildingV5();
   console.log("app backup tests passed");
 }
 

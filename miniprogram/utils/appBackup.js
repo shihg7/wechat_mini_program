@@ -1,10 +1,11 @@
 const { STORAGE_KEY: RECORDS_KEY, getRecords, normalizeRecord } = require("./hotelReviewStore");
 const { STORAGE_KEY: PLACES_KEY, getPlaces, normalizePlace } = require("./placeStore");
 const { STORAGE_KEY: LEDGERS_KEY, getLedgers, normalizeLedger } = require("./tripLedgerStore");
+const { STORAGE_KEY: WISHLIST_KEY, getWishlist, normalizeWishlistItem } = require("./wishlistStore");
 const { createStableId } = require("./id");
 
 const APP_ID = "experience-review-miniprogram";
-const SCHEMA_VERSION = 4;
+const SCHEMA_VERSION = 5;
 
 function clone(value) {
   if (value === undefined) return undefined;
@@ -82,14 +83,16 @@ function preflightBackup(payload) {
   }
   assertObject(data, "备份");
   const version = Number(data.schemaVersion || data.version);
-  if ([1, 2, 3, 4].indexOf(version) < 0) throw new Error("仅支持 schemaVersion 1、2、3 或 4");
+  if ([1, 2, 3, 4, 5].indexOf(version) < 0) throw new Error("仅支持 schemaVersion 1、2、3、4 或 5");
   if (data.app && data.app !== APP_ID) throw new Error("备份来源应用不匹配");
   assertItems(data.records, "records");
   if (version >= 2) assertItems(data.ledgers, "ledgers");
   if (version >= 3) assertItems(data.places, "places");
+  if (version >= 5) assertItems(data.wishlist, "wishlist");
   validateUniqueIds(data.records, "records");
   validateUniqueIds(data.ledgers || [], "ledgers");
   validateUniqueIds(data.places || [], "places");
+  validateUniqueIds(data.wishlist || [], "wishlist");
 
   data.records.forEach((record, index) => {
     if (!record.hotelName && !record.restaurantName) throw new Error(`records[${index}]缺少体验名称`);
@@ -114,6 +117,11 @@ function preflightBackup(payload) {
     normalizedPlaces = legacy.places;
   }
 
+  const placeIds = new Set(normalizedPlaces.map((place) => place.id));
+  const normalizedWishlist = version >= 5 ? data.wishlist.map(normalizeWishlistItem) : null;
+  (normalizedWishlist || []).forEach((item, index) => {
+    if (item.placeId && !placeIds.has(item.placeId)) throw new Error(`wishlist[${index}]的 placeId 无效`);
+  });
   const normalized = {
     schemaVersion: version,
     app: data.app || APP_ID,
@@ -121,7 +129,8 @@ function preflightBackup(payload) {
     importToken: hashText(stableStringify(data)),
     records: normalizedRecords,
     places: normalizedPlaces,
-    ledgers: version >= 2 ? data.ledgers.map(normalizeLedger) : null
+    ledgers: version >= 2 ? data.ledgers.map(normalizeLedger) : null,
+    wishlist: normalizedWishlist
   };
   const expenseCount = (normalized.ledgers || []).reduce((sum, ledger) => sum + ledger.expenses.length, 0);
   return {
@@ -133,15 +142,18 @@ function preflightBackup(payload) {
       placeCount: normalized.places.length,
       ledgerCount: normalized.ledgers ? normalized.ledgers.length : 0,
       expenseCount,
-      ledgersIncluded: normalized.ledgers !== null
+      wishlistCount: normalized.wishlist ? normalized.wishlist.length : 0,
+      ledgersIncluded: normalized.ledgers !== null,
+      wishlistIncluded: normalized.wishlist !== null
     }
   };
 }
 
-function createBackup(records, places, ledgers) {
+function createBackup(records, places, ledgers, wishlist) {
   const normalizedRecords = (records || []).map(normalizeRecord);
   const normalizedPlaces = (places || []).map(normalizePlace);
   const normalizedLedgers = (ledgers || []).map(normalizeLedger);
+  const normalizedWishlist = (wishlist || []).map(normalizeWishlistItem);
   return {
     schemaVersion: SCHEMA_VERSION,
     version: SCHEMA_VERSION,
@@ -151,6 +163,7 @@ function createBackup(records, places, ledgers) {
       recordCount: normalizedRecords.length,
       placeCount: normalizedPlaces.length,
       ledgerCount: normalizedLedgers.length,
+      wishlistCount: normalizedWishlist.length,
       expenseCount: normalizedLedgers.reduce((sum, ledger) => sum + ledger.expenses.length, 0),
       photoCount: normalizedRecords.reduce((sum, record) => sum + record.photos.length, 0)
     },
@@ -160,16 +173,18 @@ function createBackup(records, places, ledgers) {
     },
     records: normalizedRecords,
     places: normalizedPlaces,
-    ledgers: normalizedLedgers
+    ledgers: normalizedLedgers,
+    wishlist: normalizedWishlist
   };
 }
 
-function exportFullBackup(records, places, ledgers) {
-  const sourcePlaces = places === undefined ? getPlaces() : places;
-  const sourceRecords = records === undefined ? getRecords() : records;
+function exportFullBackup(records, places, ledgers, wishlist) {
+  const sourcePlaces = places === undefined ? getPlaces({ includeDeleted: true }) : places;
+  const sourceRecords = records === undefined ? getRecords({ includeDeleted: true }) : records;
   const sourceLedgers = ledgers === undefined ? getLedgers() : ledgers;
-  const backup = createBackup(sourceRecords, sourcePlaces, sourceLedgers);
-  const filePath = `${wx.env.USER_DATA_PATH}/experience-review-full-backup-v4.json`;
+  const sourceWishlist = wishlist === undefined ? getWishlist({ includeDeleted: true }) : wishlist;
+  const backup = createBackup(sourceRecords, sourcePlaces, sourceLedgers, sourceWishlist);
+  const filePath = `${wx.env.USER_DATA_PATH}/experience-review-full-backup-v5.json`;
   wx.getFileSystemManager().writeFileSync(filePath, JSON.stringify(backup, null, 2), "utf8");
   return { filePath, backup, summary: backup.summary };
 }
@@ -218,7 +233,7 @@ function planCollection(existing, incoming, kind, backupToken) {
   return { result: additions.concat(existing), additions, skipped, idMap };
 }
 
-function buildMerge(existingRecords, existingPlaces, existingLedgers, backup) {
+function buildMerge(existingRecords, existingPlaces, existingLedgers, existingWishlist, backup) {
   const backupToken = backup.importToken || hashText(stableStringify(backup));
   const placesPlan = planCollection(existingPlaces, backup.places, "place", backupToken);
   const remappedRecords = backup.records.map((record) => ({ ...record, placeId: placesPlan.idMap[record.placeId] || record.placeId }));
@@ -228,7 +243,9 @@ function buildMerge(existingRecords, existingPlaces, existingLedgers, backup) {
     expenses: ledger.expenses.map((expense) => ({ ...expense, relatedRecordId: recordsPlan.idMap[String(expense.relatedRecordId)] || expense.relatedRecordId }))
   }));
   const ledgersPlan = planCollection(existingLedgers, remappedLedgers, "ledger", backupToken);
-  return { recordsPlan, placesPlan, ledgersPlan };
+  const remappedWishlist = (backup.wishlist || []).map((item) => ({ ...item, placeId: placesPlan.idMap[item.placeId] || item.placeId }));
+  const wishlistPlan = planCollection(existingWishlist, remappedWishlist, "wishlist", backupToken);
+  return { recordsPlan, placesPlan, ledgersPlan, wishlistPlan };
 }
 
 function snapshotFor(key) {
@@ -249,40 +266,49 @@ function applyBackup(preflightOrPayload, mode = "merge") {
   const snapshots = {
     records: snapshotFor(RECORDS_KEY),
     places: snapshotFor(PLACES_KEY),
-    ledgers: snapshotFor(LEDGERS_KEY)
+    ledgers: snapshotFor(LEDGERS_KEY),
+    wishlist: snapshotFor(WISHLIST_KEY)
   };
   const rawRecords = snapshots.records.value;
   const rawPlaces = snapshots.places.value;
   const rawLedgers = snapshots.ledgers.value;
+  const rawWishlist = snapshots.wishlist.value;
   const existingRecords = Array.isArray(rawRecords) ? rawRecords.map(normalizeRecord) : [];
   const existingPlaces = Array.isArray(rawPlaces) ? rawPlaces.map(normalizePlace) : [];
   const existingLedgers = Array.isArray(rawLedgers) ? rawLedgers.map(normalizeLedger) : [];
+  const existingWishlist = Array.isArray(rawWishlist) ? rawWishlist.map(normalizeWishlistItem) : [];
   let nextRecords;
   let nextPlaces;
   let nextLedgers;
+  let nextWishlist;
   let result;
 
   if (mode === "replace" || mode === "overwrite") {
     nextRecords = backup.records;
     nextPlaces = backup.places;
     nextLedgers = backup.ledgers === null ? existingLedgers : backup.ledgers;
-    result = { mode: "replace", recordsAdded: nextRecords.length, placesAdded: nextPlaces.length, ledgersAdded: backup.ledgers === null ? 0 : nextLedgers.length, recordsSkipped: 0, placesSkipped: 0, ledgersSkipped: 0 };
+    nextWishlist = backup.wishlist === null ? existingWishlist : backup.wishlist;
+    result = { mode: "replace", recordsAdded: nextRecords.length, placesAdded: nextPlaces.length, ledgersAdded: backup.ledgers === null ? 0 : nextLedgers.length, wishlistAdded: backup.wishlist === null ? 0 : nextWishlist.length, recordsSkipped: 0, placesSkipped: 0, ledgersSkipped: 0, wishlistSkipped: 0 };
   } else {
-    const plan = buildMerge(existingRecords, existingPlaces, existingLedgers, backup);
+    const plan = buildMerge(existingRecords, existingPlaces, existingLedgers, existingWishlist, backup);
     nextRecords = plan.recordsPlan.result;
     nextPlaces = plan.placesPlan.result;
     nextLedgers = backup.ledgers === null ? existingLedgers : plan.ledgersPlan.result;
+    nextWishlist = backup.wishlist === null ? existingWishlist : plan.wishlistPlan.result;
     result = {
       mode: "merge",
       recordsAdded: plan.recordsPlan.additions.length,
       placesAdded: plan.placesPlan.additions.length,
       ledgersAdded: backup.ledgers === null ? 0 : plan.ledgersPlan.additions.length,
+      wishlistAdded: backup.wishlist === null ? 0 : plan.wishlistPlan.additions.length,
       recordsSkipped: plan.recordsPlan.skipped,
       placesSkipped: plan.placesPlan.skipped,
       ledgersSkipped: backup.ledgers === null ? 0 : plan.ledgersPlan.skipped,
+      wishlistSkipped: backup.wishlist === null ? 0 : plan.wishlistPlan.skipped,
       recordIdMap: plan.recordsPlan.idMap,
       placeIdMap: plan.placesPlan.idMap,
-      ledgerIdMap: plan.ledgersPlan.idMap
+      ledgerIdMap: plan.ledgersPlan.idMap,
+      wishlistIdMap: plan.wishlistPlan.idMap
     };
   }
 
@@ -290,9 +316,10 @@ function applyBackup(preflightOrPayload, mode = "merge") {
     wx.setStorageSync(RECORDS_KEY, nextRecords.map(normalizeRecord));
     wx.setStorageSync(PLACES_KEY, nextPlaces.map(normalizePlace));
     wx.setStorageSync(LEDGERS_KEY, nextLedgers.map(normalizeLedger));
+    wx.setStorageSync(WISHLIST_KEY, nextWishlist.map(normalizeWishlistItem));
   } catch (error) {
     const rollbackErrors = [];
-    [[RECORDS_KEY, snapshots.records], [PLACES_KEY, snapshots.places], [LEDGERS_KEY, snapshots.ledgers]].forEach(([key, snapshot]) => {
+    [[RECORDS_KEY, snapshots.records], [PLACES_KEY, snapshots.places], [LEDGERS_KEY, snapshots.ledgers], [WISHLIST_KEY, snapshots.wishlist]].forEach(([key, snapshot]) => {
       try { restoreStorage(key, snapshot); } catch (rollbackError) { rollbackErrors.push(rollbackError); }
     });
     const message = rollbackErrors.length ? "导入失败，且回滚未完整完成" : "导入失败，已自动回滚";
@@ -300,7 +327,7 @@ function applyBackup(preflightOrPayload, mode = "merge") {
     wrapped.rollbackErrors = rollbackErrors;
     throw wrapped;
   }
-  return { ...result, recordCount: nextRecords.length, placeCount: nextPlaces.length, ledgerCount: nextLedgers.length };
+  return { ...result, recordCount: nextRecords.length, placeCount: nextPlaces.length, ledgerCount: nextLedgers.length, wishlistCount: nextWishlist.length };
 }
 
 module.exports = {
@@ -308,6 +335,7 @@ module.exports = {
   LEDGERS_KEY,
   PLACES_KEY,
   RECORDS_KEY,
+  WISHLIST_KEY,
   SCHEMA_VERSION,
   applyBackup,
   createBackup,

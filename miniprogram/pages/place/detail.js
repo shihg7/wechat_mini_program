@@ -7,7 +7,7 @@ const {
   getPlaces,
   mergePlaces,
   updatePlace
-} = require("../../utils/placeStore");
+} = require("../../utils/repositories/placeRepository");
 
 Page({
   data: {
@@ -47,6 +47,10 @@ Page({
 
   addVisit() {
     wx.navigateTo({ url: `/pages/record/record?type=${this.data.place.type}&placeId=${this.data.place.id}` });
+  },
+
+  addWishlist() {
+    wx.navigateTo({ url: `/pages/wishlist/edit?placeId=${this.data.place.id}` });
   },
 
   goRecord(event) {

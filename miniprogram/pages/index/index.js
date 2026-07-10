@@ -5,9 +5,10 @@ const {
   getTagStats,
   getTimelineGroups,
   searchAndSortRecords
-} = require("../../utils/hotelReviewStore");
-const { getLedgerListItems } = require("../../utils/tripLedgerStore");
-const { findPlaceSuggestions, getPlaceStats, getPlaces } = require("../../utils/placeStore");
+} = require("../../utils/repositories/recordRepository");
+const { getLedgerListItems } = require("../../utils/repositories/ledgerRepository");
+const { findPlaceSuggestions, getPlaceStats, getPlaces } = require("../../utils/repositories/placeRepository");
+const { getWishlist, searchWishlist } = require("../../utils/repositories/wishlistRepository");
 
 const SORT_OPTIONS = [
   { label: "最近创建", value: "created_desc" },
@@ -19,6 +20,7 @@ const SORT_OPTIONS = [
 const VIEW_TABS = [
   { key: "records", label: "记录" },
   { key: "places", label: "地点" },
+  { key: "wishlist", label: "想去" },
   { key: "timeline", label: "时间线" },
   { key: "cities", label: "城市" },
   { key: "tags", label: "标签" }
@@ -32,6 +34,9 @@ Page({
     cityStats: [],
     tagStats: [],
     placeCards: [],
+    wishlist: [],
+    visibleWishlist: [],
+    wishlistStatus: "all",
     selectedCity: "",
     cityRecords: [],
     keyword: "",
@@ -68,12 +73,14 @@ Page({
     getPlaces();
     const records = getRecords();
     const ledgers = getLedgerListItems();
+    const wishlist = getWishlist();
     this.setData({
       records,
       summary: getSummary(records),
       recentRecord: records.find((record) => record.status !== "draft") || null,
       recentDraft: records.find((record) => record.status === "draft") || null,
-      recentLedger: ledgers[0] || null
+      recentLedger: ledgers[0] || null,
+      wishlist
     });
     this.refreshVisibleRecords();
   },
@@ -127,6 +134,7 @@ Page({
       };
     }).sort((a, b) => String(b.latestVisit && (b.latestVisit.stayDate || b.latestVisit.createdAt) || "").localeCompare(String(a.latestVisit && (a.latestVisit.stayDate || a.latestVisit.createdAt) || "")));
     const cityStats = getCityStats(visibleRecords);
+    const visibleWishlist = searchWishlist(this.data.wishlist, { keyword: this.data.keyword, type: this.data.activeType, status: this.data.wishlistStatus });
     const selectedCity = this.data.selectedCity
       && cityStats.some((item) => item.city === this.data.selectedCity)
       ? this.data.selectedCity
@@ -137,6 +145,7 @@ Page({
       cityStats,
       tagStats: getTagStats(visibleRecords),
       placeCards,
+      visibleWishlist,
       selectedCity,
       cityRecords: selectedCity ? this.getCityRecords(visibleRecords, selectedCity) : [],
       ...this.getFilterState()
@@ -145,6 +154,12 @@ Page({
 
   onViewChange(event) {
     this.setData({ activeView: event.currentTarget.dataset.view });
+  },
+
+  onWishlistStatus(event) {
+    const status = event.currentTarget.dataset.status;
+    this.setData({ wishlistStatus: this.data.wishlistStatus === status ? "all" : status });
+    this.refreshVisibleRecords();
   },
 
   onKeywordInput(event) {
@@ -230,8 +245,21 @@ Page({
     wx.navigateTo({ url: "/pages/data/index" });
   },
 
+  goWishlistCreate(event) {
+    const type = event && event.currentTarget && event.currentTarget.dataset.type || "hotel";
+    wx.navigateTo({ url: `/pages/wishlist/edit?type=${type}` });
+  },
+
+  goWishlistDetail(event) {
+    wx.navigateTo({ url: `/pages/wishlist/edit?id=${event.currentTarget.dataset.id}` });
+  },
+
   goInsights() {
     wx.navigateTo({ url: "/pages/insights/index" });
+  },
+
+  goCleanup() {
+    wx.navigateTo({ url: "/pages/cleanup/index" });
   },
 
   selectCity(event) {

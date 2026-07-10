@@ -159,6 +159,9 @@ page {
   margin-top: 18rpx;
 }
 
+.export-grid { display:grid; grid-template-columns:1fr 1fr; gap:12rpx; margin-top:18rpx; }
+.export-button { height:70rpx; margin:0; padding:0 8rpx; border-radius:8rpx; background:#eef2f5; color:#263248; font-size:23rpx; font-weight:800; line-height:70rpx; }.export-button::after{border:0}.export-canvas{position:fixed;left:-2000px;top:0;width:595px;height:842px;pointer-events:none}
+
 .button {
   flex: 1;
   min-width: 0;

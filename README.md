@@ -1,13 +1,13 @@
 # 体验档案小程序
 
-这是一个纯前端微信小程序，用于记录个人旅行体验。当前包含酒店测评、米其林餐厅测评、体验照片、个人旅行洞察、AA 旅行记账，以及完整的本地备份和隐私导出。
+这是一个本地优先的微信小程序，用于记录个人旅行体验。当前包含酒店测评、米其林餐厅测评、想去清单、体验照片、个人旅行洞察、AA 旅行记账，以及完整的本地备份和隐私导出。数据层已预留未来后端同步能力，当前不连接服务器。
 
 ## 当前功能
 
 ### 酒店与餐厅档案
 
 - 原生底部导航区分“体验档案”和“AA 账本”。
-- 首页记录中心：记录、地点、时间线、城市、标签五个视图。
+- 首页记录中心：记录、地点、想去、时间线、城市、标签六个视图。
 - 首页展示最近体验、最近草稿和最近账本；备份与 PDF 统一放在“数据管理”。
 - 支持新增、查看、编辑、复制、删除记录。
 - 支持酒店记录：行政酒廊、早餐、泳池评分。
@@ -24,6 +24,25 @@
 - 照片使用 `wx.saveFile` 保存在小程序本地持久目录；失效路径会显示明确占位，不会渲染破损图片。
 - 首页、地点页和到访记录会展示体验封面。
 - 旅行洞察支持年份筛选、酒店/餐厅构成、个人最佳、月度频次、评分轨迹、常去城市、常用标签和复访升降。
+
+### 想去清单与待整理
+
+- 酒店和餐厅支持“想去 / 已预订 / 已到访”状态，以及优先级、目标日期、预算、预订编号、同行人和计划备注。
+- 想去项支持名称搜索、类型筛选、状态筛选和优先级排序。
+- 可以关联已有地点；发现相似地点时必须由用户确认，不会静默合并。
+- 从想去项发起“记录到访”会自动带入地点信息；体验保存成功后才会标记为已到访。
+- 待整理中心集中显示疑似重复地点、缺少城市/地址、孤立记录、已完成未评分、长期草稿和想去项重复建议。
+- 失效照片元数据与无主照片文件分开处理；无主文件只从应用自己的媒体登记表识别，不会误删 PDF 或其他文件。
+- 重复地点合并、照片清理和删除操作继续要求用户确认。
+
+### 同步架构预留
+
+- 页面通过 `recordRepository`、`placeRepository`、`wishlistRepository` 和 `ledgerRepository` 访问数据，不直接依赖缓存实现。
+- 当前 Repository 使用本地适配器，后续可以增加远端适配器而不修改页面业务。
+- 记录、地点和想去项包含 `revision`、`syncStatus`、`deviceId`、`cloudId`、`syncedAt`、`deletedAt`。
+- 新增、编辑和删除会进入待同步状态；删除采用软删除并保留 tombstone。
+- Repository 提供待同步批次、确认同步和冲突快照接口，冲突不会自动覆盖本地版本。
+- 公开地点、公开评论和私有同步使用独立 DTO；公开 DTO 不包含精确地址、设备 ID、私密备注或本地照片路径。
 
 ### 公开评论预留
 
@@ -62,6 +81,8 @@ AA 账本用于多人旅行支出分摊：
 - 自动生成推荐转账方案。
 - 支持按实际到账金额确认部分或完整转账。
 - 支持撤销已确认转账，并保留结算历史。
+- 支持导出结算图片、私人 PDF、匿名分享 PDF 和完整明细 JSON。
+- 分享版稳定匿名化成员名称并清除支出私密备注，四种分摊方式和整数分结果保持不变。
 - 转账金额不能超过当前待结算金额；全部平衡后显示“已结清”。
 - 金额内部统一按“分”存储，避免浮点计算误差。
 - 本地账本和支出 id 使用时间戳加随机后缀，避免连续快速录入时同毫秒冲突。
@@ -77,10 +98,10 @@ trip_split_ledgers
 ### 数据管理与隐私导出
 
 - 完整 JSON 备份同时包含酒店、餐厅、地点、账本、成员、支出和结算记录。
-- 完整备份格式为 `schemaVersion: 4`，继续兼容 v1 记录备份、v2 记录加账本备份和 v3 地点备份。
+- 完整备份格式为 `schemaVersion: 5`，包含记录、地点、想去清单和账本，并继续兼容 v1-v4。
 - v1 / v2 导入时会为没有地点对象的记录生成独立地点，不会按同名自动合并。
 - 导入前展示记录、账本和支出数量，支持合并或覆盖。
-- 恢复同时写入记录、地点、账本三个缓存；任一写入失败时自动回滚到导入前数据。
+- 恢复同时写入记录、地点、想去清单、账本四个缓存；任一写入失败时自动回滚到导入前数据。
 - 同一备份重复合并会跳过已有内容，ID 冲突时会稳定重映射关联字段。
 - PDF 支持“私人版”和“脱敏版”。
 - 脱敏版把精确日期降为月份，隐藏会员等级、价格、私密备注和真实成员姓名。
@@ -91,11 +112,12 @@ trip_split_ledgers
 
 ```js
 {
-  schemaVersion: 4,
+  schemaVersion: 5,
   app: "experience-review-miniprogram",
   exportedAt: "...",
   records: [],
   places: [],
+  wishlist: [],
   ledgers: [],
   media: {
     binariesIncluded: false
@@ -111,6 +133,8 @@ miniprogram/
   pages/record/         酒店/餐厅记录新增、详情、编辑
   pages/place/          地点详情、多次到访、编辑和合并
   pages/insights/       个人旅行年度洞察
+  pages/wishlist/       想去清单新增、详情和编辑
+  pages/cleanup/        数据健康检查与安全整理
   pages/data/           完整备份、恢复和隐私 PDF
   pages/ledger/index/   AA 账本列表
   pages/ledger/edit/    AA 账本新增/编辑
@@ -120,12 +144,18 @@ miniprogram/
   utils/placeStore.js
   utils/mediaStore.js
   utils/travelInsights.js
+  utils/wishlistStore.js
+  utils/cleanupService.js
+  utils/syncMetadata.js
+  utils/syncDtos.js
+  utils/repositories/   Repository 接口与本地适配器
   utils/pdfReport.js
   utils/tripLedgerStore.js
   utils/ledgerMigration.js
   utils/ledgerValidation.js
   utils/appBackup.js
   utils/privacyPolicy.js
+  utils/ledgerExport.js
 ```
 
 ## 本地调试
@@ -153,20 +183,24 @@ npm test
 - 分分钱余数分配
 - 固定金额、比例和份数分摊
 - 100 笔随机支出的金额守恒
+- AA 匿名 JSON、PDF 封装和分摊明细一致性
 - 金额输入解析
 - v1 账本无损迁移和迁移失败保护
 - 成员改名、归档、删除引用保护
 - 部分结算、完整结算和撤销转账
 - 余额守恒、无待结算转账和超额转账拦截
 - 完整备份预检、v1 兼容、重复导入和 ID 重映射
-- 三个缓存写入失败时的自动回滚
+- 四个缓存写入失败时的自动回滚
 - 私人副本与脱敏副本不修改原始数据
 - 旧记录地点迁移幂等且不会按同名自动合并
 - 相似地点建议、重复到访、地点统计、合并和删除保护
 - 快速草稿未评分、地图授权成功和拒绝后的手工回退
 - 照片持久化、路径失效和文件清理
 - 年度筛选、个人最佳、月度趋势和复访评分变化
-- v1 / v2 / v3 / v4 备份兼容和三缓存回滚
+- 想去项转体验、状态更新和地点关联
+- Repository 待同步批次、软删除、冲突快照和公开 DTO 脱敏
+- 失效照片与登记无主文件的安全清理
+- v1 / v2 / v3 / v4 / v5 备份兼容和四缓存回滚
 - 页面事件流：创建账本、录入支出、确认部分结算、撤销结算和日期错误提示
 
 常用语法检查：
@@ -181,10 +215,15 @@ node --check miniprogram/utils/appBackup.js
 node --check miniprogram/utils/privacyPolicy.js
 node --check miniprogram/utils/mediaStore.js
 node --check miniprogram/utils/travelInsights.js
+node --check miniprogram/utils/wishlistStore.js
+node --check miniprogram/utils/cleanupService.js
+node --check miniprogram/utils/ledgerExport.js
 node --check miniprogram/pages/index/index.js
 node --check miniprogram/pages/record/record.js
 node --check miniprogram/pages/place/detail.js
 node --check miniprogram/pages/insights/index.js
+node --check miniprogram/pages/wishlist/edit.js
+node --check miniprogram/pages/cleanup/index.js
 node --check miniprogram/pages/data/index.js
 node --check miniprogram/pages/ledger/index/index.js
 node --check miniprogram/pages/ledger/edit/edit.js

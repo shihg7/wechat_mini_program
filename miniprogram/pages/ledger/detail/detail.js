@@ -1,4 +1,5 @@
-const ledgerStore = require("../../../utils/tripLedgerStore");
+const ledgerStore = require("../../../utils/repositories/ledgerRepository");
+const { PRIVATE_MODE, REDACTED_MODE, exportLedgerImage, exportLedgerJson, exportLedgerPdf } = require("../../../utils/ledgerExport");
 
 const {
   DEFAULT_CATEGORIES,
@@ -203,7 +204,9 @@ Page({
     expenseFormDirty: false,
     pendingTransfer: null,
     remainingText: formatCents(0),
-    isSettled: true
+    isSettled: true,
+    showExportPanel: false,
+    exporting: false
   },
 
   onLoad(options) {
@@ -259,6 +262,31 @@ Page({
 
   editLedger() {
     wx.navigateTo({ url: `/pages/ledger/edit/edit?id=${this.data.ledgerId}` });
+  },
+
+  toggleExportPanel() { this.setData({ showExportPanel: !this.data.showExportPanel }); },
+
+  async exportLedger(event) {
+    if (this.data.exporting) return;
+    const format = event.currentTarget.dataset.format;
+    const privacyMode = event.currentTarget.dataset.mode === REDACTED_MODE ? REDACTED_MODE : PRIVATE_MODE;
+    this.setData({ exporting: true });
+    try {
+      let filePath;
+      if (format === "image") {
+        filePath = await exportLedgerImage({ page: this, ledger: this.data.ledger, privacyMode });
+        if (wx.showShareImageMenu) wx.showShareImageMenu({ path: filePath });
+        else wx.previewImage({ current: filePath, urls: [filePath] });
+      } else if (format === "pdf") {
+        filePath = await exportLedgerPdf({ page: this, ledger: this.data.ledger, privacyMode });
+        wx.openDocument({ filePath, fileType: "pdf", showMenu: true });
+      } else {
+        filePath = exportLedgerJson(this.data.ledger, privacyMode);
+        if (wx.shareFileMessage) wx.shareFileMessage({ filePath, fileName: `AA账本-${privacyMode === REDACTED_MODE ? "分享版" : "私人版"}.json` });
+        else wx.showToast({ title: "JSON 已生成", icon: "none" });
+      }
+    } catch (error) { wx.showModal({ title: "导出失败", content: error.message || "请稍后重试", showCancel: false }); }
+    finally { this.setData({ exporting: false }); }
   },
 
   openExpenseForm() {

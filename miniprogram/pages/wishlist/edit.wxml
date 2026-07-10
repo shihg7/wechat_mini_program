@@ -1,0 +1,21 @@
+<scroll-view class="page" scroll-y>
+  <view class="hero"><view class="eyebrow">TRAVEL WISHLIST</view><view class="title">{{mode === "create" ? "新增想去地点" : form.name}}</view><view class="hero-meta">{{form.type === "restaurant" ? "餐厅" : "酒店"}} · {{form.status === "booked" ? "已预订" : form.status === "visited" ? "已到访" : "想去"}}</view></view>
+  <view class="section">
+    <view class="segments" wx:if="{{!readonly}}"><view class="segment {{form.type === 'hotel' ? 'active' : ''}}" data-type="hotel" bindtap="onTypeTap">酒店</view><view class="segment {{form.type === 'restaurant' ? 'active' : ''}}" data-type="restaurant" bindtap="onTypeTap">餐厅</view></view>
+    <view class="field"><view class="label">名称</view><input class="input" disabled="{{readonly}}" value="{{form.name}}" data-field="name" bindinput="onInput" /></view>
+    <view class="grid"><view class="field"><view class="label">城市</view><input class="input" disabled="{{readonly}}" value="{{form.city}}" data-field="city" bindinput="onInput" /></view><view class="field"><view class="label">地区/分店</view><input class="input" disabled="{{readonly}}" value="{{form.area}}" data-field="area" bindinput="onInput" /></view></view>
+    <view class="field"><view class="label">地址</view><input class="input" disabled="{{readonly}}" value="{{form.address}}" data-field="address" bindinput="onInput" /></view>
+    <button class="map-button" wx:if="{{!readonly}}" bindtap="chooseLocation">从微信地图选择</button>
+  </view>
+  <view class="suggestions" wx:if="{{suggestions.length && !readonly}}"><view class="suggestion-title">可能已经存在</view><view class="suggestion" wx:for="{{suggestions}}" wx:key="id" data-id="{{item.id}}" bindtap="selectPlace"><view><view class="suggestion-name">{{item.name}}</view><view class="suggestion-meta">{{item.city || "未填写城市"}} · {{item.address || "地址未填写"}}</view></view><view class="link">关联</view></view><button class="plain-button" bindtap="createIndependent">都不是，保持独立</button></view>
+  <view class="section">
+    <view class="label">状态</view><view class="segments three"><view class="segment {{form.status === item.key ? 'active' : ''}}" wx:for="{{statuses}}" wx:key="key" data-value="{{item.key}}" bindtap="onStatusTap">{{item.label}}</view></view>
+    <view class="label spaced">优先级</view><view class="segments three"><view class="segment {{form.priority === item.key ? 'active' : ''}}" wx:for="{{priorities}}" wx:key="key" data-value="{{item.key}}" bindtap="onPriorityTap">{{item.label}}</view></view>
+    <view class="grid"><view class="field"><view class="label">目标日期</view><picker mode="date" disabled="{{readonly}}" value="{{form.targetDate}}" bindchange="onDateChange"><view class="input picker">{{form.targetDate || "选择日期"}}</view></picker></view><view class="field"><view class="label">预算</view><input class="input" disabled="{{readonly}}" placeholder="例如 ¥3000" value="{{form.budgetText}}" data-field="budgetText" bindinput="onInput" /></view></view>
+    <view class="field" wx:if="{{form.status === 'booked' || form.bookingReference}}"><view class="label">预订编号</view><input class="input" disabled="{{readonly}}" value="{{form.bookingReference}}" data-field="bookingReference" bindinput="onInput" /></view>
+    <view class="field"><view class="label">同行人</view><input class="input" disabled="{{readonly}}" value="{{form.companions}}" data-field="companions" bindinput="onInput" /></view>
+    <view class="field"><view class="label">计划备注</view><textarea class="textarea" disabled="{{readonly}}" value="{{form.note}}" data-field="note" bindinput="onInput" /></view>
+  </view>
+  <view class="actions" wx:if="{{!readonly}}"><button class="button primary" bindtap="save">保存</button></view>
+  <view class="actions" wx:else><button class="button primary" wx:if="{{form.status !== 'visited'}}" bindtap="recordVisit">记录到访</button><button class="button secondary" bindtap="edit">编辑</button><button class="button danger" bindtap="remove">删除</button></view>
+</scroll-view>

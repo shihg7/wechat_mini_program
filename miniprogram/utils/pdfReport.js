@@ -381,5 +381,6 @@ async function exportHotelReport({ page, records, summary, ledgers = [], privacy
 
 module.exports = {
   PRIVATE_MODE,
+  buildPdf,
   exportHotelReport
 };

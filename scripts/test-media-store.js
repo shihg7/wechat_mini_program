@@ -1,9 +1,12 @@
 const assert = require("assert");
 
 const existing = new Set();
+const storage = {};
 const removed = [];
 let savedIndex = 0;
 global.wx = {
+  getStorageSync(key) { return storage[key]; },
+  setStorageSync(key, value) { storage[key] = JSON.parse(JSON.stringify(value)); },
   chooseMedia(options) {
     options.success({ tempFiles: [{ tempFilePath: "/tmp/a.jpg" }, { tempFilePath: "/tmp/b.jpg" }] });
   },

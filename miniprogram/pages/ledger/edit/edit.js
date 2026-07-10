@@ -1,4 +1,4 @@
-const ledgerStore = require("../../../utils/tripLedgerStore");
+const ledgerStore = require("../../../utils/repositories/ledgerRepository");
 
 function memberObject(member, index) {
   if (typeof member === "string") {

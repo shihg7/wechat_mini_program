@@ -64,6 +64,7 @@ function input(field, value) {
 
 const recordsApi = require("../miniprogram/utils/hotelReviewStore");
 const placesApi = require("../miniprogram/utils/placeStore");
+const wishlistApi = require("../miniprogram/utils/wishlistStore");
 
 function reset() {
   Object.keys(memory).forEach((key) => delete memory[key]);
@@ -97,6 +98,47 @@ async function testPhotoClickFlow() {
   page.saveRecord({ currentTarget: { dataset: { status: "completed" } } });
   assert.strictEqual(recordsApi.getRecords()[0].photos.length, 0);
   assert.strictEqual(savedFiles.has(photo.filePath), false);
+}
+
+function testWishlistConvertsAfterRecordSave() {
+  reset();
+  const wish = wishlistApi.addWishlistItem({ type: "hotel", name: "计划酒店", city: "东京", targetDate: "2026-10-01" });
+  let page = loadPage();
+  page.onLoad({ type: "hotel", wishlistId: wish.id });
+  page.saveRecord({ currentTarget: { dataset: { status: "draft" } } });
+  assert.strictEqual(wishlistApi.getWishlistItem(wish.id).status, "wishlist");
+
+  const completedWish = wishlistApi.addWishlistItem({ type: "hotel", name: "正式计划酒店", city: "东京", targetDate: "2026-10-02" });
+  page = loadPage();
+  page.onLoad({ type: "hotel", wishlistId: completedWish.id });
+  assert.strictEqual(page.data.form.hotelName, "正式计划酒店");
+  assert.strictEqual(page.data.form.wishlistId, completedWish.id);
+  if (page.data.placeSuggestions.length) page.createAsNewPlace();
+  page.saveRecord({ currentTarget: { dataset: { status: "completed" } } });
+  const saved = recordsApi.getRecords().find((record) => record.wishlistId === completedWish.id);
+  assert(saved);
+  assert.strictEqual(saved.wishlistId, completedWish.id);
+  assert.strictEqual(wishlistApi.getWishlistItem(completedWish.id).status, "visited");
+  assert.strictEqual(wishlistApi.getWishlistItem(completedWish.id).placeId, saved.placeId);
+}
+
+function testWishlistPageRequiresExplicitPlaceChoice() {
+  reset();
+  const place = placesApi.createPlace({ type: "hotel", name: "明确关联酒店", city: "上海", address: "测试地址" });
+  const page = loadPage("../miniprogram/pages/wishlist/edit.js");
+  page.onLoad({ type: "hotel" });
+  page.onInput(input("name", "明确关联酒店"));
+  page.onInput(input("city", "上海"));
+  assert.strictEqual(page.data.suggestions.length, 1);
+  page.save();
+  assert(ui.toasts.includes("先确认是否关联已有地点"));
+  assert.strictEqual(wishlistApi.getWishlist().length, 0);
+  page.selectPlace({ currentTarget: { dataset: { id: place.id } } });
+  page.onPriorityTap({ currentTarget: { dataset: { value: "high" } } });
+  page.save();
+  const saved = wishlistApi.getWishlist()[0];
+  assert.strictEqual(saved.placeId, place.id);
+  assert.strictEqual(saved.priority, "high");
 }
 
 function testSuggestedPlaceAndRepeatedVisit() {
@@ -170,6 +212,8 @@ async function run() {
   testSuggestedPlaceAndRepeatedVisit();
   testQuickDraftAndOptionalMap();
   testPlaceDetailMergeAndDeleteProtection();
+  testWishlistConvertsAfterRecordSave();
+  testWishlistPageRequiresExplicitPlaceChoice();
   await testPhotoClickFlow();
   console.log("record and place page tests passed");
 }

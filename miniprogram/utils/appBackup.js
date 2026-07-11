@@ -5,9 +5,11 @@ const { STORAGE_KEY: WISHLIST_KEY, getWishlist, normalizeWishlistItem } = requir
 const { createStableId } = require("./id");
 const { STORY_PREFS_KEY } = require("./storyRenderer");
 const { YEARBOOK_PREFS_KEY } = require("./yearbookBuilder");
+const { STORAGE_KEY: TRIPS_KEY, getTrips, normalizeTrip } = require("./tripStore");
+const { STORAGE_KEY: TEMPLATES_KEY } = require("./formTemplateStore");
 
 const APP_ID = "experience-review-miniprogram";
-const SCHEMA_VERSION = 6;
+const SCHEMA_VERSION = 7;
 
 function clone(value) {
   if (value === undefined) return undefined;
@@ -85,17 +87,20 @@ function preflightBackup(payload) {
   }
   assertObject(data, "备份");
   const version = Number(data.schemaVersion || data.version);
-  if ([1, 2, 3, 4, 5, 6].indexOf(version) < 0) throw new Error("仅支持 schemaVersion 1、2、3、4、5 或 6");
+  if ([1, 2, 3, 4, 5, 6, 7].indexOf(version) < 0) throw new Error("仅支持 schemaVersion 1 至 7");
   if (data.app && data.app !== APP_ID) throw new Error("备份来源应用不匹配");
   assertItems(data.records, "records");
   if (version >= 2) assertItems(data.ledgers, "ledgers");
   if (version >= 3) assertItems(data.places, "places");
   if (version >= 5) assertItems(data.wishlist, "wishlist");
   if (version >= 6) assertObject(data.preferences, "preferences");
+  if (version >= 7) { assertItems(data.trips, "trips"); assertItems(data.formTemplates, "formTemplates"); }
   validateUniqueIds(data.records, "records");
   validateUniqueIds(data.ledgers || [], "ledgers");
   validateUniqueIds(data.places || [], "places");
   validateUniqueIds(data.wishlist || [], "wishlist");
+  validateUniqueIds(data.trips || [], "trips");
+  validateUniqueIds(data.formTemplates || [], "formTemplates");
 
   data.records.forEach((record, index) => {
     if (!record.hotelName && !record.restaurantName) throw new Error(`records[${index}]缺少体验名称`);
@@ -126,6 +131,8 @@ function preflightBackup(payload) {
     if (item.placeId && !placeIds.has(item.placeId)) throw new Error(`wishlist[${index}]的 placeId 无效`);
   });
   const normalizedPreferences = version >= 6 ? { story: clone(data.preferences.story || {}), yearbook: clone(data.preferences.yearbook || {}) } : null;
+  const normalizedTrips = version >= 7 ? data.trips.map(normalizeTrip) : null;
+  const normalizedTemplates = version >= 7 ? clone(data.formTemplates) : null;
   const normalized = {
     schemaVersion: version,
     app: data.app || APP_ID,
@@ -135,7 +142,9 @@ function preflightBackup(payload) {
     places: normalizedPlaces,
     ledgers: version >= 2 ? data.ledgers.map(normalizeLedger) : null,
     wishlist: normalizedWishlist,
-    preferences: normalizedPreferences
+    preferences: normalizedPreferences,
+    trips: normalizedTrips,
+    formTemplates: normalizedTemplates
   };
   const expenseCount = (normalized.ledgers || []).reduce((sum, ledger) => sum + ledger.expenses.length, 0);
   return {
@@ -150,12 +159,14 @@ function preflightBackup(payload) {
       wishlistCount: normalized.wishlist ? normalized.wishlist.length : 0,
       ledgersIncluded: normalized.ledgers !== null,
       wishlistIncluded: normalized.wishlist !== null,
-      preferencesIncluded: normalized.preferences !== null
+      preferencesIncluded: normalized.preferences !== null,
+      tripCount: normalized.trips ? normalized.trips.length : 0,
+      templatesIncluded: normalized.formTemplates !== null
     }
   };
 }
 
-function createBackup(records, places, ledgers, wishlist, preferences = {}) {
+function createBackup(records, places, ledgers, wishlist, preferences = {}, trips = [], formTemplates = []) {
   const normalizedRecords = (records || []).map(normalizeRecord);
   const normalizedPlaces = (places || []).map(normalizePlace);
   const normalizedLedgers = (ledgers || []).map(normalizeLedger);
@@ -173,7 +184,9 @@ function createBackup(records, places, ledgers, wishlist, preferences = {}) {
       expenseCount: normalizedLedgers.reduce((sum, ledger) => sum + ledger.expenses.length, 0),
       photoCount: normalizedRecords.reduce((sum, record) => sum + record.photos.length, 0),
       storyPreferenceCount: Object.keys(preferences.story || {}).length,
-      yearbookPreferenceCount: Object.keys(preferences.yearbook || {}).length
+      yearbookPreferenceCount: Object.keys(preferences.yearbook || {}).length,
+      tripCount: trips.length,
+      formTemplateCount: formTemplates.length
     },
     media: {
       binariesIncluded: false,
@@ -183,18 +196,22 @@ function createBackup(records, places, ledgers, wishlist, preferences = {}) {
     places: normalizedPlaces,
     ledgers: normalizedLedgers,
     wishlist: normalizedWishlist,
-    preferences: { story: clone(preferences.story || {}), yearbook: clone(preferences.yearbook || {}) }
+    preferences: { story: clone(preferences.story || {}), yearbook: clone(preferences.yearbook || {}) },
+    trips: trips.map(normalizeTrip),
+    formTemplates: clone(formTemplates)
   };
 }
 
-function exportFullBackup(records, places, ledgers, wishlist, preferences) {
+function exportFullBackup(records, places, ledgers, wishlist, preferences, trips, formTemplates) {
   const sourcePlaces = places === undefined ? getPlaces({ includeDeleted: true }) : places;
   const sourceRecords = records === undefined ? getRecords({ includeDeleted: true }) : records;
   const sourceLedgers = ledgers === undefined ? getLedgers() : ledgers;
   const sourceWishlist = wishlist === undefined ? getWishlist({ includeDeleted: true }) : wishlist;
   const sourcePreferences = preferences === undefined ? { story: wx.getStorageSync(STORY_PREFS_KEY) || {}, yearbook: wx.getStorageSync(YEARBOOK_PREFS_KEY) || {} } : preferences;
-  const backup = createBackup(sourceRecords, sourcePlaces, sourceLedgers, sourceWishlist, sourcePreferences);
-  const filePath = `${wx.env.USER_DATA_PATH}/experience-review-full-backup-v6.json`;
+  const sourceTrips = trips === undefined ? getTrips() : trips;
+  const sourceTemplates = formTemplates === undefined ? (wx.getStorageSync(TEMPLATES_KEY) || []) : formTemplates;
+  const backup = createBackup(sourceRecords, sourcePlaces, sourceLedgers, sourceWishlist, sourcePreferences, sourceTrips, sourceTemplates);
+  const filePath = `${wx.env.USER_DATA_PATH}/experience-review-full-backup-v7.json`;
   wx.getFileSystemManager().writeFileSync(filePath, JSON.stringify(backup, null, 2), "utf8");
   return { filePath, backup, summary: backup.summary };
 }
@@ -243,7 +260,7 @@ function planCollection(existing, incoming, kind, backupToken) {
   return { result: additions.concat(existing), additions, skipped, idMap };
 }
 
-function buildMerge(existingRecords, existingPlaces, existingLedgers, existingWishlist, existingPreferences, backup) {
+function buildMerge(existingRecords, existingPlaces, existingLedgers, existingWishlist, existingPreferences, existingTrips, existingTemplates, backup) {
   const backupToken = backup.importToken || hashText(stableStringify(backup));
   const placesPlan = planCollection(existingPlaces, backup.places, "place", backupToken);
   const remappedRecords = backup.records.map((record) => ({ ...record, placeId: placesPlan.idMap[record.placeId] || record.placeId }));
@@ -255,13 +272,15 @@ function buildMerge(existingRecords, existingPlaces, existingLedgers, existingWi
   const ledgersPlan = planCollection(existingLedgers, remappedLedgers, "ledger", backupToken);
   const remappedWishlist = (backup.wishlist || []).map((item) => ({ ...item, placeId: placesPlan.idMap[item.placeId] || item.placeId }));
   const wishlistPlan = planCollection(existingWishlist, remappedWishlist, "wishlist", backupToken);
+  const tripsPlan = planCollection(existingTrips, backup.trips || [], "trip", backupToken);
+  const templatesPlan = planCollection(existingTemplates, backup.formTemplates || [], "template", backupToken);
   const incomingPreferences = backup.preferences || { story: {}, yearbook: {} };
   const remappedStory = Object.keys(incomingPreferences.story || {}).reduce((result, recordId) => { result[recordsPlan.idMap[recordId] || recordId] = incomingPreferences.story[recordId]; return result; }, {});
   const preferences = {
     story: { ...remappedStory, ...(existingPreferences.story || {}) },
     yearbook: { ...(incomingPreferences.yearbook || {}), ...(existingPreferences.yearbook || {}) }
   };
-  return { recordsPlan, placesPlan, ledgersPlan, wishlistPlan, preferences };
+  return { recordsPlan, placesPlan, ledgersPlan, wishlistPlan, tripsPlan, templatesPlan, preferences };
 }
 
 function snapshotFor(key) {
@@ -285,7 +304,9 @@ function applyBackup(preflightOrPayload, mode = "merge") {
     ledgers: snapshotFor(LEDGERS_KEY),
     wishlist: snapshotFor(WISHLIST_KEY),
     storyPreferences: snapshotFor(STORY_PREFS_KEY),
-    yearbookPreferences: snapshotFor(YEARBOOK_PREFS_KEY)
+    yearbookPreferences: snapshotFor(YEARBOOK_PREFS_KEY),
+    trips: snapshotFor(TRIPS_KEY),
+    formTemplates: snapshotFor(TEMPLATES_KEY)
   };
   const rawRecords = snapshots.records.value;
   const rawPlaces = snapshots.places.value;
@@ -296,11 +317,15 @@ function applyBackup(preflightOrPayload, mode = "merge") {
   const existingLedgers = Array.isArray(rawLedgers) ? rawLedgers.map(normalizeLedger) : [];
   const existingWishlist = Array.isArray(rawWishlist) ? rawWishlist.map(normalizeWishlistItem) : [];
   const existingPreferences = { story: snapshots.storyPreferences.value || {}, yearbook: snapshots.yearbookPreferences.value || {} };
+  const existingTrips = Array.isArray(snapshots.trips.value) ? snapshots.trips.value.map(normalizeTrip) : [];
+  const existingTemplates = Array.isArray(snapshots.formTemplates.value) ? snapshots.formTemplates.value : [];
   let nextRecords;
   let nextPlaces;
   let nextLedgers;
   let nextWishlist;
   let nextPreferences;
+  let nextTrips;
+  let nextTemplates;
   let result;
 
   if (mode === "replace" || mode === "overwrite") {
@@ -309,14 +334,18 @@ function applyBackup(preflightOrPayload, mode = "merge") {
     nextLedgers = backup.ledgers === null ? existingLedgers : backup.ledgers;
     nextWishlist = backup.wishlist === null ? existingWishlist : backup.wishlist;
     nextPreferences = backup.preferences === null ? existingPreferences : backup.preferences;
+    nextTrips = backup.trips === null ? existingTrips : backup.trips;
+    nextTemplates = backup.formTemplates === null ? existingTemplates : backup.formTemplates;
     result = { mode: "replace", recordsAdded: nextRecords.length, placesAdded: nextPlaces.length, ledgersAdded: backup.ledgers === null ? 0 : nextLedgers.length, wishlistAdded: backup.wishlist === null ? 0 : nextWishlist.length, recordsSkipped: 0, placesSkipped: 0, ledgersSkipped: 0, wishlistSkipped: 0 };
   } else {
-    const plan = buildMerge(existingRecords, existingPlaces, existingLedgers, existingWishlist, existingPreferences, backup);
+    const plan = buildMerge(existingRecords, existingPlaces, existingLedgers, existingWishlist, existingPreferences, existingTrips, existingTemplates, backup);
     nextRecords = plan.recordsPlan.result;
     nextPlaces = plan.placesPlan.result;
     nextLedgers = backup.ledgers === null ? existingLedgers : plan.ledgersPlan.result;
     nextWishlist = backup.wishlist === null ? existingWishlist : plan.wishlistPlan.result;
     nextPreferences = backup.preferences === null ? existingPreferences : plan.preferences;
+    nextTrips = backup.trips === null ? existingTrips : plan.tripsPlan.result;
+    nextTemplates = backup.formTemplates === null ? existingTemplates : plan.templatesPlan.result;
     result = {
       mode: "merge",
       recordsAdded: plan.recordsPlan.additions.length,
@@ -341,9 +370,11 @@ function applyBackup(preflightOrPayload, mode = "merge") {
     wx.setStorageSync(WISHLIST_KEY, nextWishlist.map(normalizeWishlistItem));
     wx.setStorageSync(STORY_PREFS_KEY, clone(nextPreferences.story || {}));
     wx.setStorageSync(YEARBOOK_PREFS_KEY, clone(nextPreferences.yearbook || {}));
+    wx.setStorageSync(TRIPS_KEY, nextTrips.map(normalizeTrip));
+    wx.setStorageSync(TEMPLATES_KEY, clone(nextTemplates));
   } catch (error) {
     const rollbackErrors = [];
-    [[RECORDS_KEY, snapshots.records], [PLACES_KEY, snapshots.places], [LEDGERS_KEY, snapshots.ledgers], [WISHLIST_KEY, snapshots.wishlist], [STORY_PREFS_KEY, snapshots.storyPreferences], [YEARBOOK_PREFS_KEY, snapshots.yearbookPreferences]].forEach(([key, snapshot]) => {
+    [[RECORDS_KEY, snapshots.records], [PLACES_KEY, snapshots.places], [LEDGERS_KEY, snapshots.ledgers], [WISHLIST_KEY, snapshots.wishlist], [STORY_PREFS_KEY, snapshots.storyPreferences], [YEARBOOK_PREFS_KEY, snapshots.yearbookPreferences], [TRIPS_KEY, snapshots.trips], [TEMPLATES_KEY, snapshots.formTemplates]].forEach(([key, snapshot]) => {
       try { restoreStorage(key, snapshot); } catch (rollbackError) { rollbackErrors.push(rollbackError); }
     });
     const message = rollbackErrors.length ? "导入失败，且回滚未完整完成" : "导入失败，已自动回滚";
@@ -351,7 +382,7 @@ function applyBackup(preflightOrPayload, mode = "merge") {
     wrapped.rollbackErrors = rollbackErrors;
     throw wrapped;
   }
-  return { ...result, recordCount: nextRecords.length, placeCount: nextPlaces.length, ledgerCount: nextLedgers.length, wishlistCount: nextWishlist.length };
+  return { ...result, recordCount: nextRecords.length, placeCount: nextPlaces.length, ledgerCount: nextLedgers.length, wishlistCount: nextWishlist.length, tripCount: nextTrips.length };
 }
 
 module.exports = {
@@ -362,6 +393,8 @@ module.exports = {
   WISHLIST_KEY,
   STORY_PREFS_KEY,
   YEARBOOK_PREFS_KEY,
+  TRIPS_KEY,
+  TEMPLATES_KEY,
   SCHEMA_VERSION,
   applyBackup,
   createBackup,

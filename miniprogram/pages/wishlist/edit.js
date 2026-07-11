@@ -1,13 +1,15 @@
 const wishlistRepository = require("../../utils/repositories/wishlistRepository");
 const placeRepository = require("../../utils/repositories/placeRepository");
+const tripStore = require("../../utils/tripStore");
 
 function emptyForm(type = "hotel") {
   return { type, name: "", city: "", area: "", address: "", latitude: null, longitude: null, placeId: "", status: "wishlist", priority: "medium", targetDate: "", budgetText: "", bookingReference: "", companions: "", note: "" };
 }
 
 Page({
-  data: { mode: "create", itemId: "", readonly: false, form: emptyForm(), statuses: wishlistRepository.STATUSES, priorities: wishlistRepository.PRIORITIES, suggestions: [], placeChoiceConfirmed: false, dirty: false },
+  data: { mode: "create", itemId: "", readonly: false, form: emptyForm(), statuses: wishlistRepository.STATUSES, priorities: wishlistRepository.PRIORITIES, suggestions: [], placeChoiceConfirmed: false, dirty: false, trips: [] },
   onLoad(options) {
+    this.setData({ trips: tripStore.getTrips().filter((trip) => trip.status !== "ended" && trip.status !== "archived") });
     if (options && options.id) this.loadItem(options.id);
     else if (options && options.placeId) this.loadPlace(options.placeId);
     else this.setData({ form: emptyForm(options && options.type === "restaurant" ? "restaurant" : "hotel") });
@@ -57,6 +59,12 @@ Page({
   recordVisit() {
     const form = this.data.form;
     wx.navigateTo({ url: `/pages/record/record?type=${form.type}&wishlistId=${form.id}${form.placeId ? `&placeId=${form.placeId}` : ""}` });
+  },
+  addToTrip() {
+    if (!this.data.itemId) return;
+    const choices = this.data.trips;
+    if (!choices.length) return wx.showToast({ title: "请先创建行程", icon: "none" });
+    wx.showActionSheet({ itemList: choices.map((trip) => trip.title), success: (result) => { const trip = choices[result.tapIndex]; const item = tripStore.addItineraryItem(trip.id, { type: this.data.form.type, title: this.data.form.name, date: this.data.form.targetDate >= trip.startDate && this.data.form.targetDate <= trip.endDate ? this.data.form.targetDate : trip.startDate, placeId: this.data.form.placeId, wishlistId: this.data.itemId, city: this.data.form.city }); wishlistRepository.updateWishlistItem(this.data.itemId, { tripId: trip.id, itineraryItemId: item.itineraryItems[item.itineraryItems.length - 1].id }); this.loadItem(this.data.itemId); wx.showToast({ title: "已加入行程", icon: "success" }); } });
   },
   remove() {
     wx.showModal({ title: "删除清单项", content: "确认删除这条计划吗？", confirmText: "删除", confirmColor: "#a34b32", success: (result) => { if (!result.confirm) return; wishlistRepository.deleteWishlistItem(this.data.itemId); wx.navigateBack(); } });

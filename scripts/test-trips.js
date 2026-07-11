@@ -1,0 +1,32 @@
+const assert = require("assert");
+const memory = {};
+global.wx = { getStorageSync(key) { return memory[key]; }, setStorageSync(key, value) { memory[key] = JSON.parse(JSON.stringify(value)); } };
+const tripStore = require("../miniprogram/utils/tripStore");
+const templates = require("../miniprogram/utils/formTemplateStore");
+
+const trip = tripStore.addTrip({ title: "东京周末", cities: "东京", startDate: "2026-08-01", endDate: "2026-08-03", budgetTotalCents: 100000, categoryBudgets: { 餐饮: 30000 } });
+assert.strictEqual(tripStore.dateRange(trip.startDate, trip.endDate).length, 3);
+assert.throws(() => tripStore.addTrip({ title: "错误日期", startDate: "2026-08-03", endDate: "2026-08-01" }), /结束日期/);
+tripStore.addItineraryItem(trip.id, { title: "早餐", type: "restaurant", date: "2026-08-01", startTime: "08:00", endTime: "09:30" });
+tripStore.addItineraryItem(trip.id, { title: "出发", type: "transport", date: "2026-08-01", startTime: "09:00", endTime: "10:00" });
+assert.strictEqual(tripStore.findConflicts(tripStore.getTripById(trip.id).itineraryItems).length, 1);
+tripStore.addPersonalExpense(trip.id, { title: "拉面", category: "餐饮", amountText: "100", currency: "JPY", rate: 0.05 });
+const ledger = { id: "ledger1", expenses: [{ title: "酒店", category: "住宿", amountCents: 40000 }] };
+tripStore.updateTrip(trip.id, { linkedLedgerIds: [ledger.id] });
+const summary = tripStore.calculateBudget(tripStore.getTripById(trip.id), [ledger]);
+assert.strictEqual(summary.spentCents, 40500, "personal converted amount plus linked ledger amount");
+assert.strictEqual(summary.byCategory.find((row) => row.category === "餐饮").spentCents, 500);
+const copy = tripStore.duplicateTrip(trip.id);
+assert.strictEqual(copy.personalExpenses.length, 0);
+assert.strictEqual(copy.linkedLedgerIds.length, 0);
+assert(copy.itineraryItems.every((item) => !item.recordId));
+
+const unsafe = { type: "hotel", roomType: "套房", memberLevel: "钻石", overallScore: 9.9, photos: [{ filePath: "x" }], privateNote: "秘密", stayDate: "2026-08-01" };
+const saved = templates.saveTemplate("常用入住", unsafe);
+assert.strictEqual(saved.fields.roomType, "套房");
+assert.strictEqual(Object.prototype.hasOwnProperty.call(saved.fields, "overallScore"), false);
+assert.strictEqual(Object.prototype.hasOwnProperty.call(saved.fields, "photos"), false);
+assert.strictEqual(Object.prototype.hasOwnProperty.call(saved.fields, "privateNote"), false);
+const suggestion = templates.buildRecentSuggestions([{ displayName: "东京酒店", city: "东京", roomType: "套房", selectedTags: ["安静"], createdAt: "2026-01-01" }], { hotelName: "东京" });
+assert.strictEqual(suggestion.city, "东京");
+console.log("trip planning, budget and template tests passed");

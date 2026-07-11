@@ -23,6 +23,12 @@
     </view>
   </view>
 
+  <view class="section" wx:if="{{!isReadonly}}">
+    <view class="field-label">录入模板</view>
+    <scroll-view class="template-scroll" scroll-x><view class="template-row"><view class="template-chip" wx:for="{{templates}}" wx:key="id" wx:if="{{item.type === recordType}}" data-id="{{item.id}}" bindtap="applyFormTemplate">{{item.name}}</view><view class="template-chip save-template" bindtap="saveCurrentTemplate">保存当前模板</view></view></scroll-view>
+    <view class="recent" wx:if="{{recentSuggestions}}"><view class="recent-title">历史建议</view><view class="recent-row"><view class="recent-chip" wx:if="{{recentSuggestions.city && !form.city}}" data-field="city" data-value="{{recentSuggestions.city}}" bindtap="useRecentSuggestion">城市 {{recentSuggestions.city}}</view><view class="recent-chip" wx:if="{{recentSuggestions.roomType && !form.roomType}}" data-field="roomType" data-value="{{recentSuggestions.roomType}}" bindtap="useRecentSuggestion">房型 {{recentSuggestions.roomType}}</view><view class="recent-chip" wx:if="{{recentSuggestions.cuisine && !form.cuisine}}" data-field="cuisine" data-value="{{recentSuggestions.cuisine}}" bindtap="useRecentSuggestion">菜系 {{recentSuggestions.cuisine}}</view></view></view>
+  </view>
+
   <view class="section">
     <view class="type-switch" wx:if="{{mode === 'create'}}">
       <view class="type-option {{recordType === 'hotel' ? 'type-active' : ''}}" data-type="hotel" bindtap="onTypeChange">酒店</view>

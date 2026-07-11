@@ -1,6 +1,6 @@
 # 体验档案小程序
 
-这是一个本地优先的微信小程序，用于记录个人旅行体验。当前包含酒店测评、米其林餐厅测评、想去清单、体验照片、个人旅行地图、照片故事、年度回忆册、个人旅行洞察、AA 旅行记账，以及完整的本地备份和隐私导出。数据层已预留未来后端同步能力，当前不连接服务器。
+这是一个本地优先的微信小程序，用于记录个人旅行体验。当前包含酒店测评、米其林餐厅测评、行程计划、预算中心、智能录入模板、想去清单、旅行地图、年度回忆册和 AA 旅行记账。数据层已预留未来后端同步能力，当前不连接服务器。
 
 ## 当前功能
 
@@ -38,6 +38,17 @@
 - 待整理中心集中显示疑似重复地点、缺少城市/地址、孤立记录、已完成未评分、长期草稿和想去项重复建议。
 - 失效照片元数据与无主照片文件分开处理；无主文件只从应用自己的媒体登记表识别，不会误删 PDF 或其他文件。
 - 重复地点合并、照片清理和删除操作继续要求用户确认。
+
+### 行程计划、预算与智能录入
+
+- 底部“行程”入口按进行中、即将开始、已结束和已归档组织旅行。
+- 行程支持多个城市、日期、本位币、总预算、分类预算、按天日程和时间冲突提醒。
+- 想去项可加入指定行程；完成体验后会回写对应日程的到访状态与记录 ID。
+- 复制行程保留日程结构和预算，但清空实际支出、关联账本和到访记录。
+- 预算中心实时读取所选 AA 账本支出，不复制账本数据；个人支出单独保存，避免重复统计。
+- 外币支出使用手工固定汇率，保存原币金额、汇率和折算后的整数分金额。
+- 体验表单提供内置和自定义模板，并根据历史记录建议城市、房型或菜系。
+- 模板只保存安全字段，不保存日期、评分、照片、价格或私密备注；历史建议不会覆盖已填写内容。
 
 ### 同步架构预留
 
@@ -102,10 +113,10 @@ trip_split_ledgers
 ### 数据管理与隐私导出
 
 - 完整 JSON 备份同时包含酒店、餐厅、地点、账本、成员、支出和结算记录。
-- 完整备份格式为 `schemaVersion: 6`，包含记录、地点、想去清单、照片故事/回忆册偏好和账本，并继续兼容 v1-v5。
+- 完整备份格式为 `schemaVersion: 7`，包含记录、地点、行程、模板、想去清单、导出偏好和账本，并继续兼容 v1-v6。
 - v1 / v2 导入时会为没有地点对象的记录生成独立地点，不会按同名自动合并。
 - 导入前展示记录、账本和支出数量，支持合并或覆盖。
-- 恢复同时写入记录、地点、想去清单、账本、照片故事偏好和回忆册偏好六个缓存；任一写入失败时自动回滚到导入前数据。
+- 恢复统一写入记录、地点、想去清单、账本、行程、模板及两类导出偏好；任一写入失败时自动回滚。
 - 同一备份重复合并会跳过已有内容，ID 冲突时会稳定重映射关联字段。
 - PDF 支持“私人版”和“脱敏版”。
 - 脱敏版把精确日期降为月份，隐藏会员等级、价格、私密备注和真实成员姓名。
@@ -116,13 +127,15 @@ trip_split_ledgers
 
 ```js
 {
-  schemaVersion: 6,
+  schemaVersion: 7,
   app: "experience-review-miniprogram",
   exportedAt: "...",
   records: [],
   places: [],
   wishlist: [],
   ledgers: [],
+  trips: [],
+  formTemplates: [],
   preferences: {
     story: {},
     yearbook: {}
@@ -144,6 +157,7 @@ miniprogram/
   pages/travel-map/     已到访与想去地点地图
   pages/story/          单条体验照片故事
   pages/yearbook/       年度回忆册与导出
+  pages/trip/           行程列表、编辑、按天日程和预算中心
   pages/wishlist/       想去清单新增、详情和编辑
   pages/cleanup/        数据健康检查与安全整理
   pages/data/           完整备份、恢复和隐私 PDF
@@ -159,6 +173,8 @@ miniprogram/
   utils/storyRenderer.js
   utils/yearbookBuilder.js
   utils/reportCanvas.js
+  utils/tripStore.js
+  utils/formTemplateStore.js
   utils/wishlistStore.js
   utils/cleanupService.js
   utils/syncMetadata.js
@@ -205,7 +221,7 @@ npm test
 - 部分结算、完整结算和撤销转账
 - 余额守恒、无待结算转账和超额转账拦截
 - 完整备份预检、v1 兼容、重复导入和 ID 重映射
-- 六个缓存写入失败时的自动回滚
+- 完整备份任一缓存写入失败时的自动回滚
 - 私人副本与脱敏副本不修改原始数据
 - 旧记录地点迁移幂等且不会按同名自动合并
 - 相似地点建议、重复到访、地点统计、合并和删除保护
@@ -215,10 +231,13 @@ npm test
 - 地图到访/想去合并、筛选、同坐标偏移和无坐标回退
 - 照片故事隐私字段、失效照片跳过、版式偏好保存
 - 年度回忆册草稿排除、月份聚合、照片上限和 AA 年度汇总
+- 行程日期边界、日程冲突、复制清理和按天组织
+- 分类预算、固定汇率、AA 聚合与整数分金额守恒
+- 模板字段白名单和历史建议不覆盖
 - 想去项转体验、状态更新和地点关联
 - Repository 待同步批次、软删除、冲突快照和公开 DTO 脱敏
 - 失效照片与登记无主文件的安全清理
-- v1 / v2 / v3 / v4 / v5 / v6 备份兼容、偏好 ID 重映射和六缓存回滚
+- v1-v7 备份兼容、偏好 ID 重映射和统一缓存回滚
 - 页面事件流：创建账本、录入支出、确认部分结算、撤销结算和日期错误提示
 
 常用语法检查：
@@ -237,6 +256,8 @@ node --check miniprogram/utils/travelMap.js
 node --check miniprogram/utils/storyRenderer.js
 node --check miniprogram/utils/yearbookBuilder.js
 node --check miniprogram/utils/reportCanvas.js
+node --check miniprogram/utils/tripStore.js
+node --check miniprogram/utils/formTemplateStore.js
 node --check miniprogram/utils/wishlistStore.js
 node --check miniprogram/utils/cleanupService.js
 node --check miniprogram/utils/ledgerExport.js
@@ -247,6 +268,10 @@ node --check miniprogram/pages/insights/index.js
 node --check miniprogram/pages/travel-map/index.js
 node --check miniprogram/pages/story/index.js
 node --check miniprogram/pages/yearbook/index.js
+node --check miniprogram/pages/trip/index.js
+node --check miniprogram/pages/trip/edit.js
+node --check miniprogram/pages/trip/detail.js
+node --check miniprogram/pages/trip/budget.js
 node --check miniprogram/pages/wishlist/edit.js
 node --check miniprogram/pages/cleanup/index.js
 node --check miniprogram/pages/data/index.js

@@ -38,6 +38,8 @@ function normalizeWishlistItem(input = {}) {
     budgetText: String(input.budgetText || "").trim(),
     bookingReference: String(input.bookingReference || "").trim(),
     companions: String(input.companions || "").trim(),
+    tripId: String(input.tripId || ""),
+    itineraryItemId: String(input.itineraryItemId || ""),
     note: String(input.note || "").trim(),
     conflictSnapshot: input.conflictSnapshot && typeof input.conflictSnapshot === "object" ? JSON.parse(JSON.stringify(input.conflictSnapshot)) : null,
     createdAt: input.createdAt || new Date().toISOString(),

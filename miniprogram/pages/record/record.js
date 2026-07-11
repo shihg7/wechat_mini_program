@@ -31,6 +31,8 @@ const {
   getPlaceById
 } = require("../../utils/repositories/placeRepository");
 const { getWishlistItem, markWishlistVisited } = require("../../utils/repositories/wishlistRepository");
+const tripStore = require("../../utils/tripStore");
+const { applyTemplate, buildRecentSuggestions, getTemplates, saveTemplate } = require("../../utils/formTemplateStore");
 
 function buildInitialForm(recordType = "hotel") {
   const scores = buildScores(recordType);
@@ -147,7 +149,9 @@ Page({
     photoCategories: getPhotoCategories("hotel"),
     maxPhotos: MAX_PHOTOS,
     addingPhotos: false,
-    sourceWishlistId: ""
+    sourceWishlistId: "",
+    templates: [],
+    recentSuggestions: null
   },
 
   pendingPhotoDeletes: [],
@@ -155,6 +159,7 @@ Page({
   photosCommitted: false,
 
   onLoad(options) {
+    this.setData({ templates: getTemplates() });
     if (options && options.id) {
       this.loadDetail(options.id);
       return;
@@ -320,6 +325,7 @@ Page({
       if (["hotelName", "restaurantName", "placeName", "city"].indexOf(field) >= 0) {
         this.refreshPlaceSuggestions();
       }
+      if (["hotelName", "restaurantName"].indexOf(field) >= 0) this.refreshRecentSuggestions();
       this.markDirty();
     });
   },
@@ -384,6 +390,8 @@ Page({
       [`form.${nameField}`]: item.name,
       "form.recordType": item.type,
       "form.wishlistId": item.id,
+      "form.tripId": item.tripId || "",
+      "form.itineraryItemId": item.itineraryItemId || "",
       "form.placeName": item.name,
       "form.city": item.city,
       "form.area": item.area,
@@ -404,6 +412,31 @@ Page({
       if (!item.placeId) this.refreshPlaceSuggestions();
       this.markDirty();
     });
+  },
+
+  applyFormTemplate(event) {
+    if (this.data.isReadonly) return;
+    const template = this.data.templates.find((item) => item.id === event.currentTarget.dataset.id);
+    if (!template || template.type !== this.data.recordType) return;
+    const form = applyTemplate(this.data.form, template);
+    this.setData({ form, publicPreview: buildPublicPreview(form) }, () => this.markDirty());
+  },
+
+  saveCurrentTemplate() {
+    if (this.data.isReadonly) return;
+    wx.showModal({ title: "保存录入模板", editable: true, placeholderText: "模板名称", success: (result) => { if (!result.confirm) return; try { saveTemplate(result.content, this.data.form); this.setData({ templates: getTemplates() }); wx.showToast({ title: "模板已保存", icon: "success" }); } catch (error) { wx.showToast({ title: error.message, icon: "none" }); } } });
+  },
+
+  refreshRecentSuggestions() {
+    const suggestions = buildRecentSuggestions(getRecords(), this.data.form);
+    this.setData({ recentSuggestions: suggestions.city || suggestions.roomType || suggestions.memberLevel || suggestions.cuisine || suggestions.tags.length ? suggestions : null });
+  },
+
+  useRecentSuggestion(event) {
+    if (this.data.isReadonly) return;
+    const field = event.currentTarget.dataset.field;
+    const value = event.currentTarget.dataset.value;
+    if (field && !this.data.form[field]) this.setData({ [`form.${field}`]: value }, () => this.markDirty());
   },
 
   selectPlaceSuggestion(event) {
@@ -694,6 +727,7 @@ Page({
       };
       this.commitPhotoChanges();
       if (updated.wishlistId && updated.status !== "draft") markWishlistVisited(updated.wishlistId, updated.placeId);
+      if (updated.tripId && updated.itineraryItemId && updated.status !== "draft") tripStore.updateItineraryItem(updated.tripId, updated.itineraryItemId, { recordId: updated.id, bookingStatus: "visited" });
       this.setData({
         mode: "detail",
         isReadonly: true,
@@ -724,6 +758,7 @@ Page({
     }
     this.commitPhotoChanges();
     if (createdRecord.wishlistId && createdRecord.status !== "draft") markWishlistVisited(createdRecord.wishlistId, createdRecord.placeId);
+    if (createdRecord.tripId && createdRecord.itineraryItemId && createdRecord.status !== "draft") tripStore.updateItineraryItem(createdRecord.tripId, createdRecord.itineraryItemId, { recordId: createdRecord.id, bookingStatus: "visited" });
     this.disableLeaveAlert();
     wx.showToast({
       title: nextForm.status === "draft" ? "草稿已保存" : "已保存",

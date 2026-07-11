@@ -4,7 +4,7 @@
   "description": "Local-first travel experience archive and AA ledger WeChat Mini Program",
   "main": "index.js",
   "scripts": {
-    "test": "node scripts/test-trip-ledger.js && node scripts/test-ledger-export.js && node scripts/test-place-store.js && node scripts/test-media-store.js && node scripts/test-travel-insights.js && node scripts/test-travel-outputs.js && node scripts/test-wishlist-cleanup-sync.js && node scripts/test-app-backup.js && node scripts/test-record-place-pages.js && node scripts/test-ledger-pages.js"
+    "test": "node scripts/test-trip-ledger.js && node scripts/test-ledger-export.js && node scripts/test-place-store.js && node scripts/test-media-store.js && node scripts/test-travel-insights.js && node scripts/test-travel-outputs.js && node scripts/test-trips.js && node scripts/test-wishlist-cleanup-sync.js && node scripts/test-app-backup.js && node scripts/test-record-place-pages.js && node scripts/test-ledger-pages.js"
   },
   "author": "",
   "license": "ISC",

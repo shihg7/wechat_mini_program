@@ -505,3 +505,4 @@ page {
   background: #a34b32;
   color: #ffffff;
 }
+.template-scroll{width:100%;white-space:nowrap}.template-row{display:flex;gap:12rpx;padding:8rpx 0}.template-chip,.recent-chip{display:inline-block;padding:14rpx 20rpx;background:#eef2f6;border-radius:6rpx;font-size:23rpx;color:#263248}.save-template{border:1rpx dashed #2864d9;color:#2864d9;background:#fff}.recent{margin-top:20rpx}.recent-title{font-size:22rpx;color:#667085;margin-bottom:10rpx}.recent-row{display:flex;gap:10rpx;flex-wrap:wrap}.recent-chip{background:#eaf1ff;color:#2054b2}

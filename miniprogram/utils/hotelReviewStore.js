@@ -120,6 +120,8 @@ function normalizeRecord(input = {}) {
     updatedAt: input.updatedAt || "",
     sourceRecordId: input.sourceRecordId ? String(input.sourceRecordId) : "",
     wishlistId: input.wishlistId ? String(input.wishlistId) : "",
+    tripId: input.tripId ? String(input.tripId) : "",
+    itineraryItemId: input.itineraryItemId ? String(input.itineraryItemId) : "",
     conflictSnapshot: input.conflictSnapshot && typeof input.conflictSnapshot === "object" ? clone(input.conflictSnapshot) : null
   };
 }

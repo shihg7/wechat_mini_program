@@ -99,6 +99,10 @@ function v6(records, places, ledgers, wishlist, preferences) {
   return { schemaVersion: 6, app: backupApi.APP_ID, exportedAt: "2026-07-10T10:00:00.000Z", records, places, ledgers, wishlist, preferences };
 }
 
+function v7(records, places, ledgers, wishlist, preferences, trips, formTemplates) {
+  return { schemaVersion: 7, app: backupApi.APP_ID, exportedAt: "2026-07-10T10:00:00.000Z", records, places, ledgers, wishlist, preferences, trips, formTemplates };
+}
+
 function testPreflight() {
   const checked = backupApi.preflightBackup(JSON.stringify(v2([record("r1", "A")], [ledger("l1", "r1")])));
   assert.deepStrictEqual(checked.summary, {
@@ -111,7 +115,9 @@ function testPreflight() {
     wishlistCount: 0,
     ledgersIncluded: true,
     wishlistIncluded: false,
-    preferencesIncluded: false
+    preferencesIncluded: false,
+    tripCount: 0,
+    templatesIncluded: false
   });
   assert.throws(() => backupApi.preflightBackup("{"), /有效的 JSON/);
   assert.throws(() => backupApi.preflightBackup({ schemaVersion: 2, records: [], ledgers: "bad" }), /ledgers必须是数组/);
@@ -124,6 +130,9 @@ function testPreflight() {
   assert.strictEqual(checkedV5.summary.wishlistIncluded, true);
   const checkedV6 = backupApi.preflightBackup(v6([record("r6", "F", { placeId: "p6" })], [place("p6", "F")], [], [], { story: { r6: { title: "故事" } }, yearbook: { "2026": { title: "年度" } } }));
   assert.strictEqual(checkedV6.summary.preferencesIncluded, true);
+  const checkedV7 = backupApi.preflightBackup(v7([], [], [], [], { story: {}, yearbook: {} }, [{ id: "trip1", title: "东京", startDate: "2026-08-01", endDate: "2026-08-02" }], [{ id: "tpl1", name: "入住模板", fields: {} }]));
+  assert.strictEqual(checkedV7.summary.tripCount, 1);
+  assert.strictEqual(checkedV7.summary.templatesIncluded, true);
 }
 
 function testMergeConflictMappingAndIdempotence() {
@@ -236,6 +245,21 @@ function testV6PreferencesRemapAndSixthWriteRollback() {
   [backupApi.RECORDS_KEY, backupApi.PLACES_KEY, backupApi.LEDGERS_KEY, backupApi.WISHLIST_KEY, backupApi.STORY_PREFS_KEY, backupApi.YEARBOOK_PREFS_KEY].forEach((key) => assert.deepStrictEqual(memory[key], before[key]));
 }
 
+function testV7TripWriteRollback() {
+  reset();
+  memory[backupApi.RECORDS_KEY] = [];
+  memory[backupApi.PLACES_KEY] = [];
+  memory[backupApi.LEDGERS_KEY] = [];
+  memory[backupApi.WISHLIST_KEY] = [];
+  memory[backupApi.TRIPS_KEY] = [{ id: "local-trip", title: "本地行程", startDate: "2026-08-01", endDate: "2026-08-02" }];
+  memory[backupApi.TEMPLATES_KEY] = [{ id: "local-template", name: "本地模板" }];
+  const before = JSON.parse(JSON.stringify(memory));
+  failKey = backupApi.TRIPS_KEY;
+  failCount = 1;
+  assert.throws(() => backupApi.applyBackup(v7([], [], [], [], { story: {}, yearbook: {} }, [], []), "replace"), /已自动回滚/);
+  assert.deepStrictEqual(memory, before);
+}
+
 function testPrivacyCopy() {
   const source = { records: [record("r1", "私密酒店")], places: [place("place-r1", "私密酒店")], ledgers: [ledger("l1", "r1")] };
   const snapshot = JSON.parse(JSON.stringify(source));
@@ -257,18 +281,20 @@ function testPrivacyCopy() {
   assert.deepStrictEqual(source, snapshot, "privacy policy must not mutate source data");
 }
 
-function testExportMigratesRecordsBeforeBuildingV6() {
+function testExportMigratesRecordsBeforeBuildingV7() {
   reset();
   memory[backupApi.RECORDS_KEY] = [record("legacy", "旧酒店", { placeId: "" })];
   memory[backupApi.LEDGERS_KEY] = [];
   global.wx.getFileSystemManager = () => ({ writeFileSync() {} });
   const exported = backupApi.exportFullBackup();
-  assert.strictEqual(exported.backup.schemaVersion, 6);
+  assert.strictEqual(exported.backup.schemaVersion, 7);
   assert.strictEqual(exported.backup.media.binariesIncluded, false);
   assert.strictEqual(exported.backup.places.length, 1);
   assert.strictEqual(exported.backup.records[0].placeId, exported.backup.places[0].id);
   assert.deepStrictEqual(exported.backup.wishlist, []);
   assert.deepStrictEqual(exported.backup.preferences, { story: {}, yearbook: {} });
+  assert.deepStrictEqual(exported.backup.trips, []);
+  assert.deepStrictEqual(exported.backup.formTemplates, []);
 }
 
 function run() {
@@ -278,8 +304,9 @@ function run() {
   testAtomicRollback();
   testV5WishlistMappingAndFourthWriteRollback();
   testV6PreferencesRemapAndSixthWriteRollback();
+  testV7TripWriteRollback();
   testPrivacyCopy();
-  testExportMigratesRecordsBeforeBuildingV6();
+  testExportMigratesRecordsBeforeBuildingV7();
   console.log("app backup tests passed");
 }
 

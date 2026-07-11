@@ -9,6 +9,10 @@
     "pages/story/index",
     "pages/yearbook/index",
     "pages/travel-map/index",
+    "pages/trip/index",
+    "pages/trip/edit",
+    "pages/trip/detail",
+    "pages/trip/budget",
     "pages/data/index",
     "pages/ledger/index/index",
     "pages/ledger/edit/edit",
@@ -37,6 +41,10 @@
       {
         "pagePath": "pages/index/index",
         "text": "体验档案"
+      },
+      {
+        "pagePath": "pages/trip/index",
+        "text": "行程"
       },
       {
         "pagePath": "pages/ledger/index/index",

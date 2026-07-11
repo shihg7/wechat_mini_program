@@ -17,5 +17,5 @@
     <view class="field"><view class="label">计划备注</view><textarea class="textarea" disabled="{{readonly}}" value="{{form.note}}" data-field="note" bindinput="onInput" /></view>
   </view>
   <view class="actions" wx:if="{{!readonly}}"><button class="button primary" bindtap="save">保存</button></view>
-  <view class="actions" wx:else><button class="button primary" wx:if="{{form.status !== 'visited'}}" bindtap="recordVisit">记录到访</button><button class="button secondary" bindtap="edit">编辑</button><button class="button danger" bindtap="remove">删除</button></view>
+  <view class="actions" wx:else><button class="button primary" wx:if="{{form.status !== 'visited'}}" bindtap="recordVisit">记录到访</button><button class="button secondary" wx:if="{{form.status !== 'visited'}}" bindtap="addToTrip">{{form.tripId ? "调整行程" : "加入行程"}}</button><button class="button secondary" bindtap="edit">编辑</button><button class="button danger" bindtap="remove">删除</button></view>
 </scroll-view>

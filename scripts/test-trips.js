@@ -11,11 +11,18 @@ assert.throws(() => tripStore.addTrip({ title: "错误日期", startDate: "2026-
 tripStore.addItineraryItem(trip.id, { title: "早餐", type: "restaurant", date: "2026-08-01", startTime: "08:00", endTime: "09:30" });
 tripStore.addItineraryItem(trip.id, { title: "出发", type: "transport", date: "2026-08-01", startTime: "09:00", endTime: "10:00" });
 assert.strictEqual(tripStore.findConflicts(tripStore.getTripById(trip.id).itineraryItems).length, 1);
+const breakfast = tripStore.getTripById(trip.id).itineraryItems.find((item) => item.title === "早餐");
+tripStore.updateItineraryItem(trip.id, breakfast.id, { title: "酒店早餐", endTime: "09:00" });
+assert.strictEqual(tripStore.getTripById(trip.id).itineraryItems.find((item) => item.id === breakfast.id).title, "酒店早餐");
 tripStore.addPersonalExpense(trip.id, { title: "拉面", category: "餐饮", amountText: "100", currency: "JPY", rate: 0.05 });
 const ledger = { id: "ledger1", expenses: [{ title: "酒店", category: "住宿", amountCents: 40000 }] };
 tripStore.updateTrip(trip.id, { linkedLedgerIds: [ledger.id] });
 const summary = tripStore.calculateBudget(tripStore.getTripById(trip.id), [ledger]);
 assert.strictEqual(summary.spentCents, 40500, "personal converted amount plus linked ledger amount");
+assert.strictEqual(summary.personalCents, 500);
+assert.strictEqual(summary.ledgerCents, 40000);
+assert.strictEqual(summary.personalExpenseCount, 1);
+assert.strictEqual(summary.ledgerExpenseCount, 1);
 assert.strictEqual(summary.byCategory.find((row) => row.category === "餐饮").spentCents, 500);
 const copy = tripStore.duplicateTrip(trip.id);
 assert.strictEqual(copy.personalExpenses.length, 0);

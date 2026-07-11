@@ -1,8 +1,14 @@
-/**app.wxss**/
-.container {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  right: 0;
-} 
+page {
+  background: #f3f5f7;
+  color: #182230;
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", Arial, sans-serif;
+  font-size: 28rpx;
+}
+
+button { letter-spacing: 0; }
+button::after { border: 0; }
+button:active, [bindtap]:active, [catchtap]:active { opacity: .72; }
+input, textarea { caret-color: #2864d9; }
+input::placeholder, textarea::placeholder { color: #98a2b3; }
+
+.container { position: absolute; inset: 0; }

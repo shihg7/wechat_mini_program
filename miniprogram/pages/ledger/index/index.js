@@ -11,6 +11,7 @@ function buildListItem(ledger) {
   const settlements = ledgerStore.calculateSettlements(ledger) || [];
   const remainingCents = settlements.reduce((total, item) => total + Number(item.amountCents || 0), 0);
   return Object.assign({}, ledger, {
+    totalCents: summary.totalCents,
     totalText: summary.totalText,
     expenseCount: summary.expenseCount,
     memberCount: memberCount(ledger),
@@ -27,7 +28,8 @@ Page({
     ledgers: [],
     totalCount: 0,
     activeCount: 0,
-    settledCount: 0
+    settledCount: 0,
+    totalSpentText: "¥0.00"
   },
 
   onShow() {
@@ -44,7 +46,8 @@ Page({
       ledgers,
       totalCount: ledgers.length,
       activeCount: ledgers.length - settledCount,
-      settledCount
+      settledCount,
+      totalSpentText: ledgerStore.formatCents(ledgers.reduce((sum, item) => sum + item.totalCents, 0))
     });
   },
 
@@ -64,19 +67,17 @@ Page({
     });
   },
 
+  manageLedger(event) {
+    const id = event.currentTarget.dataset.id;
+    wx.showActionSheet({ itemList: ["编辑账本", "删除账本"], success: (result) => { if (result.tapIndex === 0) this.editLedger({ currentTarget: { dataset: { id } } }); else this.confirmRemoveLedger(id); } });
+  },
+
+  confirmRemoveLedger(id) {
+    wx.showModal({ title: "删除账本", content: "删除后会同时删除支出与结算记录，确认继续吗？", confirmText: "删除", confirmColor: "#a34b32", success: (result) => { if (!result.confirm) return; ledgerStore.deleteLedger(id); this.refreshLedgers(); wx.showToast({ title: "已删除", icon: "none" }); } });
+  },
+
   removeLedger(event) {
     const id = event.currentTarget.dataset.id;
-    wx.showModal({
-      title: "删除账本",
-      content: "删除后会同时删除支出与结算记录，确认继续吗？",
-      confirmText: "删除",
-      confirmColor: "#a34b32",
-      success: (res) => {
-        if (!res.confirm) return;
-        ledgerStore.deleteLedger(id);
-        this.refreshLedgers();
-        wx.showToast({ title: "已删除", icon: "none" });
-      }
-    });
+    this.confirmRemoveLedger(id);
   }
 });

@@ -1,7 +1,7 @@
 <view class="page">
   <view class="topbar">
     <view>
-      <view class="eyebrow">EXPERIENCE ARCHIVE</view>
+      <view class="eyebrow">个人旅行档案</view>
       <view class="title">体验档案</view>
     </view>
     <button class="icon-button" bindtap="goQuickCreate" aria-label="快速新增">+</button>
@@ -30,6 +30,7 @@
     <button class="button secondary" bindtap="goQuickCreate">快速记录</button>
   </view>
 
+  <view class="content-heading"><view><view class="content-title">继续记录</view><view class="content-subtitle">最近使用的内容</view></view></view>
   <view class="recent-grid">
     <view class="snapshot" wx:if="{{recentRecord}}" data-id="{{recentRecord.id}}" bindtap="goDetail">
       <image class="snapshot-cover" wx:if="{{recentRecord.coverPhotoPath}}" src="{{recentRecord.coverPhotoPath}}" mode="aspectFill" />
@@ -71,6 +72,8 @@
     </view>
   </view>
 
+  <view class="content-heading tools-heading"><view><view class="content-title">旅行工具</view><view class="content-subtitle">回顾、计划与数据安全</view></view></view>
+  <view class="utility-grid">
   <view class="data-entry" bindtap="goInsights">
     <view><view class="data-title">旅行洞察</view><view class="data-desc">年度最佳、城市分布与复访变化</view></view><view class="chevron">›</view>
   </view>
@@ -90,10 +93,12 @@
   </view>
 
   <view class="data-entry" bindtap="goCleanup"><view><view class="data-title">待整理中心</view><view class="data-desc">重复地点、缺失信息与照片健康</view></view><view class="chevron">›</view></view>
-
-  <view class="view-tabs">
-    <view class="view-tab {{activeView === item.key ? 'view-active' : ''}}" wx:for="{{viewTabs}}" wx:key="key" data-view="{{item.key}}" bindtap="onViewChange">{{item.label}}</view>
   </view>
+
+  <view class="content-heading archive-heading"><view><view class="content-title">我的档案</view><view class="content-subtitle">查找每一次体验</view></view></view>
+  <scroll-view class="view-tabs-scroll" scroll-x enhanced show-scrollbar="{{false}}"><view class="view-tabs">
+    <view class="view-tab {{activeView === item.key ? 'view-active' : ''}}" wx:for="{{viewTabs}}" wx:key="key" data-view="{{item.key}}" bindtap="onViewChange">{{item.label}}</view>
+  </view></scroll-view>
 
   <view class="tools">
     <input class="search-input" placeholder="搜索名称、城市、备注或标签" value="{{keyword}}" bindinput="onKeywordInput" />

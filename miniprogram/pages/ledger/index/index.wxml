@@ -1,47 +1,39 @@
 <view class="page">
   <view class="topbar">
     <view>
-      <view class="eyebrow">SPLIT LEDGER</view>
+      <view class="eyebrow">多人旅行分账</view>
       <view class="title">AA 账本</view>
     </view>
-    <button class="icon-button" aria-label="新建账本" bindtap="createLedger">+</button>
+    <button class="icon-button" aria-label="新建账本" bindtap="createLedger">＋</button>
   </view>
 
   <view class="hero">
-    <view class="summary-item">
-      <view class="summary-value">{{activeCount}}</view>
-      <view class="summary-label">进行中</view>
+    <view class="hero-main">
+      <view class="hero-label">累计支出</view>
+      <view class="hero-total">{{totalSpentText}}</view>
+      <view class="hero-meta">共 {{totalCount}} 个账本</view>
     </view>
-    <view class="summary-divider"></view>
-    <view class="summary-item">
-      <view class="summary-value">{{settledCount}}</view>
-      <view class="summary-label">已结清</view>
+    <view class="summary-group">
+      <view class="summary-item"><view class="summary-value">{{activeCount}}</view><view class="summary-label">待结算</view></view>
+      <view class="summary-item"><view class="summary-value">{{settledCount}}</view><view class="summary-label">已结清</view></view>
     </view>
-    <view class="summary-text">共 {{totalCount}} 个账本</view>
+  </view>
+
+  <view class="section-head" wx:if="{{ledgers.length}}">
+    <view><view class="section-title">全部账本</view><view class="section-subtitle">点击账本查看支出与结算</view></view>
   </view>
 
   <view class="empty" wx:if="{{!ledgers.length}}">
-    <view class="empty-title">还没有账本</view>
-    <view class="empty-desc">新建一次旅行或活动，添加成员后就可以开始记 AA 支出了。</view>
-    <button class="button primary empty-button" bindtap="createLedger">新建账本</button>
+    <view class="empty-mark">¥</view>
+    <view class="empty-title">第一本账，从同行人开始</view>
+    <view class="empty-desc">添加成员、记下谁付款和谁参与，系统会精确算出最后的转账方案。</view>
+    <button class="button primary empty-button" bindtap="createLedger">新建第一本账</button>
   </view>
 
   <view class="ledger-card" wx:for="{{ledgers}}" wx:key="id" data-id="{{item.id}}" bindtap="goDetail">
-    <view class="ledger-main">
-      <view class="ledger-heading">
-        <view class="ledger-title">{{item.title || "未命名账本"}}</view>
-        <view class="status-tag {{item.status}}">{{item.statusText}}</view>
-      </view>
-      <view class="ledger-meta">{{item.city || "未填写城市"}} · {{item.memberCount}} 位当前成员 · {{item.expenseCount}} 笔支出</view>
-      <view class="ledger-date">{{item.startDate || "未填写开始日期"}} - {{item.endDate || "未填写结束日期"}}</view>
-    </view>
-    <view class="ledger-side">
-      <view class="ledger-total">{{item.totalText}}</view>
-      <view class="remaining {{item.status}}">{{item.status === "settled" ? "无需转账" : "待结算 " + item.remainingText}}</view>
-      <view class="mini-actions">
-        <view class="mini-link" catchtap="editLedger" data-id="{{item.id}}">编辑</view>
-        <view class="mini-danger" catchtap="removeLedger" data-id="{{item.id}}">删除</view>
-      </view>
-    </view>
+    <view class="ledger-heading"><view class="ledger-title">{{item.title || "未命名账本"}}</view><view class="status-tag {{item.status}}">{{item.statusText}}</view></view>
+    <view class="ledger-total">{{item.totalText}}</view>
+    <view class="ledger-meta">{{item.city || "未填写城市"}} · {{item.memberCount}} 人 · {{item.expenseCount}} 笔</view>
+    <view class="ledger-bottom"><view class="remaining {{item.status}}">{{item.status === "settled" ? "无需转账" : "待结算 " + item.remainingText}}</view><view class="manage" catchtap="manageLedger" data-id="{{item.id}}">管理 ···</view></view>
   </view>
 </view>

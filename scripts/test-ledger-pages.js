@@ -1,7 +1,7 @@
 const assert = require("assert");
 
 const memory = {};
-const ui = { toasts: [], clipboard: "", modalContent: "" };
+const ui = { toasts: [], clipboard: "", modalContent: "", navigations: [], actionIndex: 0 };
 
 global.wx = {
   getStorageSync(key) {
@@ -18,7 +18,8 @@ global.wx = {
     if (options.success) options.success({ confirm: true, cancel: false, content: options.content || "" });
   },
   navigateBack() {},
-  navigateTo() {},
+  navigateTo(options) { ui.navigations.push(options.url); },
+  showActionSheet(options) { if (options.success) options.success({ tapIndex: ui.actionIndex }); },
   redirectTo() {},
   pageScrollTo() {},
   enableAlertBeforeUnload() {},
@@ -66,6 +67,8 @@ function reset() {
   ui.toasts = [];
   ui.clipboard = "";
   ui.modalContent = "";
+  ui.navigations = [];
+  ui.actionIndex = 0;
 }
 
 function testCreatePageDateValidationAndSave() {
@@ -121,6 +124,21 @@ function testDetailClickFlowAndSettlementHistory() {
   assert.strictEqual(store.calculateLedgerSummary(saved).members.reduce((sum, item) => sum + item.balanceCents, 0), 0);
 }
 
+function testLedgerListManagementMenu() {
+  reset();
+  const ledger = store.addLedger({ title: "菜单测试", members: ["我", "小陈"] });
+  const page = loadPage("../miniprogram/pages/ledger/index/index.js");
+  page.onShow();
+  assert.strictEqual(page.data.totalCount, 1);
+  assert.strictEqual(page.data.totalSpentText, "¥0.00");
+  page.manageLedger({ currentTarget: { dataset: { id: ledger.id } } });
+  assert(ui.navigations.some((url) => url.indexOf(`/pages/ledger/edit/edit?id=${ledger.id}`) === 0));
+  ui.actionIndex = 1;
+  page.manageLedger({ currentTarget: { dataset: { id: ledger.id } } });
+  assert.strictEqual(store.getLedgers().length, 0);
+}
+
 testCreatePageDateValidationAndSave();
 testDetailClickFlowAndSettlementHistory();
+testLedgerListManagementMenu();
 console.log("ledger page interaction tests passed");

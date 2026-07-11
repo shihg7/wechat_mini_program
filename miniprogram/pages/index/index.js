@@ -258,6 +258,9 @@ Page({
     wx.navigateTo({ url: "/pages/insights/index" });
   },
 
+  goYearbook() { wx.navigateTo({ url: "/pages/yearbook/index" }); },
+  goTravelMap() { wx.navigateTo({ url: "/pages/travel-map/index" }); },
+
   goCleanup() {
     wx.navigateTo({ url: "/pages/cleanup/index" });
   },

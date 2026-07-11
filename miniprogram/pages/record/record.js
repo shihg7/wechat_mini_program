@@ -774,6 +774,10 @@ Page({
     wx.navigateTo({ url: `/pages/place/detail?id=${this.data.form.placeId}` });
   },
 
+  goStory() {
+    wx.navigateTo({ url: `/pages/story/index?id=${this.data.recordId}` });
+  },
+
   onUnload() {
     this.disableLeaveAlert();
     this.cleanupUnsavedPhotos();

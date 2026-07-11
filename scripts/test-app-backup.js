@@ -95,6 +95,10 @@ function v5(records, places, ledgers, wishlist) {
   return { schemaVersion: 5, app: backupApi.APP_ID, exportedAt: "2026-07-10T10:00:00.000Z", records, places, ledgers, wishlist };
 }
 
+function v6(records, places, ledgers, wishlist, preferences) {
+  return { schemaVersion: 6, app: backupApi.APP_ID, exportedAt: "2026-07-10T10:00:00.000Z", records, places, ledgers, wishlist, preferences };
+}
+
 function testPreflight() {
   const checked = backupApi.preflightBackup(JSON.stringify(v2([record("r1", "A")], [ledger("l1", "r1")])));
   assert.deepStrictEqual(checked.summary, {
@@ -106,7 +110,8 @@ function testPreflight() {
     expenseCount: 1,
     wishlistCount: 0,
     ledgersIncluded: true,
-    wishlistIncluded: false
+    wishlistIncluded: false,
+    preferencesIncluded: false
   });
   assert.throws(() => backupApi.preflightBackup("{"), /有效的 JSON/);
   assert.throws(() => backupApi.preflightBackup({ schemaVersion: 2, records: [], ledgers: "bad" }), /ledgers必须是数组/);
@@ -117,6 +122,8 @@ function testPreflight() {
   const checkedV5 = backupApi.preflightBackup(v5([record("r5", "E", { placeId: "p5" })], [place("p5", "E")], [], [{ id: "w5", type: "hotel", name: "E", placeId: "p5" }]));
   assert.strictEqual(checkedV5.summary.wishlistCount, 1);
   assert.strictEqual(checkedV5.summary.wishlistIncluded, true);
+  const checkedV6 = backupApi.preflightBackup(v6([record("r6", "F", { placeId: "p6" })], [place("p6", "F")], [], [], { story: { r6: { title: "故事" } }, yearbook: { "2026": { title: "年度" } } }));
+  assert.strictEqual(checkedV6.summary.preferencesIncluded, true);
 }
 
 function testMergeConflictMappingAndIdempotence() {
@@ -209,6 +216,26 @@ function testV5WishlistMappingAndFourthWriteRollback() {
   [backupApi.RECORDS_KEY, backupApi.PLACES_KEY, backupApi.LEDGERS_KEY, backupApi.WISHLIST_KEY].forEach((key) => assert.deepStrictEqual(memory[key], before[key]));
 }
 
+function testV6PreferencesRemapAndSixthWriteRollback() {
+  reset();
+  memory[backupApi.RECORDS_KEY] = [record("r6", "本地冲突", { placeId: "local-place" })];
+  memory[backupApi.PLACES_KEY] = [place("local-place", "本地冲突")];
+  memory[backupApi.LEDGERS_KEY] = [];
+  memory[backupApi.WISHLIST_KEY] = [];
+  memory[backupApi.STORY_PREFS_KEY] = {};
+  memory[backupApi.YEARBOOK_PREFS_KEY] = {};
+  const payload = v6([record("r6", "备份冲突", { placeId: "backup-place" })], [place("backup-place", "备份冲突")], [], [], { story: { r6: { title: "导入故事" } }, yearbook: { "2026": { title: "导入年度" } } });
+  const merged = backupApi.applyBackup(payload, "merge");
+  assert(memory[backupApi.STORY_PREFS_KEY][merged.recordIdMap.r6]);
+  assert.strictEqual(memory[backupApi.YEARBOOK_PREFS_KEY]["2026"].title, "导入年度");
+
+  const before = JSON.parse(JSON.stringify(memory));
+  failKey = backupApi.YEARBOOK_PREFS_KEY;
+  failCount = 1;
+  assert.throws(() => backupApi.applyBackup(v6([], [], [], [], { story: {}, yearbook: {} }), "replace"), /已自动回滚/);
+  [backupApi.RECORDS_KEY, backupApi.PLACES_KEY, backupApi.LEDGERS_KEY, backupApi.WISHLIST_KEY, backupApi.STORY_PREFS_KEY, backupApi.YEARBOOK_PREFS_KEY].forEach((key) => assert.deepStrictEqual(memory[key], before[key]));
+}
+
 function testPrivacyCopy() {
   const source = { records: [record("r1", "私密酒店")], places: [place("place-r1", "私密酒店")], ledgers: [ledger("l1", "r1")] };
   const snapshot = JSON.parse(JSON.stringify(source));
@@ -230,17 +257,18 @@ function testPrivacyCopy() {
   assert.deepStrictEqual(source, snapshot, "privacy policy must not mutate source data");
 }
 
-function testExportMigratesRecordsBeforeBuildingV5() {
+function testExportMigratesRecordsBeforeBuildingV6() {
   reset();
   memory[backupApi.RECORDS_KEY] = [record("legacy", "旧酒店", { placeId: "" })];
   memory[backupApi.LEDGERS_KEY] = [];
   global.wx.getFileSystemManager = () => ({ writeFileSync() {} });
   const exported = backupApi.exportFullBackup();
-  assert.strictEqual(exported.backup.schemaVersion, 5);
+  assert.strictEqual(exported.backup.schemaVersion, 6);
   assert.strictEqual(exported.backup.media.binariesIncluded, false);
   assert.strictEqual(exported.backup.places.length, 1);
   assert.strictEqual(exported.backup.records[0].placeId, exported.backup.places[0].id);
   assert.deepStrictEqual(exported.backup.wishlist, []);
+  assert.deepStrictEqual(exported.backup.preferences, { story: {}, yearbook: {} });
 }
 
 function run() {
@@ -249,8 +277,9 @@ function run() {
   testLegacyReplacePreservesLedgers();
   testAtomicRollback();
   testV5WishlistMappingAndFourthWriteRollback();
+  testV6PreferencesRemapAndSixthWriteRollback();
   testPrivacyCopy();
-  testExportMigratesRecordsBeforeBuildingV5();
+  testExportMigratesRecordsBeforeBuildingV6();
   console.log("app backup tests passed");
 }
 

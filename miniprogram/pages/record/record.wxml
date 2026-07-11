@@ -340,6 +340,7 @@
   </view>
 
   <view class="actions detail-actions" wx:if="{{mode === 'detail'}}">
+    <button class="button secondary" bindtap="goStory">生成回顾</button>
     <button class="button secondary" wx:if="{{form.placeId}}" bindtap="goPlaceDetail">查看地点</button>
     <button class="button primary" bindtap="enterEdit">编辑记录</button>
     <button class="button secondary" bindtap="copyRecord">复制记录</button>

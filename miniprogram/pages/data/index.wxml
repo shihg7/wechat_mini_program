@@ -30,7 +30,7 @@
     <view class="section-head">
       <view>
         <view class="section-title">完整备份</view>
-        <view class="section-subtitle">记录、地点、想去清单、照片元数据与账本一起保存为 schemaVersion 5</view>
+        <view class="section-subtitle">记录、地点、想去清单、故事/回忆册偏好与账本一起保存为 schemaVersion 6</view>
       </view>
     </view>
     <button class="button primary" loading="{{exportingBackup}}" bindtap="exportBackup">导出完整备份</button>
@@ -39,7 +39,7 @@
 
   <view class="section">
     <view class="section-title">恢复数据</view>
-    <view class="section-subtitle">支持 v5 完整备份，并兼容 v1 / v2 / v3 / v4</view>
+    <view class="section-subtitle">支持 v6 完整备份，并兼容 v1-v5</view>
     <button class="button secondary" bindtap="chooseBackup">选择 JSON 文件</button>
 
     <view class="preview" wx:if="{{preview}}">

@@ -35,6 +35,9 @@ function balancesByName(summary) {
 
 function assertConserved(summary) {
   assert.strictEqual(summary.members.reduce((total, item) => total + item.balanceCents, 0), 0);
+  assert.strictEqual(summary.members.reduce((total, item) => total + item.paidCents, 0), summary.totalCents, "all payments equal ledger total");
+  assert.strictEqual(summary.members.reduce((total, item) => total + item.shareCents, 0), summary.totalCents, "all shares equal ledger total");
+  assert.strictEqual(summary.members.reduce((total, item) => total + item.transferredOutCents, 0), summary.members.reduce((total, item) => total + item.transferredInCents, 0), "transfers conserve cents");
 }
 
 function testLegacyMigrationIsLosslessAndIdempotent() {

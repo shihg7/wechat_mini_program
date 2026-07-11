@@ -2,7 +2,7 @@ const tripStore = require("../../utils/tripStore");
 const { getLedgers } = require("../../utils/repositories/ledgerRepository");
 
 Page({
-  data: { id: "", trip: null, summary: null, ledgers: [], expense: { title: "", amountText: "", category: "餐饮", date: "", currency: "CNY", rate: "1", note: "" }, categories: tripStore.CATEGORIES },
+  data: { id: "", trip: null, summary: null, ledgers: [], editingExpenseId: "", expense: { title: "", amountText: "", category: "餐饮", date: "", currency: "CNY", rate: "1", note: "" }, categories: tripStore.CATEGORIES },
   onLoad(options) { this.setData({ id: options.id || "" }); },
   onShow() { this.load(); },
   load() {
@@ -17,6 +17,8 @@ Page({
   category(event) { this.setData({ "expense.category": event.currentTarget.dataset.value }); },
   setCategoryBudget(event) { const category = event.currentTarget.dataset.category; tripStore.updateTrip(this.data.id, { categoryBudgets: { ...this.data.trip.categoryBudgets, [category]: tripStore.cents(event.detail.value) } }); this.load(); },
   toggleLedger(event) { const ledgerId = event.currentTarget.dataset.id; const ids = this.data.trip.linkedLedgerIds.slice(); const index = ids.indexOf(ledgerId); if (index >= 0) ids.splice(index, 1); else ids.push(ledgerId); tripStore.updateTrip(this.data.id, { linkedLedgerIds: ids }); this.load(); },
-  addExpense() { try { tripStore.addPersonalExpense(this.data.id, this.data.expense); this.setData({ expense: { title: "", amountText: "", category: "餐饮", date: this.data.trip.startDate, currency: this.data.trip.baseCurrency, rate: "1", note: "" } }); this.load(); } catch (error) { wx.showToast({ title: error.message, icon: "none" }); } },
-  removeExpense(event) { tripStore.removePersonalExpense(this.data.id, event.currentTarget.dataset.id); this.load(); }
+  editExpense(event) { const item = this.data.trip.personalExpenses.find((expense) => expense.id === event.currentTarget.dataset.id); if (!item) return; this.setData({ editingExpenseId: item.id, expense: { title: item.title, amountText: String(item.originalAmountCents / 100), category: item.category, date: item.date, currency: item.currency, rate: String(item.rate), note: item.note } }); },
+  cancelExpenseEdit() { this.setData({ editingExpenseId: "", expense: { title: "", amountText: "", category: "餐饮", date: this.data.trip.startDate, currency: this.data.trip.baseCurrency, rate: "1", note: "" } }); },
+  addExpense() { try { if (this.data.editingExpenseId) tripStore.updatePersonalExpense(this.data.id, this.data.editingExpenseId, this.data.expense); else tripStore.addPersonalExpense(this.data.id, this.data.expense); const message = this.data.editingExpenseId ? "支出已更新" : "支出已记录"; this.cancelExpenseEdit(); this.load(); wx.showToast({ title: message, icon: "success" }); } catch (error) { wx.showToast({ title: error.message, icon: "none" }); } },
+  removeExpense(event) { wx.showModal({ title: "删除个人支出", content: "删除后预算统计会立即更新。", confirmText: "删除", confirmColor: "#a34b32", success: (result) => { if (!result.confirm) return; tripStore.removePersonalExpense(this.data.id, event.currentTarget.dataset.id); this.load(); wx.showToast({ title: "已删除", icon: "success" }); } }); }
 });

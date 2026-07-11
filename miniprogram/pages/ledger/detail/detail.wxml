@@ -227,6 +227,7 @@
       <view class="expense-main">
         <view class="expense-title">{{item.title}}</view>
         <view class="expense-meta">{{item.category}} · {{item.payerName}} 付款 · {{item.participantNames}} · {{item.splitSummary}}{{item.archivedHint}}</view>
+        <view class="expense-allocation">每人承担：{{item.allocationText}}</view>
         <view class="expense-note">{{item.paidAt || "未填写日期"}} {{item.noteText}}</view>
       </view>
       <view class="expense-side">

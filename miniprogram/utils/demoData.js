@@ -1,0 +1,47 @@
+const recordStore = require("./hotelReviewStore");
+const placeStore = require("./placeStore");
+const ledgerStore = require("./tripLedgerStore");
+const tripStore = require("./tripStore");
+
+const REGISTRY_KEY = "experience_demo_data_registry";
+
+function getRegistry() {
+  const value = wx.getStorageSync(REGISTRY_KEY);
+  return value && typeof value === "object" ? value : { recordIds: [], placeIds: [], ledgerIds: [], tripIds: [] };
+}
+
+function seedDemoData() {
+  clearDemoData();
+  const now = new Date().toISOString();
+  const hotelPlace = placeStore.normalizePlace({ id: "demo_place_hotel", type: "hotel", name: "云际酒店", city: "上海", area: "浦东新区", address: "世纪大道示例地址", createdAt: now, updatedAt: now });
+  const restaurantPlace = placeStore.normalizePlace({ id: "demo_place_restaurant", type: "restaurant", name: "Lumiere 示例餐厅", city: "上海", area: "黄浦区", createdAt: now, updatedAt: now });
+  placeStore.setPlaces([hotelPlace, restaurantPlace].concat(placeStore.getPlaces()));
+
+  const records = [
+    recordStore.normalizeRecord({ id: "demo_record_hotel", placeId: hotelPlace.id, recordType: "hotel", hotelName: hotelPlace.name, placeName: hotelPlace.name, city: "上海", stayDate: "2026-07-10", roomType: "行政江景房", memberLevel: "金卡", overallScore: 8.8, selectedTags: ["服务稳定", "景观优秀"], note: "开发示例：行政酒廊晚间体验完整。", createdAt: now, updatedAt: now }),
+    recordStore.normalizeRecord({ id: "demo_record_restaurant", placeId: restaurantPlace.id, recordType: "restaurant", restaurantName: restaurantPlace.name, placeName: restaurantPlace.name, city: "上海", stayDate: "2026-07-11", cuisine: "现代法餐", michelinLevel: "一星", mealPeriod: "晚餐", overallScore: 9.1, selectedTags: ["值得专程", "服务细致"], note: "开发示例：菜单节奏与酒水搭配。", createdAt: now, updatedAt: now })
+  ];
+  recordStore.setRecords(records.concat(recordStore.getRecords()));
+
+  const ledger = ledgerStore.addLedger({ title: "上海周末示例账本", city: "上海", members: ["我", "小林", "阿青"] });
+  ledgerStore.addExpense(ledger.id, { title: "三人晚餐", amountCents: 30002, payerId: ledger.members[0].id, participantIds: ledger.members.map((member) => member.id), splitMode: "equal", category: "餐饮", paidAt: "2026-07-11" });
+  const trip = tripStore.addTrip({ title: "上海周末示例行程", cities: "上海", startDate: "2026-07-10", endDate: "2026-07-12", budgetTotalCents: 300000, linkedLedgerIds: [ledger.id], itineraryItems: [{ title: "入住云际酒店", type: "hotel", date: "2026-07-10", startTime: "15:00", sortOrder: 0 }, { title: "Lumiere 晚餐", type: "restaurant", date: "2026-07-11", startTime: "19:00", sortOrder: 0 }] });
+  tripStore.addPersonalExpense(trip.id, { title: "机场快线", amountText: "45", category: "交通", date: "2026-07-10", currency: "CNY", rate: 1 });
+
+  const registry = { recordIds: records.map((item) => item.id), placeIds: [hotelPlace.id, restaurantPlace.id], ledgerIds: [ledger.id], tripIds: [trip.id] };
+  wx.setStorageSync(REGISTRY_KEY, registry);
+  return registry;
+}
+
+function clearDemoData() {
+  const registry = getRegistry();
+  const exclude = (items, ids) => items.filter((item) => ids.indexOf(String(item.id)) < 0);
+  recordStore.setRecords(exclude(recordStore.getRecords(), registry.recordIds));
+  placeStore.setPlaces(exclude(placeStore.getPlaces(), registry.placeIds));
+  ledgerStore.setLedgers(exclude(ledgerStore.getLedgers(), registry.ledgerIds));
+  tripStore.setTrips(exclude(tripStore.getTrips(), registry.tripIds));
+  wx.setStorageSync(REGISTRY_KEY, { recordIds: [], placeIds: [], ledgerIds: [], tripIds: [] });
+  return registry;
+}
+
+module.exports = { REGISTRY_KEY, clearDemoData, getRegistry, seedDemoData };

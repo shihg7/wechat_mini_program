@@ -40,15 +40,21 @@
     "list": [
       {
         "pagePath": "pages/index/index",
-        "text": "体验档案"
+        "text": "体验档案",
+        "iconPath": "assets/tab-record.png",
+        "selectedIconPath": "assets/tab-record-active.png"
       },
       {
         "pagePath": "pages/trip/index",
-        "text": "行程"
+        "text": "行程",
+        "iconPath": "assets/tab-trip.png",
+        "selectedIconPath": "assets/tab-trip-active.png"
       },
       {
         "pagePath": "pages/ledger/index/index",
-        "text": "AA账本"
+        "text": "AA账本",
+        "iconPath": "assets/tab-ledger.png",
+        "selectedIconPath": "assets/tab-ledger-active.png"
       }
     ]
   },

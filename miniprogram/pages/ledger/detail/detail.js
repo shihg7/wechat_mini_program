@@ -145,9 +145,14 @@ function settlementView(item, members, index) {
 function expenseView(expense, members) {
   const payer = findMember(members, expensePayerId(expense, members));
   const participants = expenseMemberIds(expense, members).map((id) => findMember(members, id)).filter(Boolean);
+  const allocationText = (expense.allocations || []).map((allocation) => {
+    const member = findMember(members, allocation.memberId);
+    return `${member ? member.name : "未知成员"} ${formatCents(allocation.shareCents)}`;
+  }).join(" · ");
   return Object.assign({}, expense, {
     payerName: payer ? payer.name : "未知成员",
     participantNames: participants.map((member) => member.name).join("、") || "无",
+    allocationText,
     splitSummary: expense.splitModeLabel || ((SPLIT_MODES.find((mode) => mode.key === expense.splitMode) || SPLIT_MODES[0]).label),
     archivedHint: (payer && payer.status === "archived") || participants.some((member) => member.status === "archived") ? " · 含归档成员" : ""
   });

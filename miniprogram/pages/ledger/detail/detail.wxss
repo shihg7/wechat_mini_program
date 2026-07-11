@@ -534,6 +534,7 @@ page {
   font-size: 23rpx;
   line-height: 34rpx;
 }
+.expense-allocation{margin-top:8rpx;color:#344054;font-size:22rpx;line-height:34rpx}
 
 .balance,
 .settlement-amount,

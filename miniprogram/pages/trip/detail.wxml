@@ -1,1 +1,27 @@
-<scroll-view class="page" scroll-y wx:if="{{trip}}"><view class="hero"><view class="eyebrow">{{trip.status === 'active' ? 'IN PROGRESS' : 'TRIP PLAN'}}</view><view class="title">{{trip.title}}</view><view class="meta">{{trip.cityText}} · {{trip.startDate}} 至 {{trip.endDate}}</view><view class="hero-actions"><button bindtap="edit">编辑</button><button bindtap="duplicate">复制</button><button class="budget" bindtap="budget">预算</button></view></view><view class="warning" wx:if="{{conflicts.length}}">发现 {{conflicts.length}} 处时间冲突，请调整日程。</view><view class="day" wx:for="{{days}}" wx:key="date"><view class="day-head"><view class="day-title">{{item.label}}</view><view class="day-count">{{item.items.length}} 项</view></view><view class="empty-day" wx:if="{{!item.items.length}}">暂无安排</view><view class="plan {{plan.conflict ? 'conflict' : ''}}" wx:for="{{item.items}}" wx:for-item="plan" wx:key="id" data-id="{{plan.id}}" bindtap="editItem"><view class="time">{{plan.startTime || '--:--'}}</view><view class="plan-main"><view class="plan-title">{{plan.title}}</view><view class="plan-meta">{{plan.typeLabel}}{{plan.endTime ? ' · 至 ' + plan.endTime : ''}} · 点击编辑</view></view><view class="remove" data-id="{{plan.id}}" catchtap="remove">删除</view></view></view><view class="form" wx:if="{{showForm}}"><view class="form-title">{{editingItemId ? '编辑日程' : '新增日程'}}</view><input class="input" placeholder="安排名称" value="{{itemForm.title}}" data-field="title" bindinput="input"/><view class="types"><view class="type {{itemForm.type === item.key ? 'active' : ''}}" wx:for="{{types}}" wx:key="key" data-value="{{item.key}}" bindtap="type">{{item.label}}</view></view><picker mode="date" value="{{itemForm.date}}" start="{{trip.startDate}}" end="{{trip.endDate}}" data-field="date" bindchange="choose"><view class="input">{{itemForm.date}}</view></picker><view class="time-grid"><picker mode="time" value="{{itemForm.startTime}}" data-field="startTime" bindchange="choose"><view class="input">{{itemForm.startTime || '开始时间'}}</view></picker><picker mode="time" value="{{itemForm.endTime}}" data-field="endTime" bindchange="choose"><view class="input">{{itemForm.endTime || '结束时间'}}</view></picker></view><button class="save" bindtap="add">{{editingItemId ? '保存修改' : '加入日程'}}</button></view><button class="floating" bindtap="toggleForm">{{showForm ? '取消填写' : '新增日程'}}</button></scroll-view>
+<scroll-view class="page" scroll-y wx:if="{{trip}}">
+  <view class="hero">
+    <view class="eyebrow">{{trip.status === 'active' ? 'IN PROGRESS' : 'TRIP PLAN'}}</view>
+    <view class="title">{{trip.title}}</view>
+    <view class="meta">{{trip.cityText}} · {{trip.startDate}} 至 {{trip.endDate}}</view>
+    <view class="hero-actions"><button bindtap="edit">编辑</button><button bindtap="duplicate">复制</button><button class="budget" bindtap="budget">预算</button><button class="danger-action" bindtap="removeTrip">删除</button></view>
+  </view>
+  <view class="warning" wx:if="{{conflicts.length}}">发现 {{conflicts.length}} 处时间冲突，请调整日程。</view>
+  <view class="day" wx:for="{{days}}" wx:key="date">
+    <view class="day-head"><view class="day-title">{{item.label}}</view><view class="day-actions"><view class="copy-day" wx:if="{{item.items.length}}" data-date="{{item.date}}" bindtap="copyDay">复制本日</view><view class="day-count">{{item.items.length}} 项</view></view></view>
+    <view class="empty-day" wx:if="{{!item.items.length}}">暂无安排</view>
+    <view class="plan {{plan.conflict ? 'conflict' : ''}}" wx:for="{{item.items}}" wx:for-item="plan" wx:key="id" data-id="{{plan.id}}" bindtap="editItem">
+      <view class="time">{{plan.startTime || '--:--'}}</view>
+      <view class="plan-main"><view class="plan-title">{{plan.title}}</view><view class="plan-meta">{{plan.typeLabel}}{{plan.endTime ? ' · 至 ' + plan.endTime : ''}} · 点击编辑</view></view>
+      <view class="plan-tools"><view class="tool {{!plan.canMoveUp ? 'disabled' : ''}}" data-id="{{plan.id}}" data-direction="up" catchtap="moveItem">↑</view><view class="tool {{!plan.canMoveDown ? 'disabled' : ''}}" data-id="{{plan.id}}" data-direction="down" catchtap="moveItem">↓</view><view class="tool" data-id="{{plan.id}}" catchtap="copyItem">复制</view><view class="remove" data-id="{{plan.id}}" catchtap="remove">删除</view></view>
+    </view>
+  </view>
+  <view class="form" wx:if="{{showForm}}">
+    <view class="form-title">{{editingItemId ? '编辑日程' : '新增日程'}}</view>
+    <input class="input" placeholder="安排名称" value="{{itemForm.title}}" data-field="title" bindinput="input"/>
+    <view class="types"><view class="type {{itemForm.type === item.key ? 'active' : ''}}" wx:for="{{types}}" wx:key="key" data-value="{{item.key}}" bindtap="type">{{item.label}}</view></view>
+    <picker mode="date" value="{{itemForm.date}}" start="{{trip.startDate}}" end="{{trip.endDate}}" data-field="date" bindchange="choose"><view class="input">{{itemForm.date}}</view></picker>
+    <view class="time-grid"><picker mode="time" value="{{itemForm.startTime}}" data-field="startTime" bindchange="choose"><view class="input">{{itemForm.startTime || '开始时间'}}</view></picker><picker mode="time" value="{{itemForm.endTime}}" data-field="endTime" bindchange="choose"><view class="input">{{itemForm.endTime || '结束时间'}}</view></picker></view>
+    <button class="save" bindtap="add">{{editingItemId ? '保存修改' : '加入日程'}}</button>
+  </view>
+  <button class="floating" bindtap="toggleForm">{{showForm ? '取消填写' : '新增日程'}}</button>
+</scroll-view>

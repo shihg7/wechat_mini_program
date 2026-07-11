@@ -104,6 +104,8 @@ function testDetailClickFlowAndSettlementHistory() {
   assert.strictEqual(saved.expenses[0].splitMode, "shares");
   assert.strictEqual(store.calculateLedgerSummary(saved).totalCents, 90000);
   assert.strictEqual(page.data.settlements.length, 2);
+  assert(page.data.expenseViews[0].allocationText.includes("我"));
+  assert(page.data.expenseViews[0].allocationText.includes("¥"));
 
   page.openTransfer({ currentTarget: { dataset: { index: 0 } } });
   const suggested = page.data.pendingTransfer.amountCents;

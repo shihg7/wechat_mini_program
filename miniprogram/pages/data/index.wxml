@@ -78,5 +78,11 @@
     </view>
   </view>
 
+  <view class="section dev-section" wx:if="{{isDevelopment}}">
+    <view class="section-title">开发测试数据</view>
+    <view class="section-subtitle">生成固定场景用于界面验收；清理不会影响真实数据。</view>
+    <view class="action-row"><button class="button primary" bindtap="generateDemoData">{{demoActive ? '重新生成示例' : '生成示例数据'}}</button><button class="button danger" wx:if="{{demoActive}}" bindtap="clearDemoData">清除示例</button></view>
+  </view>
+
   <canvas type="2d" id="pdfCanvas" class="pdf-canvas"></canvas>
 </view>

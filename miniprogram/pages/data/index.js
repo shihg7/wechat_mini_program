@@ -5,6 +5,7 @@ const { getPlaces } = require("../../utils/repositories/placeRepository");
 const { getWishlist } = require("../../utils/repositories/wishlistRepository");
 const { exportHotelReport } = require("../../utils/pdfReport");
 const { PRIVATE_MODE, REDACTED_MODE } = require("../../utils/privacyPolicy");
+const demoData = require("../../utils/demoData");
 
 function formatExportedAt(value) {
   if (!value) return "未记录";
@@ -19,7 +20,15 @@ Page({
     preview: null,
     importing: false,
     exportingBackup: false,
-    exportingPdf: false
+    exportingPdf: false,
+    isDevelopment: false,
+    demoActive: false
+  },
+
+  onLoad() {
+    let isDevelopment = false;
+    try { isDevelopment = wx.getAccountInfoSync().miniProgram.envVersion === "develop"; } catch (error) { isDevelopment = false; }
+    this.setData({ isDevelopment });
   },
 
   onShow() {
@@ -30,6 +39,7 @@ Page({
     const records = getRecords();
     const ledgers = getLedgers();
     this.setData({
+      demoActive: demoData.getRegistry().tripIds.length > 0,
       localSummary: {
         recordCount: records.length,
         placeCount: getPlaces().length,
@@ -38,6 +48,14 @@ Page({
         expenseCount: ledgers.reduce((sum, ledger) => sum + ledger.expenses.length, 0)
       }
     });
+  },
+
+  generateDemoData() {
+    wx.showModal({ title: "生成开发示例？", content: "会新增酒店、餐厅、三人账本和周末行程，不覆盖现有数据。", confirmText: "生成", success: (result) => { if (!result.confirm) return; demoData.seedDemoData(); this.refreshLocalSummary(); wx.showToast({ title: "示例数据已生成", icon: "success" }); } });
+  },
+
+  clearDemoData() {
+    wx.showModal({ title: "清除开发示例？", content: "只删除由示例数据中心创建的内容。", confirmText: "清除", confirmColor: "#a34b32", success: (result) => { if (!result.confirm) return; demoData.clearDemoData(); this.refreshLocalSummary(); wx.showToast({ title: "示例数据已清除", icon: "success" }); } });
   },
 
   chooseBackup() {

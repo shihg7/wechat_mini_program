@@ -6,6 +6,7 @@ const templates = require("../miniprogram/utils/formTemplateStore");
 
 const trip = tripStore.addTrip({ title: "东京周末", cities: "东京", startDate: "2026-08-01", endDate: "2026-08-03", budgetTotalCents: 100000, categoryBudgets: { 餐饮: 30000 } });
 assert.strictEqual(tripStore.dateRange(trip.startDate, trip.endDate).length, 3);
+assert.deepStrictEqual(tripStore.dateRange("2026-07-11", "2026-07-12"), ["2026-07-11", "2026-07-12"]);
 assert.throws(() => tripStore.addTrip({ title: "错误日期", startDate: "2026-08-03", endDate: "2026-08-01" }), /结束日期/);
 tripStore.addItineraryItem(trip.id, { title: "早餐", type: "restaurant", date: "2026-08-01", startTime: "08:00", endTime: "09:30" });
 tripStore.addItineraryItem(trip.id, { title: "出发", type: "transport", date: "2026-08-01", startTime: "09:00", endTime: "10:00" });

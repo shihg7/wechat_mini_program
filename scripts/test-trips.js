@@ -4,30 +4,67 @@ global.wx = { getStorageSync(key) { return memory[key]; }, setStorageSync(key, v
 const tripStore = require("../miniprogram/utils/tripStore");
 const templates = require("../miniprogram/utils/formTemplateStore");
 
+// Pure-date ranges must remain stable across timezone, month and year boundaries.
+assert.deepStrictEqual(tripStore.dateRange("2026-01-31", "2026-02-02"), ["2026-01-31", "2026-02-01", "2026-02-02"]);
+assert.deepStrictEqual(tripStore.dateRange("2026-12-31", "2027-01-01"), ["2026-12-31", "2027-01-01"]);
+assert.deepStrictEqual(tripStore.dateRange("", "2026-01-01"), []);
+assert.deepStrictEqual(tripStore.dateRange("2026-01-02", "2026-01-01"), []);
+assert.strictEqual(tripStore.dateRange("2026-01-01", "2027-12-31").length, 370, "long timelines are capped");
+
 const trip = tripStore.addTrip({ title: "东京周末", cities: "东京", startDate: "2026-08-01", endDate: "2026-08-03", budgetTotalCents: 100000, categoryBudgets: { 餐饮: 30000 } });
 assert.strictEqual(tripStore.dateRange(trip.startDate, trip.endDate).length, 3);
 assert.deepStrictEqual(tripStore.dateRange("2026-07-11", "2026-07-12"), ["2026-07-11", "2026-07-12"]);
+assert.throws(() => tripStore.addTrip({ title: "", startDate: "2026-08-01", endDate: "2026-08-02" }), /行程名称/);
+assert.throws(() => tripStore.addTrip({ title: "缺少日期" }), /行程日期/);
 assert.throws(() => tripStore.addTrip({ title: "错误日期", startDate: "2026-08-03", endDate: "2026-08-01" }), /结束日期/);
 tripStore.addItineraryItem(trip.id, { title: "早餐", type: "restaurant", date: "2026-08-01", startTime: "08:00", endTime: "09:30" });
 tripStore.addItineraryItem(trip.id, { title: "出发", type: "transport", date: "2026-08-01", startTime: "09:00", endTime: "10:00" });
 assert.strictEqual(tripStore.findConflicts(tripStore.getTripById(trip.id).itineraryItems).length, 1);
 const breakfast = tripStore.getTripById(trip.id).itineraryItems.find((item) => item.title === "早餐");
 tripStore.updateItineraryItem(trip.id, breakfast.id, { title: "酒店早餐", endTime: "09:00" });
-assert.strictEqual(tripStore.getTripById(trip.id).itineraryItems.find((item) => item.id === breakfast.id).title, "酒店早餐");
+const editedBreakfast = tripStore.getTripById(trip.id).itineraryItems.find((item) => item.id === breakfast.id);
+assert.strictEqual(editedBreakfast.title, "酒店早餐");
+assert.strictEqual(editedBreakfast.id, breakfast.id, "editing keeps the itinerary id stable");
+const itemCountBeforeInvalid = tripStore.getTripById(trip.id).itineraryItems.length;
+assert.throws(() => tripStore.addItineraryItem(trip.id, { title: "越界安排", date: "2026-08-04" }), /超出行程范围/);
+assert.strictEqual(tripStore.getTripById(trip.id).itineraryItems.length, itemCountBeforeInvalid, "invalid itinerary does not persist");
 tripStore.addPersonalExpense(trip.id, { title: "拉面", category: "餐饮", amountText: "100", currency: "JPY", rate: 0.05 });
-const ledger = { id: "ledger1", expenses: [{ title: "酒店", category: "住宿", amountCents: 40000 }] };
+const expenseCountBeforeInvalid = tripStore.getTripById(trip.id).personalExpenses.length;
+assert.throws(() => tripStore.addPersonalExpense(trip.id, { amountText: "12.345", rate: 1 }), /有效金额/);
+assert.throws(() => tripStore.addPersonalExpense(trip.id, { amountText: "12", rate: 0 }), /有效金额/);
+assert.strictEqual(tripStore.getTripById(trip.id).personalExpenses.length, expenseCountBeforeInvalid, "invalid expense does not persist");
+tripStore.addPersonalExpense(trip.id, { title: "小额税费", category: "不存在", amountText: "0.03", currency: "USD", rate: 0.5 });
+const ledger = { id: "ledger1", expenses: [{ title: "酒店", category: "住宿", amountCents: 40000 }, { title: "服务费", category: "未知分类", amountCents: 201 }] };
+const unrelatedLedger = { id: "ledger2", expenses: [{ title: "不应计入", category: "购物", amountCents: 99999 }] };
 tripStore.updateTrip(trip.id, { linkedLedgerIds: [ledger.id] });
-const summary = tripStore.calculateBudget(tripStore.getTripById(trip.id), [ledger]);
-assert.strictEqual(summary.spentCents, 40500, "personal converted amount plus linked ledger amount");
-assert.strictEqual(summary.personalCents, 500);
-assert.strictEqual(summary.ledgerCents, 40000);
-assert.strictEqual(summary.personalExpenseCount, 1);
-assert.strictEqual(summary.ledgerExpenseCount, 1);
+const summary = tripStore.calculateBudget(tripStore.getTripById(trip.id), [ledger, unrelatedLedger]);
+assert.strictEqual(summary.spentCents, 40703, "personal converted amount plus linked ledger amount");
+assert.strictEqual(summary.personalCents, 502, "converted cents are rounded to integer cents");
+assert.strictEqual(summary.ledgerCents, 40201);
+assert.strictEqual(summary.personalExpenseCount, 2);
+assert.strictEqual(summary.ledgerExpenseCount, 2);
 assert.strictEqual(summary.byCategory.find((row) => row.category === "餐饮").spentCents, 500);
+assert.strictEqual(summary.byCategory.find((row) => row.category === "其他").spentCents, 203, "unknown categories fall back to 其他");
+assert.strictEqual(summary.percent, 41);
+assert.strictEqual(summary.overBudget, false);
+assert.strictEqual(summary.personalCents + summary.ledgerCents, summary.spentCents);
+
+const zeroBudget = tripStore.calculateBudget({ title: "无预算", startDate: "2026-01-01", endDate: "2026-01-01", personalExpenses: [] }, []);
+assert.strictEqual(zeroBudget.percent, 0);
+assert.strictEqual(zeroBudget.spentCents, 0);
+assert.strictEqual(zeroBudget.ledgerExpenseCount, 0);
 const copy = tripStore.duplicateTrip(trip.id);
 assert.strictEqual(copy.personalExpenses.length, 0);
 assert.strictEqual(copy.linkedLedgerIds.length, 0);
 assert(copy.itineraryItems.every((item) => !item.recordId));
+assert.notStrictEqual(copy.id, trip.id);
+assert.strictEqual(copy.itineraryItems.length, tripStore.getTripById(trip.id).itineraryItems.length);
+assert(copy.itineraryItems.every((item) => !tripStore.getTripById(trip.id).itineraryItems.some((source) => source.id === item.id)), "copied itinerary ids are independent");
+
+const removable = tripStore.addTrip({ title: "可删除", startDate: "2026-09-01", endDate: "2026-09-01" });
+assert.strictEqual(tripStore.deleteTrip(removable.id), true);
+assert.strictEqual(tripStore.getTripById(removable.id), null);
+assert.throws(() => tripStore.deleteTrip(trip.id), /清空日程/);
 
 const unsafe = { type: "hotel", roomType: "套房", memberLevel: "钻石", overallScore: 9.9, photos: [{ filePath: "x" }], privateNote: "秘密", stayDate: "2026-08-01" };
 const saved = templates.saveTemplate("常用入住", unsafe);

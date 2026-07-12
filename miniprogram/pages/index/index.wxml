@@ -79,6 +79,7 @@
   </view>
   <view class="data-entry" bindtap="goYearbook"><view><view class="data-title">年度回忆册</view><view class="data-desc">年度最佳、照片时间线与 PDF</view></view><view class="chevron">›</view></view>
   <view class="data-entry" bindtap="goTravelMap"><view><view class="data-title">旅行地图</view><view class="data-desc">去过、想去与位置待补充</view></view><view class="chevron">›</view></view>
+  <view class="data-entry" bindtap="goWheel"><view><view class="data-title">决策转盘</view><view class="data-desc">输入选项，转一转替你做决定</view></view><view class="chevron">›</view></view>
 
   <view class="data-entry" bindtap="goWishlistCreate">
     <view><view class="data-title">想去清单</view><view class="data-desc">{{wishlist.length}} 个计划 · 预订和到访状态</view></view><view class="chevron">›</view>

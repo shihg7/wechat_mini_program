@@ -2,12 +2,13 @@ const recordStore = require("./hotelReviewStore");
 const placeStore = require("./placeStore");
 const ledgerStore = require("./tripLedgerStore");
 const tripStore = require("./tripStore");
+const wheelStore = require("./wheelStore");
 
 const REGISTRY_KEY = "experience_demo_data_registry";
 
 function getRegistry() {
   const value = wx.getStorageSync(REGISTRY_KEY);
-  return value && typeof value === "object" ? value : { recordIds: [], placeIds: [], ledgerIds: [], tripIds: [] };
+  return value && typeof value === "object" ? { recordIds: value.recordIds || [], placeIds: value.placeIds || [], ledgerIds: value.ledgerIds || [], tripIds: value.tripIds || [], wheelIds: value.wheelIds || [] } : { recordIds: [], placeIds: [], ledgerIds: [], tripIds: [], wheelIds: [] };
 }
 
 function seedDemoData() {
@@ -27,8 +28,9 @@ function seedDemoData() {
   ledgerStore.addExpense(ledger.id, { title: "三人晚餐", amountCents: 30002, payerId: ledger.members[0].id, participantIds: ledger.members.map((member) => member.id), splitMode: "equal", category: "餐饮", paidAt: "2026-07-11" });
   const trip = tripStore.addTrip({ title: "上海周末示例行程", cities: "上海", startDate: "2026-07-10", endDate: "2026-07-12", budgetTotalCents: 300000, linkedLedgerIds: [ledger.id], itineraryItems: [{ title: "入住云际酒店", type: "hotel", date: "2026-07-10", startTime: "15:00", sortOrder: 0 }, { title: "Lumiere 晚餐", type: "restaurant", date: "2026-07-11", startTime: "19:00", sortOrder: 0 }] });
   tripStore.addPersonalExpense(trip.id, { title: "机场快线", amountText: "45", category: "交通", date: "2026-07-10", currency: "CNY", rate: 1 });
+  const wheel = wheelStore.createWheel({ title: "今晚吃什么", options: wheelStore.parseOptions("火锅\n日料\n本帮菜\n烧烤").map((text) => ({ text, enabled: true })) });
 
-  const registry = { recordIds: records.map((item) => item.id), placeIds: [hotelPlace.id, restaurantPlace.id], ledgerIds: [ledger.id], tripIds: [trip.id] };
+  const registry = { recordIds: records.map((item) => item.id), placeIds: [hotelPlace.id, restaurantPlace.id], ledgerIds: [ledger.id], tripIds: [trip.id], wheelIds: [wheel.id] };
   wx.setStorageSync(REGISTRY_KEY, registry);
   return registry;
 }
@@ -40,7 +42,8 @@ function clearDemoData() {
   placeStore.setPlaces(exclude(placeStore.getPlaces(), registry.placeIds));
   ledgerStore.setLedgers(exclude(ledgerStore.getLedgers(), registry.ledgerIds));
   tripStore.setTrips(exclude(tripStore.getTrips(), registry.tripIds));
-  wx.setStorageSync(REGISTRY_KEY, { recordIds: [], placeIds: [], ledgerIds: [], tripIds: [] });
+  wheelStore.setWheels(exclude(wheelStore.getWheels(), registry.wheelIds));
+  wx.setStorageSync(REGISTRY_KEY, { recordIds: [], placeIds: [], ledgerIds: [], tripIds: [], wheelIds: [] });
   return registry;
 }
 

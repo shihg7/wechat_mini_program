@@ -1,0 +1,16 @@
+<view class="page" wx:if="{{wheel}}">
+  <view class="topbar"><view><view class="eyebrow">DECISION WHEEL</view><view class="title">决策转盘</view></view><button class="icon-button" bindtap="createWheel" aria-label="新建转盘">＋</button></view>
+  <view class="wheel-switch"><picker mode="selector" range="{{wheelTitles}}" value="{{wheelIndex}}" bindchange="onWheelChange"><view class="wheel-name">{{wheel.title}}⌄</view></picker><view class="wheel-actions"><view bindtap="renameWheel">重命名</view><view class="danger" bindtap="deleteWheel">删除</view></view></view>
+  <view class="stage"><view class="pointer"></view><canvas type="2d" id="wheelCanvas" class="wheel-canvas" bindtouchstart="onTouchStart" catchtouchmove="onTouchMove" bindtouchend="onTouchEnd" bindtouchcancel="onTouchEnd"></canvas></view>
+  <view class="spin-hint">{{enabledCount < 2 ? '添加至少两个选项' : spinning ? '转盘正在选择…' : '用手拨动转盘，或点击按钮'}}</view>
+  <button class="spin-button" disabled="{{spinning || enabledCount < 2}}" bindtap="spin">{{spinning ? '转动中' : '开始转动'}}</button>
+  <view class="editor-toggle" bindtap="toggleEditor"><text>选项管理 · {{enabledCount}} 个启用</text><text>{{showEditor ? '收起' : '展开'}}</text></view>
+  <scroll-view class="lower" scroll-y>
+    <view class="editor" wx:if="{{showEditor}}"><textarea class="batch" maxlength="1200" placeholder="每行一个选项，也支持逗号分隔\n例如：火锅、日料、本帮菜" value="{{batchText}}" bindinput="onBatchInput"/><button class="add-button" bindtap="addBatch">添加选项</button>
+      <view class="option {{!item.enabled ? 'disabled-option' : ''}}" wx:for="{{wheel.options}}" wx:key="id"><view class="option-main" data-id="{{item.id}}" bindtap="editOption"><view class="option-index">{{index + 1}}</view><view class="option-text">{{item.text}}</view></view><view class="option-tools"><view data-id="{{item.id}}" data-action="up" bindtap="optionAction">↑</view><view data-id="{{item.id}}" data-action="down" bindtap="optionAction">↓</view><view data-id="{{item.id}}" data-action="toggle" bindtap="optionAction">{{item.enabled ? '停用' : '启用'}}</view><view class="danger" data-id="{{item.id}}" data-action="remove" bindtap="optionAction">删除</view></view></view>
+    </view>
+    <view class="history-head" bindtap="toggleHistory"><view><view class="section-title">抽取历史</view><view class="section-meta">最近 {{wheel.history.length}} 次</view></view><view>{{historyExpanded ? '收起' : '展开'}}</view></view>
+    <view class="history" wx:if="{{historyExpanded}}"><view class="empty" wx:if="{{!wheel.history.length}}">还没有抽取结果</view><view class="history-row" wx:for="{{wheel.history}}" wx:key="id"><view>{{item.optionText}}</view><view>{{item.displayTime}}</view></view><view class="clear-history" wx:if="{{wheel.history.length}}" bindtap="clearHistory">清空历史</view></view>
+  </scroll-view>
+  <view class="result-mask" wx:if="{{winner}}"><view class="result-sheet"><view class="result-label">转盘选中了</view><view class="result-value">{{winner.optionText}}</view><view class="result-actions"><button class="again" bindtap="spinAgain">再转一次</button><button class="remove-winner" bindtap="removeWinner">移出本轮</button></view><button class="done" bindtap="closeWinner">完成</button></view></view>
+</view>

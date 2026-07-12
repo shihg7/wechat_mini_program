@@ -67,10 +67,16 @@
 - 体验表单提供内置和自定义模板，并根据历史记录建议城市、房型或菜系。
 - 模板只保存安全字段，不保存日期、评分、照片、价格或私密备注；历史建议不会覆盖已填写内容。
 
-### 同步架构预留
+### 决策转盘
+
+- 首页“旅行工具”提供决策转盘，支持保存多个转盘、批量导入 2–50 个等概率选项、编辑排序和临时停用。
+- 可点击按钮旋转，也可直接用手拨动；canvas 动画使用真实角速度、惯性衰减和固定指针命中，并在跨扇区时提供可降级的轻震动。
+- 抽中后可再转一次或移出本轮，最近保留 50 条历史；完整备份升级为 schemaVersion 8 并包含转盘数据。
 
 - 开发版的数据管理页可生成和清除固定示例集，覆盖酒店、餐厅、三人非整除分账、行程与预算联动；清理仅按登记 ID 删除示例内容。
 - 底部三个主入口使用一致的线性图标和选中状态，提升页面定位感。
+
+### 同步架构预留
 
 - 页面通过 `recordRepository`、`placeRepository`、`wishlistRepository` 和 `ledgerRepository` 访问数据，不直接依赖缓存实现。
 - 当前 Repository 使用本地适配器，后续可以增加远端适配器而不修改页面业务。
@@ -257,8 +263,9 @@ npm test
 - 想去项转体验、状态更新和地点关联
 - Repository 待同步批次、软删除、冲突快照和公开 DTO 脱敏
 - 失效照片与登记无主文件的安全清理
-- v1-v7 备份兼容、偏好 ID 重映射和统一缓存回滚
+- v1-v8 备份兼容、偏好 ID 重映射和统一缓存回滚
 - 页面事件流：创建账本、录入支出、确认部分结算、撤销结算和日期错误提示
+- 转盘角度命中、惯性衰减、选项约束、50 项绘制、结果历史和页面事件流
 
 常用语法检查：
 
@@ -277,6 +284,8 @@ node --check miniprogram/utils/storyRenderer.js
 node --check miniprogram/utils/yearbookBuilder.js
 node --check miniprogram/utils/reportCanvas.js
 node --check miniprogram/utils/tripStore.js
+node --check miniprogram/utils/wheelEngine.js
+node --check miniprogram/utils/wheelStore.js
 node --check miniprogram/utils/formTemplateStore.js
 node --check miniprogram/utils/wishlistStore.js
 node --check miniprogram/utils/cleanupService.js
@@ -292,6 +301,7 @@ node --check miniprogram/pages/trip/index.js
 node --check miniprogram/pages/trip/edit.js
 node --check miniprogram/pages/trip/detail.js
 node --check miniprogram/pages/trip/budget.js
+node --check miniprogram/pages/wheel/index.js
 node --check miniprogram/pages/wishlist/edit.js
 node --check miniprogram/pages/cleanup/index.js
 node --check miniprogram/pages/data/index.js

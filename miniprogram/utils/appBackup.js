@@ -7,9 +7,10 @@ const { STORY_PREFS_KEY } = require("./storyRenderer");
 const { YEARBOOK_PREFS_KEY } = require("./yearbookBuilder");
 const { STORAGE_KEY: TRIPS_KEY, getTrips, normalizeTrip } = require("./tripStore");
 const { STORAGE_KEY: TEMPLATES_KEY } = require("./formTemplateStore");
+const { STORAGE_KEY: WHEELS_KEY, getWheels, normalizeWheel } = require("./wheelStore");
 
 const APP_ID = "experience-review-miniprogram";
-const SCHEMA_VERSION = 7;
+const SCHEMA_VERSION = 8;
 
 function clone(value) {
   if (value === undefined) return undefined;
@@ -87,7 +88,7 @@ function preflightBackup(payload) {
   }
   assertObject(data, "备份");
   const version = Number(data.schemaVersion || data.version);
-  if ([1, 2, 3, 4, 5, 6, 7].indexOf(version) < 0) throw new Error("仅支持 schemaVersion 1 至 7");
+  if ([1, 2, 3, 4, 5, 6, 7, 8].indexOf(version) < 0) throw new Error("仅支持 schemaVersion 1 至 8");
   if (data.app && data.app !== APP_ID) throw new Error("备份来源应用不匹配");
   assertItems(data.records, "records");
   if (version >= 2) assertItems(data.ledgers, "ledgers");
@@ -95,12 +96,14 @@ function preflightBackup(payload) {
   if (version >= 5) assertItems(data.wishlist, "wishlist");
   if (version >= 6) assertObject(data.preferences, "preferences");
   if (version >= 7) { assertItems(data.trips, "trips"); assertItems(data.formTemplates, "formTemplates"); }
+  if (version >= 8) assertItems(data.wheels, "wheels");
   validateUniqueIds(data.records, "records");
   validateUniqueIds(data.ledgers || [], "ledgers");
   validateUniqueIds(data.places || [], "places");
   validateUniqueIds(data.wishlist || [], "wishlist");
   validateUniqueIds(data.trips || [], "trips");
   validateUniqueIds(data.formTemplates || [], "formTemplates");
+  validateUniqueIds(data.wheels || [], "wheels");
 
   data.records.forEach((record, index) => {
     if (!record.hotelName && !record.restaurantName) throw new Error(`records[${index}]缺少体验名称`);
@@ -133,6 +136,7 @@ function preflightBackup(payload) {
   const normalizedPreferences = version >= 6 ? { story: clone(data.preferences.story || {}), yearbook: clone(data.preferences.yearbook || {}) } : null;
   const normalizedTrips = version >= 7 ? data.trips.map(normalizeTrip) : null;
   const normalizedTemplates = version >= 7 ? clone(data.formTemplates) : null;
+  const normalizedWheels = version >= 8 ? data.wheels.map(normalizeWheel) : null;
   const normalized = {
     schemaVersion: version,
     app: data.app || APP_ID,
@@ -144,7 +148,8 @@ function preflightBackup(payload) {
     wishlist: normalizedWishlist,
     preferences: normalizedPreferences,
     trips: normalizedTrips,
-    formTemplates: normalizedTemplates
+    formTemplates: normalizedTemplates,
+    wheels: normalizedWheels
   };
   const expenseCount = (normalized.ledgers || []).reduce((sum, ledger) => sum + ledger.expenses.length, 0);
   return {
@@ -161,12 +166,14 @@ function preflightBackup(payload) {
       wishlistIncluded: normalized.wishlist !== null,
       preferencesIncluded: normalized.preferences !== null,
       tripCount: normalized.trips ? normalized.trips.length : 0,
-      templatesIncluded: normalized.formTemplates !== null
+      templatesIncluded: normalized.formTemplates !== null,
+      wheelCount: normalized.wheels ? normalized.wheels.length : 0,
+      wheelsIncluded: normalized.wheels !== null
     }
   };
 }
 
-function createBackup(records, places, ledgers, wishlist, preferences = {}, trips = [], formTemplates = []) {
+function createBackup(records, places, ledgers, wishlist, preferences = {}, trips = [], formTemplates = [], wheels = []) {
   const normalizedRecords = (records || []).map(normalizeRecord);
   const normalizedPlaces = (places || []).map(normalizePlace);
   const normalizedLedgers = (ledgers || []).map(normalizeLedger);
@@ -186,7 +193,8 @@ function createBackup(records, places, ledgers, wishlist, preferences = {}, trip
       storyPreferenceCount: Object.keys(preferences.story || {}).length,
       yearbookPreferenceCount: Object.keys(preferences.yearbook || {}).length,
       tripCount: trips.length,
-      formTemplateCount: formTemplates.length
+      formTemplateCount: formTemplates.length,
+      wheelCount: wheels.length
     },
     media: {
       binariesIncluded: false,
@@ -198,11 +206,12 @@ function createBackup(records, places, ledgers, wishlist, preferences = {}, trip
     wishlist: normalizedWishlist,
     preferences: { story: clone(preferences.story || {}), yearbook: clone(preferences.yearbook || {}) },
     trips: trips.map(normalizeTrip),
-    formTemplates: clone(formTemplates)
+    formTemplates: clone(formTemplates),
+    wheels: wheels.map(normalizeWheel)
   };
 }
 
-function exportFullBackup(records, places, ledgers, wishlist, preferences, trips, formTemplates) {
+function exportFullBackup(records, places, ledgers, wishlist, preferences, trips, formTemplates, wheels) {
   const sourcePlaces = places === undefined ? getPlaces({ includeDeleted: true }) : places;
   const sourceRecords = records === undefined ? getRecords({ includeDeleted: true }) : records;
   const sourceLedgers = ledgers === undefined ? getLedgers() : ledgers;
@@ -210,8 +219,9 @@ function exportFullBackup(records, places, ledgers, wishlist, preferences, trips
   const sourcePreferences = preferences === undefined ? { story: wx.getStorageSync(STORY_PREFS_KEY) || {}, yearbook: wx.getStorageSync(YEARBOOK_PREFS_KEY) || {} } : preferences;
   const sourceTrips = trips === undefined ? getTrips() : trips;
   const sourceTemplates = formTemplates === undefined ? (wx.getStorageSync(TEMPLATES_KEY) || []) : formTemplates;
-  const backup = createBackup(sourceRecords, sourcePlaces, sourceLedgers, sourceWishlist, sourcePreferences, sourceTrips, sourceTemplates);
-  const filePath = `${wx.env.USER_DATA_PATH}/experience-review-full-backup-v7.json`;
+  const sourceWheels = wheels === undefined ? getWheels() : wheels;
+  const backup = createBackup(sourceRecords, sourcePlaces, sourceLedgers, sourceWishlist, sourcePreferences, sourceTrips, sourceTemplates, sourceWheels);
+  const filePath = `${wx.env.USER_DATA_PATH}/experience-review-full-backup-v8.json`;
   wx.getFileSystemManager().writeFileSync(filePath, JSON.stringify(backup, null, 2), "utf8");
   return { filePath, backup, summary: backup.summary };
 }
@@ -260,7 +270,7 @@ function planCollection(existing, incoming, kind, backupToken) {
   return { result: additions.concat(existing), additions, skipped, idMap };
 }
 
-function buildMerge(existingRecords, existingPlaces, existingLedgers, existingWishlist, existingPreferences, existingTrips, existingTemplates, backup) {
+function buildMerge(existingRecords, existingPlaces, existingLedgers, existingWishlist, existingPreferences, existingTrips, existingTemplates, existingWheels, backup) {
   const backupToken = backup.importToken || hashText(stableStringify(backup));
   const placesPlan = planCollection(existingPlaces, backup.places, "place", backupToken);
   const remappedRecords = backup.records.map((record) => ({ ...record, placeId: placesPlan.idMap[record.placeId] || record.placeId }));
@@ -274,13 +284,14 @@ function buildMerge(existingRecords, existingPlaces, existingLedgers, existingWi
   const wishlistPlan = planCollection(existingWishlist, remappedWishlist, "wishlist", backupToken);
   const tripsPlan = planCollection(existingTrips, backup.trips || [], "trip", backupToken);
   const templatesPlan = planCollection(existingTemplates, backup.formTemplates || [], "template", backupToken);
+  const wheelsPlan = planCollection(existingWheels, backup.wheels || [], "wheel", backupToken);
   const incomingPreferences = backup.preferences || { story: {}, yearbook: {} };
   const remappedStory = Object.keys(incomingPreferences.story || {}).reduce((result, recordId) => { result[recordsPlan.idMap[recordId] || recordId] = incomingPreferences.story[recordId]; return result; }, {});
   const preferences = {
     story: { ...remappedStory, ...(existingPreferences.story || {}) },
     yearbook: { ...(incomingPreferences.yearbook || {}), ...(existingPreferences.yearbook || {}) }
   };
-  return { recordsPlan, placesPlan, ledgersPlan, wishlistPlan, tripsPlan, templatesPlan, preferences };
+  return { recordsPlan, placesPlan, ledgersPlan, wishlistPlan, tripsPlan, templatesPlan, wheelsPlan, preferences };
 }
 
 function snapshotFor(key) {
@@ -306,7 +317,8 @@ function applyBackup(preflightOrPayload, mode = "merge") {
     storyPreferences: snapshotFor(STORY_PREFS_KEY),
     yearbookPreferences: snapshotFor(YEARBOOK_PREFS_KEY),
     trips: snapshotFor(TRIPS_KEY),
-    formTemplates: snapshotFor(TEMPLATES_KEY)
+    formTemplates: snapshotFor(TEMPLATES_KEY),
+    wheels: snapshotFor(WHEELS_KEY)
   };
   const rawRecords = snapshots.records.value;
   const rawPlaces = snapshots.places.value;
@@ -319,6 +331,7 @@ function applyBackup(preflightOrPayload, mode = "merge") {
   const existingPreferences = { story: snapshots.storyPreferences.value || {}, yearbook: snapshots.yearbookPreferences.value || {} };
   const existingTrips = Array.isArray(snapshots.trips.value) ? snapshots.trips.value.map(normalizeTrip) : [];
   const existingTemplates = Array.isArray(snapshots.formTemplates.value) ? snapshots.formTemplates.value : [];
+  const existingWheels = Array.isArray(snapshots.wheels.value) ? snapshots.wheels.value.map(normalizeWheel) : [];
   let nextRecords;
   let nextPlaces;
   let nextLedgers;
@@ -326,6 +339,7 @@ function applyBackup(preflightOrPayload, mode = "merge") {
   let nextPreferences;
   let nextTrips;
   let nextTemplates;
+  let nextWheels;
   let result;
 
   if (mode === "replace" || mode === "overwrite") {
@@ -336,9 +350,10 @@ function applyBackup(preflightOrPayload, mode = "merge") {
     nextPreferences = backup.preferences === null ? existingPreferences : backup.preferences;
     nextTrips = backup.trips === null ? existingTrips : backup.trips;
     nextTemplates = backup.formTemplates === null ? existingTemplates : backup.formTemplates;
-    result = { mode: "replace", recordsAdded: nextRecords.length, placesAdded: nextPlaces.length, ledgersAdded: backup.ledgers === null ? 0 : nextLedgers.length, wishlistAdded: backup.wishlist === null ? 0 : nextWishlist.length, recordsSkipped: 0, placesSkipped: 0, ledgersSkipped: 0, wishlistSkipped: 0 };
+    nextWheels = backup.wheels === null ? existingWheels : backup.wheels;
+    result = { mode: "replace", recordsAdded: nextRecords.length, placesAdded: nextPlaces.length, ledgersAdded: backup.ledgers === null ? 0 : nextLedgers.length, wishlistAdded: backup.wishlist === null ? 0 : nextWishlist.length, wheelsAdded: backup.wheels === null ? 0 : nextWheels.length, recordsSkipped: 0, placesSkipped: 0, ledgersSkipped: 0, wishlistSkipped: 0, wheelsSkipped: 0 };
   } else {
-    const plan = buildMerge(existingRecords, existingPlaces, existingLedgers, existingWishlist, existingPreferences, existingTrips, existingTemplates, backup);
+    const plan = buildMerge(existingRecords, existingPlaces, existingLedgers, existingWishlist, existingPreferences, existingTrips, existingTemplates, existingWheels, backup);
     nextRecords = plan.recordsPlan.result;
     nextPlaces = plan.placesPlan.result;
     nextLedgers = backup.ledgers === null ? existingLedgers : plan.ledgersPlan.result;
@@ -346,6 +361,7 @@ function applyBackup(preflightOrPayload, mode = "merge") {
     nextPreferences = backup.preferences === null ? existingPreferences : plan.preferences;
     nextTrips = backup.trips === null ? existingTrips : plan.tripsPlan.result;
     nextTemplates = backup.formTemplates === null ? existingTemplates : plan.templatesPlan.result;
+    nextWheels = backup.wheels === null ? existingWheels : plan.wheelsPlan.result;
     result = {
       mode: "merge",
       recordsAdded: plan.recordsPlan.additions.length,
@@ -356,6 +372,8 @@ function applyBackup(preflightOrPayload, mode = "merge") {
       placesSkipped: plan.placesPlan.skipped,
       ledgersSkipped: backup.ledgers === null ? 0 : plan.ledgersPlan.skipped,
       wishlistSkipped: backup.wishlist === null ? 0 : plan.wishlistPlan.skipped,
+      wheelsAdded: backup.wheels === null ? 0 : plan.wheelsPlan.additions.length,
+      wheelsSkipped: backup.wheels === null ? 0 : plan.wheelsPlan.skipped,
       recordIdMap: plan.recordsPlan.idMap,
       placeIdMap: plan.placesPlan.idMap,
       ledgerIdMap: plan.ledgersPlan.idMap,
@@ -372,9 +390,10 @@ function applyBackup(preflightOrPayload, mode = "merge") {
     wx.setStorageSync(YEARBOOK_PREFS_KEY, clone(nextPreferences.yearbook || {}));
     wx.setStorageSync(TRIPS_KEY, nextTrips.map(normalizeTrip));
     wx.setStorageSync(TEMPLATES_KEY, clone(nextTemplates));
+    wx.setStorageSync(WHEELS_KEY, nextWheels.map(normalizeWheel));
   } catch (error) {
     const rollbackErrors = [];
-    [[RECORDS_KEY, snapshots.records], [PLACES_KEY, snapshots.places], [LEDGERS_KEY, snapshots.ledgers], [WISHLIST_KEY, snapshots.wishlist], [STORY_PREFS_KEY, snapshots.storyPreferences], [YEARBOOK_PREFS_KEY, snapshots.yearbookPreferences], [TRIPS_KEY, snapshots.trips], [TEMPLATES_KEY, snapshots.formTemplates]].forEach(([key, snapshot]) => {
+    [[RECORDS_KEY, snapshots.records], [PLACES_KEY, snapshots.places], [LEDGERS_KEY, snapshots.ledgers], [WISHLIST_KEY, snapshots.wishlist], [STORY_PREFS_KEY, snapshots.storyPreferences], [YEARBOOK_PREFS_KEY, snapshots.yearbookPreferences], [TRIPS_KEY, snapshots.trips], [TEMPLATES_KEY, snapshots.formTemplates], [WHEELS_KEY, snapshots.wheels]].forEach(([key, snapshot]) => {
       try { restoreStorage(key, snapshot); } catch (rollbackError) { rollbackErrors.push(rollbackError); }
     });
     const message = rollbackErrors.length ? "导入失败，且回滚未完整完成" : "导入失败，已自动回滚";
@@ -382,7 +401,7 @@ function applyBackup(preflightOrPayload, mode = "merge") {
     wrapped.rollbackErrors = rollbackErrors;
     throw wrapped;
   }
-  return { ...result, recordCount: nextRecords.length, placeCount: nextPlaces.length, ledgerCount: nextLedgers.length, wishlistCount: nextWishlist.length, tripCount: nextTrips.length };
+  return { ...result, recordCount: nextRecords.length, placeCount: nextPlaces.length, ledgerCount: nextLedgers.length, wishlistCount: nextWishlist.length, tripCount: nextTrips.length, wheelCount: nextWheels.length };
 }
 
 module.exports = {
@@ -395,6 +414,7 @@ module.exports = {
   YEARBOOK_PREFS_KEY,
   TRIPS_KEY,
   TEMPLATES_KEY,
+  WHEELS_KEY,
   SCHEMA_VERSION,
   applyBackup,
   createBackup,

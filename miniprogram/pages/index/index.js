@@ -260,6 +260,7 @@ Page({
 
   goYearbook() { wx.navigateTo({ url: "/pages/yearbook/index" }); },
   goTravelMap() { wx.navigateTo({ url: "/pages/travel-map/index" }); },
+  goWheel() { wx.navigateTo({ url: "/pages/wheel/index" }); },
 
   goCleanup() {
     wx.navigateTo({ url: "/pages/cleanup/index" });

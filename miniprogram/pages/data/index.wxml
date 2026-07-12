@@ -30,7 +30,7 @@
     <view class="section-head">
       <view>
         <view class="section-title">完整备份</view>
-        <view class="section-subtitle">体验、行程、模板、偏好与账本一起保存为 schemaVersion 7</view>
+      <view class="section-subtitle">体验、行程、转盘、模板、偏好与账本一起保存为 schemaVersion 8</view>
       </view>
     </view>
     <button class="button primary" loading="{{exportingBackup}}" bindtap="exportBackup">导出完整备份</button>
@@ -39,7 +39,7 @@
 
   <view class="section">
     <view class="section-title">恢复数据</view>
-    <view class="section-subtitle">支持 v7 完整备份，并兼容 v1-v6</view>
+    <view class="section-subtitle">支持 v8 完整备份，并兼容 v1-v7</view>
     <button class="button secondary" bindtap="chooseBackup">选择 JSON 文件</button>
 
     <view class="preview" wx:if="{{preview}}">
@@ -51,6 +51,7 @@
         <view><text class="metric">{{preview.wishlistCount}}</text><text class="metric-label">想去</text></view>
         <view><text class="metric">{{preview.ledgerCount}}</text><text class="metric-label">账本</text></view>
         <view><text class="metric">{{preview.expenseCount}}</text><text class="metric-label">支出</text></view>
+        <view><text class="metric">{{preview.wheelCount}}</text><text class="metric-label">转盘</text></view>
       </view>
       <view class="preview-time">导出时间：{{preview.exportedAtText}}</view>
       <view class="action-row">

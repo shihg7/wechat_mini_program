@@ -13,6 +13,7 @@
     "pages/trip/edit",
     "pages/trip/detail",
     "pages/trip/budget",
+    "pages/wheel/index",
     "pages/data/index",
     "pages/ledger/index/index",
     "pages/ledger/edit/edit",

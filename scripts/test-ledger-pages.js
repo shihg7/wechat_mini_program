@@ -90,8 +90,11 @@ function testCreatePageDateValidationAndSave() {
 function testDetailClickFlowAndSettlementHistory() {
   reset();
   const ledger = store.addLedger({ title: "三人旅行", members: ["我", "小陈", "小周"] });
+  memory.experience_demo_mode_state = { active: true, startedAt: "2026-07-13T00:00:00.000Z", completedStepIds: [] };
   const page = loadPage("../miniprogram/pages/ledger/detail/detail.js");
-  page.onLoad({ id: ledger.id });
+  page.onLoad({ id: ledger.id, demo: "ledger" });
+  assert.strictEqual(page.data.demoActive, true);
+  assert.deepStrictEqual(memory.experience_demo_mode_state.completedStepIds, ["ledger"]);
   page.openExpenseForm();
   page.onExpenseInput(input("title", "酒店"));
   page.onExpenseInput(input("amount", "900.00"));

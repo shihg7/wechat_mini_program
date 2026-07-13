@@ -1,0 +1,8 @@
+<view class="guide {{compact ? 'compact' : ''}}" wx:if="{{active}}">
+  <view class="guide-copy">
+    <view class="guide-label">{{stepLabel}}</view>
+    <view class="guide-title">{{title}}</view>
+    <view class="guide-hint">{{hint}}</view>
+  </view>
+  <button class="guide-back" bindtap="backToDemo">返回演示</button>
+</view>

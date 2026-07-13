@@ -1,4 +1,5 @@
 <scroll-view class="page" scroll-y>
+  <demo-guide active="{{demoActive}}" step-label="任务 1 / 4 · 体验记录" title="看懂一条完整测评" hint="先看总分与分项，再向下找到标签和备注。" />
   <view class="hero">
     <view>
       <view class="eyebrow">{{pageText.eyebrow}}</view>

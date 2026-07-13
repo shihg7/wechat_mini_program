@@ -8,6 +8,17 @@ const STEP_DEFINITIONS = [
   { id: "wheel", number: "04", title: "亲手转一次转盘", description: "四个晚餐选项，点击或手拨都可以", action: "去转一转" }
 ];
 
+function getStepRoute(stepId) {
+  const targetId = demoData.getTargetId(stepId);
+  const routes = {
+    record: targetId ? `/pages/record/record?id=${targetId}&demo=record` : "",
+    trip: targetId ? `/pages/trip/detail?id=${targetId}&demo=trip` : "",
+    ledger: targetId ? `/pages/ledger/detail/detail?id=${targetId}&demo=ledger` : "",
+    wheel: targetId ? `/pages/wheel/index?id=${targetId}&demo=wheel` : ""
+  };
+  return routes[stepId] || "";
+}
+
 Page({
   data: {
     steps: [],
@@ -39,23 +50,14 @@ Page({
 
   openStep(event) {
     const stepId = event.currentTarget.dataset.id;
-    const registry = demoData.getRegistry();
-    const routes = {
-      record: registry.recordIds[0] ? `/pages/record/record?id=${registry.recordIds[0]}` : "",
-      trip: registry.tripIds[0] ? `/pages/trip/detail?id=${registry.tripIds[0]}` : "",
-      ledger: registry.ledgerIds[0] ? `/pages/ledger/detail/detail?id=${registry.ledgerIds[0]}` : "",
-      wheel: registry.wheelIds[0] ? `/pages/wheel/index?id=${registry.wheelIds[0]}` : ""
-    };
-    const url = routes[stepId];
+    let url = getStepRoute(stepId);
     if (!url) {
-      wx.showToast({ title: "演示数据需要重新准备", icon: "none" });
-      demoMode.start();
+      const result = demoMode.start();
+      url = getStepRoute(stepId);
       this.refresh();
-      return;
+      wx.showToast({ title: "演示数据已恢复", icon: "success" });
     }
-    demoMode.markStep(stepId);
-    this.refresh();
-    wx.navigateTo({ url });
+    if (url) wx.navigateTo({ url });
   },
 
   restart() {

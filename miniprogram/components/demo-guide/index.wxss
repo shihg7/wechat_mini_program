@@ -1,0 +1,11 @@
+.guide { display:flex; align-items:center; gap:20rpx; margin-bottom:18rpx; padding:20rpx 22rpx; border:1rpx solid #efd678; border-left:7rpx solid #e6af2e; border-radius:8rpx; background:#fff9e5; box-sizing:border-box; color:#172033; }
+.guide-copy { flex:1; min-width:0; }
+.guide-label { color:#8a6b08; font-size:18rpx; font-weight:800; line-height:27rpx; }
+.guide-title { margin-top:2rpx; font-size:25rpx; font-weight:800; line-height:35rpx; }
+.guide-hint { margin-top:2rpx; color:#716a55; font-size:20rpx; line-height:30rpx; }
+.guide-back { width:142rpx; height:62rpx; flex-shrink:0; margin:0; padding:0; border-radius:8rpx; background:#172033; color:#fff; font-size:21rpx; font-weight:800; line-height:62rpx; }
+.guide-back::after { border:0; }
+.compact { margin-bottom:12rpx; padding:13rpx 16rpx; }
+.compact .guide-title { font-size:22rpx; line-height:31rpx; }
+.compact .guide-hint { display:none; }
+.compact .guide-back { width:126rpx; height:54rpx; font-size:20rpx; line-height:54rpx; }

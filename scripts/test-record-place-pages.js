@@ -184,6 +184,16 @@ function testQuickDraftAndOptionalMap() {
   assert(ui.toasts.includes("可继续手工填写地点"));
 }
 
+function testDemoRecordMarksAfterPageLoad() {
+  reset();
+  const record = recordsApi.addRecord({ recordType: "hotel", hotelName: "演示酒店", stayDate: "2026-07-10" });
+  memory.experience_demo_mode_state = { active: true, startedAt: "2026-07-13T00:00:00.000Z", completedStepIds: [] };
+  const page = loadPage();
+  page.onLoad({ id: record.id, demo: "record" });
+  assert.strictEqual(page.data.demoActive, true);
+  assert.deepStrictEqual(memory.experience_demo_mode_state.completedStepIds, ["record"]);
+}
+
 function testPlaceDetailMergeAndDeleteProtection() {
   reset();
   recordsApi.setRecords([
@@ -211,6 +221,7 @@ function testPlaceDetailMergeAndDeleteProtection() {
 async function run() {
   testSuggestedPlaceAndRepeatedVisit();
   testQuickDraftAndOptionalMap();
+  testDemoRecordMarksAfterPageLoad();
   testPlaceDetailMergeAndDeleteProtection();
   testWishlistConvertsAfterRecordSave();
   testWishlistPageRequiresExplicitPlaceChoice();

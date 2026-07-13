@@ -1,4 +1,5 @@
 <scroll-view class="page" scroll-y wx:if="{{ledger}}">
+  <demo-guide active="{{demoActive}}" step-label="任务 3 / 4 · AA 分账" title="核对精确结算结果" hint="重点看待转账方案，确认三个人的应付金额精确到分。" />
   <view class="hero">
     <view class="hero-main">
       <view class="eyebrow">SPLIT LEDGER</view>

@@ -12,7 +12,11 @@ function loadPage(modulePath) { let definition; global.Page = (config) => { defi
 const store = require("../miniprogram/utils/wheelStore");
 const engine = require("../miniprogram/utils/wheelEngine");
 const page = loadPage("../miniprogram/pages/wheel/index.js");
-page.onLoad({});
+const demoWheel = store.createWheel({ title: "演示转盘", options: [] });
+memory.experience_demo_mode_state = { active: true, startedAt: "2026-07-13T00:00:00.000Z", completedStepIds: [] };
+page.onLoad({ id: demoWheel.id, demo: "wheel" });
+assert.strictEqual(page.data.demoActive, true);
+assert.deepStrictEqual(memory.experience_demo_mode_state.completedStepIds, ["wheel"]);
 assert(page.data.wheel);
 const drawCalls = [];
 page.canvasWidth = 320; page.canvasHeight = 320;

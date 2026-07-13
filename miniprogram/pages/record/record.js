@@ -33,6 +33,7 @@ const {
 const { getWishlistItem, markWishlistVisited } = require("../../utils/repositories/wishlistRepository");
 const tripStore = require("../../utils/tripStore");
 const { applyTemplate, buildRecentSuggestions, getTemplates, saveTemplate } = require("../../utils/formTemplateStore");
+const demoMode = require("../../utils/demoMode");
 
 function buildInitialForm(recordType = "hotel") {
   const scores = buildScores(recordType);
@@ -151,7 +152,8 @@ Page({
     addingPhotos: false,
     sourceWishlistId: "",
     templates: [],
-    recentSuggestions: null
+    recentSuggestions: null,
+    demoActive: false
   },
 
   pendingPhotoDeletes: [],
@@ -159,7 +161,8 @@ Page({
   photosCommitted: false,
 
   onLoad(options) {
-    this.setData({ templates: getTemplates() });
+    const demoActive = !!(options && options.demo === "record" && demoMode.getState().active);
+    this.setData({ templates: getTemplates(), demoActive });
     if (options && options.id) {
       this.loadDetail(options.id);
       return;
@@ -215,6 +218,7 @@ Page({
       setTimeout(() => wx.navigateBack(), 600);
       return;
     }
+    if (this.data.demoActive) demoMode.markStep("record");
 
     const form = {
       ...record,

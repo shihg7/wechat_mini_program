@@ -1,1 +1,6 @@
-{"navigationBarTitleText":"行程详情"}
+{
+  "navigationBarTitleText": "行程详情",
+  "usingComponents": {
+    "demo-guide": "/components/demo-guide/index"
+  }
+}

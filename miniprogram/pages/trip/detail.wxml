@@ -1,4 +1,5 @@
 <scroll-view class="page" scroll-y wx:if="{{trip}}">
+  <demo-guide active="{{demoActive}}" step-label="任务 2 / 4 · 行程" title="浏览按天安排" hint="查看三天日程，再打开预算看看账本如何联动。" />
   <view class="hero">
     <view class="eyebrow">{{trip.status === 'active' ? 'IN PROGRESS' : 'TRIP PLAN'}}</view>
     <view class="title">{{trip.title}}</view>

@@ -20,7 +20,7 @@
     <view class="section-note">按任意顺序体验</view>
   </view>
 
-  <view class="step {{item.completed ? 'completed' : ''}}" wx:for="{{steps}}" wx:key="id" data-id="{{item.id}}" bindtap="openStep">
+  <view class="step {{item.completed ? 'completed' : ''}}" wx:for="{{steps}}" wx:key="id" data-id="{{item.id}}" bindtap="openStep" role="button" aria-label="{{item.title}}，{{item.completed ? '已完成' : item.action}}" hover-class="step-pressed" hover-stay-time="80">
     <view class="step-number">{{item.completed ? '✓' : item.number}}</view>
     <view class="step-main">
       <view class="step-title">{{item.title}}</view>

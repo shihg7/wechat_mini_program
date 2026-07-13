@@ -30,8 +30,12 @@ indexPage.filterStatus({ currentTarget: { dataset: { status: "active" } } });
 assert.strictEqual(indexPage.data.trips.length, 0);
 
 const detailPage = loadPage("../miniprogram/pages/trip/detail.js");
-detailPage.onLoad({ id: trip.id });
+memory.experience_demo_mode_state = { active: true, startedAt: "2026-07-13T00:00:00.000Z", completedStepIds: [] };
+detailPage.onLoad({ id: trip.id, demo: "trip" });
+assert.strictEqual(detailPage.data.demoActive, true);
+assert.deepStrictEqual(memory.experience_demo_mode_state.completedStepIds, [], "trip is not complete before its data loads");
 detailPage.onShow();
+assert.deepStrictEqual(memory.experience_demo_mode_state.completedStepIds, ["trip"]);
 const dinnerId = detailPage.data.trip.itineraryItems.find((item) => item.title === "晚餐").id;
 detailPage.moveItem({ currentTarget: { dataset: { id: dinnerId, direction: "up" } } });
 assert.strictEqual(detailPage.data.days[0].items[0].id, dinnerId);

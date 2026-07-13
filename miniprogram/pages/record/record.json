@@ -1,4 +1,6 @@
 {
-  "usingComponents": {},
+  "usingComponents": {
+    "demo-guide": "/components/demo-guide/index"
+  },
   "navigationBarTitleText": "酒店记录"
 }

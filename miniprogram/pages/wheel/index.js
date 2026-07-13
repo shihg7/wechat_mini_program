@@ -1,5 +1,6 @@
 const engine = require("../../utils/wheelEngine");
 const store = require("../../utils/wheelStore");
+const demoMode = require("../../utils/demoMode");
 
 const COLORS = ["#176b68", "#e86343", "#e6af2e", "#3568ad", "#a63d52", "#5f8f4e", "#7257a5", "#26849a"];
 
@@ -14,8 +15,8 @@ function drawPointer(ctx, centerX) {
 }
 
 Page({
-  data: { wheels: [], wheelTitles: [], wheelIndex: 0, wheel: null, batchText: "", enabledCount: 0, spinning: false, winner: null, showEditor: true, historyExpanded: false },
-  onLoad(options) { this.requestFrame = null; this.rotation = 0; this.velocity = 0; this.lastTouchAngle = 0; this.lastTouchTime = 0; this.lastSector = -1; this.loadWheels(options.id); },
+  data: { wheels: [], wheelTitles: [], wheelIndex: 0, wheel: null, batchText: "", enabledCount: 0, spinning: false, winner: null, showEditor: true, historyExpanded: false, demoActive: false },
+  onLoad(options = {}) { const demoActive = options.demo === "wheel" && demoMode.getState().active; this.requestFrame = null; this.rotation = 0; this.velocity = 0; this.lastTouchAngle = 0; this.lastTouchTime = 0; this.lastSector = -1; this.setData({ demoActive }); this.loadWheels(options.id); },
   onReady() { this.prepareCanvas(); },
   onUnload() { this.cancelAnimation(); },
 
@@ -25,6 +26,7 @@ Page({
     let wheelIndex = Math.max(0, wheels.findIndex((item) => item.id === String(preferredId || (this.data.wheel && this.data.wheel.id) || "")));
     if (wheelIndex < 0) wheelIndex = 0;
     const sourceWheel = wheels[wheelIndex];
+    if (this.data.demoActive && preferredId && sourceWheel.id === String(preferredId)) demoMode.markStep("wheel");
     const wheel = { ...sourceWheel, history: sourceWheel.history.map((item) => ({ ...item, displayTime: item.spunAt.replace("T", " ").slice(0, 16) })) };
     this.setData({ wheels, wheelTitles: wheels.map((item) => item.title), wheelIndex, wheel, enabledCount: wheel.options.filter((item) => item.enabled).length }, () => this.draw());
   },
@@ -32,7 +34,8 @@ Page({
   prepareCanvas() {
     wx.createSelectorQuery().in(this).select("#wheelCanvas").fields({ node: true, size: true }).exec((result) => {
       const info = result && result[0]; if (!info || !info.node) return;
-      const scale = wx.getSystemInfoSync ? (wx.getSystemInfoSync().pixelRatio || 2) : 2;
+      const windowInfo = wx.getWindowInfo ? wx.getWindowInfo() : (wx.getSystemInfoSync ? wx.getSystemInfoSync() : {});
+      const scale = windowInfo.pixelRatio || 2;
       this.canvas = info.node; this.ctx = this.canvas.getContext("2d"); this.canvasWidth = info.width; this.canvasHeight = info.height;
       this.canvas.width = info.width * scale; this.canvas.height = info.height * scale; this.ctx.scale(scale, scale); this.draw();
     });

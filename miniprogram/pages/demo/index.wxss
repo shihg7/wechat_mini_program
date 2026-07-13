@@ -16,7 +16,7 @@ page { background: #f3f5f7; color: #172033; }
 .section-title { font-size: 31rpx; font-weight: 800; line-height: 42rpx; }
 .section-note { color: #7a8494; font-size: 21rpx; line-height: 32rpx; }
 .step { display: flex; align-items: flex-start; gap: 22rpx; margin-top: 14rpx; padding: 26rpx 24rpx; border: 2rpx solid transparent; border-radius: 8rpx; background: #fff; }
-.step:active { background: #f8fafc; }
+.step-pressed { background: #f1f4f7; transform:scale(.995); }
 .step.completed { border-color: #bdded5; background: #f8fcfb; }
 .step-number { width: 66rpx; height: 66rpx; flex-shrink: 0; border-radius: 8rpx; background: #eef2f5; color: #4d596c; font-size: 23rpx; font-weight: 800; line-height: 66rpx; text-align: center; }
 .completed .step-number { background: #176b68; color: #fff; font-size: 30rpx; }

@@ -11,6 +11,21 @@ function getRegistry() {
   return value && typeof value === "object" ? { recordIds: value.recordIds || [], placeIds: value.placeIds || [], ledgerIds: value.ledgerIds || [], tripIds: value.tripIds || [], wheelIds: value.wheelIds || [] } : { recordIds: [], placeIds: [], ledgerIds: [], tripIds: [], wheelIds: [] };
 }
 
+function getTargetId(stepId) {
+  const registry = getRegistry();
+  const recordId = registry.recordIds[0];
+  const tripId = registry.tripIds[0];
+  const ledgerId = registry.ledgerIds[0];
+  const wheelId = registry.wheelIds[0];
+  const candidates = {
+    record: recordId && recordStore.getRecordById(recordId) ? recordId : "",
+    trip: tripId && tripStore.getTripById(tripId) ? tripId : "",
+    ledger: ledgerId && ledgerStore.getLedgerById(ledgerId) ? ledgerId : "",
+    wheel: wheelId && wheelStore.getWheelById(wheelId) ? wheelId : ""
+  };
+  return candidates[stepId] || "";
+}
+
 function seedDemoData() {
   clearDemoData();
   const now = new Date().toISOString();
@@ -47,4 +62,4 @@ function clearDemoData() {
   return registry;
 }
 
-module.exports = { REGISTRY_KEY, clearDemoData, getRegistry, seedDemoData };
+module.exports = { REGISTRY_KEY, clearDemoData, getRegistry, getTargetId, seedDemoData };

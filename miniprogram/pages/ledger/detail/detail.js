@@ -1,5 +1,6 @@
 const ledgerStore = require("../../../utils/repositories/ledgerRepository");
 const { PRIVATE_MODE, REDACTED_MODE, exportLedgerImage, exportLedgerJson, exportLedgerPdf } = require("../../../utils/ledgerExport");
+const demoMode = require("../../../utils/demoMode");
 
 const {
   DEFAULT_CATEGORIES,
@@ -211,10 +212,13 @@ Page({
     remainingText: formatCents(0),
     isSettled: true,
     showExportPanel: false,
-    exporting: false
+    exporting: false,
+    demoActive: false
   },
 
   onLoad(options) {
+    const demoActive = !!(options && options.demo === "ledger" && demoMode.getState().active);
+    this.setData({ demoActive });
     if (options && options.id) {
       this.setData({ ledgerId: options.id });
       this.refreshLedger(options.id);
@@ -236,6 +240,7 @@ Page({
       setTimeout(() => wx.navigateBack(), 600);
       return;
     }
+    if (this.data.demoActive) demoMode.markStep("ledger");
     const members = getMembers(ledger);
     const activeMembers = getActiveMemberList(ledger, members);
     const summary = calculateLedgerSummary(ledger);

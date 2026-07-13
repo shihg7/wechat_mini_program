@@ -3,6 +3,16 @@ const store = require("../../utils/wheelStore");
 
 const COLORS = ["#176b68", "#e86343", "#e6af2e", "#3568ad", "#a63d52", "#5f8f4e", "#7257a5", "#26849a"];
 
+function drawPointer(ctx, centerX) {
+  ctx.save();
+  ctx.shadowColor = "rgba(23,32,51,.28)"; ctx.shadowBlur = 7; ctx.shadowOffsetY = 3;
+  ctx.beginPath(); ctx.moveTo(centerX - 13, 22); ctx.lineTo(centerX + 13, 22); ctx.lineTo(centerX, 51); ctx.closePath(); ctx.fillStyle = "#e86343"; ctx.fill();
+  ctx.beginPath(); ctx.arc(centerX, 18, 13, 0, engine.TAU); ctx.fillStyle = "#ffffff"; ctx.fill();
+  ctx.shadowColor = "transparent"; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+  ctx.beginPath(); ctx.arc(centerX, 18, 8, 0, engine.TAU); ctx.fillStyle = "#172033"; ctx.fill();
+  ctx.restore();
+}
+
 Page({
   data: { wheels: [], wheelTitles: [], wheelIndex: 0, wheel: null, batchText: "", enabledCount: 0, spinning: false, winner: null, showEditor: true, historyExpanded: false },
   onLoad(options) { this.requestFrame = null; this.rotation = 0; this.velocity = 0; this.lastTouchAngle = 0; this.lastTouchTime = 0; this.lastSector = -1; this.loadWheels(options.id); },
@@ -35,7 +45,7 @@ Page({
     ctx.clearRect(0, 0, width, height); ctx.save(); ctx.translate(cx, cy);
     ctx.beginPath(); ctx.arc(0, 0, radius + 5, 0, engine.TAU); ctx.fillStyle = "#172033"; ctx.shadowColor = "rgba(23,32,51,.24)"; ctx.shadowBlur = 16; ctx.shadowOffsetY = 8; ctx.fill(); ctx.shadowColor = "transparent"; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
     ctx.save(); ctx.rotate(this.rotation);
-    if (!options.length) { ctx.beginPath(); ctx.arc(0, 0, radius - 2, 0, engine.TAU); ctx.fillStyle = "#e5e9ee"; ctx.fill(); ctx.beginPath(); ctx.arc(0, 0, radius * 0.7, 0, engine.TAU); ctx.strokeStyle = "#cbd2db"; ctx.lineWidth = 1; ctx.setLineDash([5, 6]); ctx.stroke(); ctx.setLineDash([]); ctx.fillStyle = "#667085"; ctx.font = "600 14px sans-serif"; ctx.textAlign = "center"; ctx.fillText("等待你的选项", 0, 5); ctx.restore(); ctx.restore(); return; }
+    if (!options.length) { ctx.beginPath(); ctx.arc(0, 0, radius - 2, 0, engine.TAU); ctx.fillStyle = "#e5e9ee"; ctx.fill(); ctx.beginPath(); ctx.arc(0, 0, radius * 0.7, 0, engine.TAU); ctx.strokeStyle = "#cbd2db"; ctx.lineWidth = 1; ctx.setLineDash([5, 6]); ctx.stroke(); ctx.setLineDash([]); ctx.fillStyle = "#667085"; ctx.font = "600 14px sans-serif"; ctx.textAlign = "center"; ctx.fillText("等待你的选项", 0, 5); ctx.restore(); ctx.restore(); drawPointer(ctx, cx); return; }
     const slice = engine.TAU / options.length; const maxChars = options.length > 24 ? 3 : options.length > 12 ? 5 : 9;
     options.forEach((option, index) => {
       const start = -Math.PI / 2 + index * slice; const end = start + slice;
@@ -43,12 +53,12 @@ Page({
       ctx.save(); ctx.rotate(start + slice / 2); ctx.translate(radius * 0.62, 0); if (start + slice / 2 > Math.PI / 2 && start + slice / 2 < Math.PI * 1.5) ctx.rotate(Math.PI); ctx.fillStyle = "#fff"; ctx.font = `${options.length > 24 ? 10 : options.length > 12 ? 11 : 13}px sans-serif`; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(engine.truncateLabel(option.text, maxChars), 0, 0); ctx.restore();
     });
     ctx.beginPath(); ctx.arc(0, 0, radius - 8, 0, engine.TAU); ctx.strokeStyle = "rgba(255,255,255,.28)"; ctx.lineWidth = 1; ctx.stroke();
-    ctx.beginPath(); ctx.arc(0, 0, Math.max(24, radius * 0.13), 0, engine.TAU); ctx.fillStyle = "#fff"; ctx.shadowColor = "rgba(23,32,51,.25)"; ctx.shadowBlur = 8; ctx.fill(); ctx.shadowColor = "transparent"; ctx.beginPath(); ctx.arc(0, 0, Math.max(18, radius * 0.09), 0, engine.TAU); ctx.fillStyle = "#172033"; ctx.fill(); ctx.fillStyle = "#fff"; ctx.font = "700 10px sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText("GO", 0, 0); ctx.restore(); ctx.restore();
+    ctx.beginPath(); ctx.arc(0, 0, Math.max(24, radius * 0.13), 0, engine.TAU); ctx.fillStyle = "#fff"; ctx.shadowColor = "rgba(23,32,51,.25)"; ctx.shadowBlur = 8; ctx.fill(); ctx.shadowColor = "transparent"; ctx.beginPath(); ctx.arc(0, 0, Math.max(18, radius * 0.09), 0, engine.TAU); ctx.fillStyle = "#172033"; ctx.fill(); ctx.fillStyle = "#fff"; ctx.font = "700 10px sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText("GO", 0, 0); ctx.restore(); ctx.restore(); drawPointer(ctx, cx);
   },
 
   frame(callback) { if (this.canvas && this.canvas.requestAnimationFrame) return this.canvas.requestAnimationFrame(callback); return setTimeout(() => callback(Date.now()), 16); },
   cancelAnimation() { if (this.requestFrame == null) return; if (this.canvas && this.canvas.cancelAnimationFrame) this.canvas.cancelAnimationFrame(this.requestFrame); else clearTimeout(this.requestFrame); this.requestFrame = null; },
-  tickFeedback() { const index = engine.winnerIndex(this.rotation, this.enabledOptions().length); if (index !== this.lastSector) { this.lastSector = index; const now = Date.now(); if (wx.vibrateShort && (!this.lastVibrateAt || now - this.lastVibrateAt >= 35)) { this.lastVibrateAt = now; wx.vibrateShort({ type: "light", fail() {} }); } } },
+  tickFeedback() { this.lastSector = engine.winnerIndex(this.rotation, this.enabledOptions().length); },
 
   spin() {
     if (this.data.spinning) return; if (this.data.enabledCount < 2) return wx.showToast({ title: "至少启用两个选项", icon: "none" });

@@ -16,7 +16,7 @@ page.onLoad({});
 assert(page.data.wheel);
 const drawCalls = [];
 page.canvasWidth = 320; page.canvasHeight = 320;
-page.ctx = { clearRect() {}, save() {}, restore() {}, translate() {}, rotate() {}, beginPath() {}, arc() {}, fill() {}, stroke() {}, moveTo() {}, closePath() {}, fillText(text) { drawCalls.push(text); }, set fillStyle(value) {}, set strokeStyle(value) {}, set lineWidth(value) {}, set font(value) {}, set textAlign(value) {}, set textBaseline(value) {} };
+page.ctx = { clearRect() {}, save() {}, restore() {}, translate() {}, rotate() {}, beginPath() {}, arc() {}, fill() {}, stroke() {}, moveTo() {}, lineTo() {}, closePath() {}, fillText(text) { drawCalls.push(text); }, set fillStyle(value) {}, set strokeStyle(value) {}, set lineWidth(value) {}, set font(value) {}, set textAlign(value) {}, set textBaseline(value) {} };
 page.onBatchInput({ detail: { value: "火锅\n日料\n烧烤" } });
 page.addBatch();
 assert.strictEqual(page.data.enabledCount, 3);

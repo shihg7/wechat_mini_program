@@ -24,6 +24,12 @@
     </view>
   </view>
 
+  <view class="demo-banner" wx:if="{{demoActive}}" bindtap="goDemo">
+    <view class="demo-badge">演示中</view>
+    <view class="demo-copy"><view class="demo-title">继续快速上手</view><view class="demo-desc">已完成 {{demoCompleted}} / {{demoTotal}} 个任务</view></view>
+    <view class="demo-arrow">›</view>
+  </view>
+
   <view class="quick-actions">
     <button class="button primary" data-type="hotel" bindtap="goCreate">新增酒店</button>
     <button class="button accent" data-type="restaurant" bindtap="goCreate">新增餐厅</button>
@@ -74,6 +80,9 @@
 
   <view class="content-heading tools-heading"><view><view class="content-title">旅行工具</view><view class="content-subtitle">回顾、计划与数据安全</view></view></view>
   <view class="utility-grid">
+  <view class="data-entry demo-entry" bindtap="goDemo">
+    <view><view class="data-title">{{demoActive ? '继续演示' : '新手演示'}}</view><view class="data-desc">3 分钟走遍核心功能</view></view><view class="chevron">›</view>
+  </view>
   <view class="data-entry" bindtap="goInsights">
     <view><view class="data-title">旅行洞察</view><view class="data-desc">年度最佳、城市分布与复访变化</view></view><view class="chevron">›</view>
   </view>

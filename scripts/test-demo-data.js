@@ -11,6 +11,7 @@ const places = require("../miniprogram/utils/placeStore");
 const ledgers = require("../miniprogram/utils/tripLedgerStore");
 const trips = require("../miniprogram/utils/tripStore");
 const demo = require("../miniprogram/utils/demoData");
+const demoMode = require("../miniprogram/utils/demoMode");
 const wheels = require("../miniprogram/utils/wheelStore");
 
 records.setRecords([records.normalizeRecord({ id: "real_record", hotelName: "真实酒店", stayDate: "2026-01-01" })]);
@@ -44,5 +45,20 @@ assert(trips.getTripById(realTrip.id));
 assert.strictEqual(wheels.getWheelById(second.wheelIds[0]), null);
 assert.strictEqual(demo.getRegistry().tripIds.length, 0);
 assert.strictEqual(records.getRecords().some((item) => second.recordIds.indexOf(item.id) >= 0), false);
+
+const session = demoMode.start();
+assert.strictEqual(session.state.active, true);
+assert.strictEqual(demoMode.getProgress().percent, 0);
+demoMode.markStep("record");
+demoMode.markStep("record");
+demoMode.markStep("unknown");
+assert.deepStrictEqual(demoMode.getState().completedStepIds, ["record"], "demo progress is unique and only accepts known steps");
+assert.strictEqual(demoMode.getProgress().percent, 25);
+demoMode.resetProgress();
+assert.strictEqual(demoMode.getProgress().completed, 0);
+demoMode.finish();
+assert.strictEqual(demoMode.getState().active, false);
+assert(records.getRecordById("real_record"), "finishing demo keeps real records");
+assert(ledgers.getLedgerById(realLedger.id), "finishing demo keeps real ledgers");
 
 console.log("development demo data tests passed");

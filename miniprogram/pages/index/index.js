@@ -9,6 +9,7 @@ const {
 const { getLedgerListItems } = require("../../utils/repositories/ledgerRepository");
 const { findPlaceSuggestions, getPlaceStats, getPlaces } = require("../../utils/repositories/placeRepository");
 const { getWishlist, searchWishlist } = require("../../utils/repositories/wishlistRepository");
+const demoMode = require("../../utils/demoMode");
 
 const SORT_OPTIONS = [
   { label: "最近创建", value: "created_desc" },
@@ -54,6 +55,9 @@ Page({
     recentRecord: null,
     recentDraft: null,
     recentLedger: null,
+    demoActive: false,
+    demoCompleted: 0,
+    demoTotal: 4,
     summary: {
       total: 0,
       hotelTotal: 0,
@@ -74,13 +78,17 @@ Page({
     const records = getRecords();
     const ledgers = getLedgerListItems();
     const wishlist = getWishlist();
+    const demoProgress = demoMode.getProgress();
     this.setData({
       records,
       summary: getSummary(records),
       recentRecord: records.find((record) => record.status !== "draft") || null,
       recentDraft: records.find((record) => record.status === "draft") || null,
       recentLedger: ledgers[0] || null,
-      wishlist
+      wishlist,
+      demoActive: demoProgress.active,
+      demoCompleted: demoProgress.completed,
+      demoTotal: demoProgress.total
     });
     this.refreshVisibleRecords();
   },
@@ -261,6 +269,23 @@ Page({
   goYearbook() { wx.navigateTo({ url: "/pages/yearbook/index" }); },
   goTravelMap() { wx.navigateTo({ url: "/pages/travel-map/index" }); },
   goWheel() { wx.navigateTo({ url: "/pages/wheel/index" }); },
+
+  goDemo() {
+    if (this.data.demoActive) {
+      wx.navigateTo({ url: "/pages/demo/index" });
+      return;
+    }
+    wx.showModal({
+      title: "进入演示模式？",
+      content: "会准备一组独立示例，带你体验记录、行程、AA 分账和转盘。不会覆盖个人数据。",
+      confirmText: "开始演示",
+      success: (result) => {
+        if (!result.confirm) return;
+        demoMode.start();
+        wx.navigateTo({ url: "/pages/demo/index" });
+      }
+    });
+  },
 
   goCleanup() {
     wx.navigateTo({ url: "/pages/cleanup/index" });

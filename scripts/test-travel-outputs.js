@@ -2,11 +2,32 @@ const assert = require("assert");
 
 const memory = {};
 const files = new Set(["/photos/a.jpg", "/photos/b.jpg", "/photos/c.jpg"]);
+const ui = { toasts: [], backCount: 0 };
 global.wx = {
   getStorageSync(key) { return memory[key]; },
   setStorageSync(key, value) { memory[key] = JSON.parse(JSON.stringify(value)); },
-  getFileSystemManager() { return { accessSync(path) { if (!files.has(path)) throw new Error("missing"); } }; }
+  getFileSystemManager() { return { accessSync(path) { if (!files.has(path)) throw new Error("missing"); } }; },
+  showToast(options) { ui.toasts.push(options.title); },
+  navigateBack() { ui.backCount += 1; }
 };
+
+function setPath(target, path, value) {
+  const parts = path.split(".");
+  let cursor = target;
+  parts.slice(0, -1).forEach((part) => { if (!cursor[part]) cursor[part] = {}; cursor = cursor[part]; });
+  cursor[parts[parts.length - 1]] = value;
+}
+
+function loadPage(modulePath) {
+  let definition;
+  global.Page = (config) => { definition = config; };
+  delete require.cache[require.resolve(modulePath)];
+  require(modulePath);
+  const page = {};
+  Object.keys(definition).forEach((key) => { page[key] = key === "data" ? JSON.parse(JSON.stringify(definition.data)) : definition[key]; });
+  page.setData = function setData(patch, callback) { Object.keys(patch).forEach((path) => setPath(this.data, path, patch[path])); if (callback) callback(); };
+  return page;
+}
 
 const { buildScores } = require("../miniprogram/utils/hotelScore");
 const { buildStoryModel, loadStoryPreferences, saveStoryPreferences } = require("../miniprogram/utils/storyRenderer");
@@ -48,4 +69,28 @@ assert.strictEqual(merged.wished, true);
 assert.notStrictEqual(mapData.located[0].latitude, mapData.located[1].latitude);
 assert.strictEqual(filterMapPoints(mapData.located, "restaurant").length, 1);
 assert.strictEqual(toMarkers(mapData.located).length, 2);
+
+memory.hotel_review_records = [recordA, experience("old", "旧年酒店", "2025-05-01", 8, "p-old")];
+const yearbookPage = loadPage("../miniprogram/pages/yearbook/index.js");
+yearbookPage.onShow();
+const oldYearIndex = yearbookPage.data.years.indexOf("2025");
+yearbookPage.onYearChange({ detail: { value: oldYearIndex } });
+assert.strictEqual(yearbookPage.data.year, "2025");
+memory.hotel_review_records.push(experience("old-2", "旧年餐厅", "2025-06-01", 9, "p-old-2"));
+yearbookPage.onShow();
+assert.strictEqual(yearbookPage.data.year, "2025", "returning to the page preserves the selected year");
+assert.strictEqual(yearbookPage.data.records.length, 3, "returning to the page reloads newly added records");
+
+const missingStoryPage = loadPage("../miniprogram/pages/story/index.js");
+missingStoryPage.onLoad({ id: "missing-record" });
+assert.strictEqual(missingStoryPage.data.missing, true);
+assert(ui.toasts.includes("体验不存在"));
+missingStoryPage.goBack();
+assert.strictEqual(ui.backCount, 1);
+
+const travelMapPage = loadPage("../miniprogram/pages/travel-map/index.js");
+travelMapPage.onShow();
+assert.strictEqual(travelMapPage.data.showEmptyState, true);
+assert.strictEqual(travelMapPage.data.emptyTitle, "地图还是空的");
+assert(travelMapPage.data.emptyMeta.includes("等待补充位置"));
 console.log("travel map, story and yearbook tests passed");

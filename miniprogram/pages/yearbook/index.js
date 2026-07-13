@@ -5,10 +5,10 @@ const { fileExists } = require("../../utils/mediaStore");
 
 Page({
   data: { records: [], ledgers: [], years: [], yearLabels: [], yearIndex: 0, year: "", preferences: null, model: null, photoOptions: [], exporting: false },
-  onShow() { if (!this.data.year) this.load(); },
+  onShow() { this.load(); },
   load() {
-    const records = getRecords(); const ledgers = getLedgers(); const years = getAvailableYears(records).filter((year) => year !== "all"); const year = years[0] || String(new Date().getFullYear());
-    this.setData({ records, ledgers, years: years.length ? years : [year], yearLabels: (years.length ? years : [year]).map((item) => `${item} 年`), yearIndex: 0, year }, () => this.loadYear(year));
+    const records = getRecords(); const ledgers = getLedgers(); const availableYears = getAvailableYears(records).filter((year) => year !== "all"); const fallbackYear = String(new Date().getFullYear()); const years = availableYears.length ? availableYears : [fallbackYear]; const yearIndex = Math.max(0, years.indexOf(this.data.year)); const year = years[yearIndex];
+    this.setData({ records, ledgers, years, yearLabels: years.map((item) => `${item} 年`), yearIndex, year }, () => this.loadYear(year));
   },
   loadYear(year) { const stored = loadYearbookPreferences(year) || {}; const initial = buildYearbook(this.data.records, this.data.ledgers, year, stored); const preferences = { title: stored.title || initial.title, photoIds: stored.photoIds || initial.photoIds, includeAa: !!stored.includeAa }; this.setData({ year, preferences, model: buildYearbook(this.data.records, this.data.ledgers, year, preferences) }, () => this.refreshPhotos()); },
   refreshPhotos() { const selected = new Set(this.data.preferences.photoIds); const options = this.data.records.filter((record) => record.status !== "draft" && String(record.stayDate || record.createdAt).slice(0, 4) === this.data.year).reduce((items, record) => items.concat((record.photos || []).filter((photo) => fileExists(photo.filePath)).map((photo) => ({ ...photo, recordName: record.displayName, checked: selected.has(photo.id) }))), []); this.setData({ photoOptions: options }); },

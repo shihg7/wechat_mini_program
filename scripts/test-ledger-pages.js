@@ -136,6 +136,10 @@ function testLedgerListManagementMenu() {
   page.onShow();
   assert.strictEqual(page.data.totalCount, 1);
   assert.strictEqual(page.data.totalSpentText, "¥0.00");
+  assert.strictEqual(page.data.ledgers[0].status, "empty");
+  assert.strictEqual(page.data.ledgers[0].statusText, "未记账");
+  assert.strictEqual(page.data.activeCount, 0);
+  assert.strictEqual(page.data.settledCount, 0);
   page.manageLedger({ currentTarget: { dataset: { id: ledger.id } } });
   assert(ui.navigations.some((url) => url.indexOf(`/pages/ledger/edit/edit?id=${ledger.id}`) === 0));
   ui.actionIndex = 1;

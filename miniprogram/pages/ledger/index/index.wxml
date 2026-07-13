@@ -34,6 +34,6 @@
     <view class="ledger-heading"><view class="ledger-title">{{item.title || "未命名账本"}}</view><view class="status-tag {{item.status}}">{{item.statusText}}</view></view>
     <view class="ledger-total">{{item.totalText}}</view>
     <view class="ledger-meta">{{item.city || "未填写城市"}} · {{item.memberCount}} 人 · {{item.expenseCount}} 笔</view>
-    <view class="ledger-bottom"><view class="remaining {{item.status}}">{{item.status === "settled" ? "无需转账" : "待结算 " + item.remainingText}}</view><view class="manage" catchtap="manageLedger" data-id="{{item.id}}">管理 ···</view></view>
+    <view class="ledger-bottom"><view class="remaining {{item.status}}">{{item.status === "empty" ? "尚未记录支出" : item.status === "settled" ? "无需转账" : "待结算 " + item.remainingText}}</view><view class="manage" catchtap="manageLedger" data-id="{{item.id}}">管理 ···</view></view>
   </view>
 </view>

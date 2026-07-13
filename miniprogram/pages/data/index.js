@@ -112,9 +112,9 @@ Page({
     const preview = this.data.preview;
     const legacyNote = replace && preview.schemaVersion === 1 ? "旧版备份不含账本，现有账本会保留。" : "";
     wx.showModal({
-      title: replace ? "确认覆盖体验数据？" : "确认合并备份？",
+      title: replace ? "确认覆盖全部本地数据？" : "确认合并备份？",
       content: replace
-        ? `将用备份中的 ${preview.recordCount} 条记录、${preview.placeCount} 个地点${preview.schemaVersion >= 2 ? `、${preview.ledgerCount} 本账本` : ""}${preview.schemaVersion >= 5 ? `、${preview.wishlistCount} 个想去项` : ""}${preview.schemaVersion >= 8 ? `、${preview.wheelCount} 个转盘` : ""}替换本地数据。${legacyNote}`
+        ? `将使用备份替换体验、地点、想去、行程、账本、转盘、模板和偏好。备份包含 ${preview.recordCount} 条记录、${preview.placeCount} 个地点${preview.schemaVersion >= 2 ? `、${preview.ledgerCount} 本账本` : ""}${preview.schemaVersion >= 5 ? `、${preview.wishlistCount} 个想去项` : ""}${preview.schemaVersion >= 8 ? `、${preview.wheelCount} 个转盘` : ""}。${legacyNote}`
         : "同 ID 的不同内容会安全改名，记录与账本支出的关联会同步保留。",
       confirmText: replace ? "确认覆盖" : "确认合并",
       confirmColor: replace ? "#a33d2d" : "#2864d9",

@@ -7,3 +7,4 @@
   <button class="export-button" loading="{{exporting}}" bindtap="exportStory">生成分享长图</button>
   <canvas type="2d" id="storyCanvas" class="hidden-canvas"></canvas>
 </scroll-view>
+<scroll-view class="page" scroll-y wx:if="{{missing}}"><view class="section"><view class="section-title">找不到这条体验</view><view class="privacy">记录可能已经被删除或被备份恢复替换。</view><button class="export-button" bindtap="goBack">返回上一页</button></view></scroll-view>

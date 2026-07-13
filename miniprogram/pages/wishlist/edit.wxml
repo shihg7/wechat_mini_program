@@ -1,4 +1,4 @@
-<scroll-view class="page" scroll-y>
+<scroll-view class="page" scroll-y wx:if="{{!missing}}">
   <view class="hero"><view class="eyebrow">TRAVEL WISHLIST</view><view class="title">{{mode === "create" ? "新增想去地点" : form.name}}</view><view class="hero-meta">{{form.type === "restaurant" ? "餐厅" : "酒店"}} · {{form.status === "booked" ? "已预订" : form.status === "visited" ? "已到访" : "想去"}}</view></view>
   <view class="section">
     <view class="segments" wx:if="{{!readonly}}"><view class="segment {{form.type === 'hotel' ? 'active' : ''}}" data-type="hotel" bindtap="onTypeTap">酒店</view><view class="segment {{form.type === 'restaurant' ? 'active' : ''}}" data-type="restaurant" bindtap="onTypeTap">餐厅</view></view>
@@ -17,5 +17,6 @@
     <view class="field"><view class="label">计划备注</view><textarea class="textarea" disabled="{{readonly}}" value="{{form.note}}" data-field="note" bindinput="onInput" /></view>
   </view>
   <view class="actions" wx:if="{{!readonly}}"><button class="button primary" bindtap="save">保存</button></view>
-  <view class="actions" wx:else><button class="button primary" wx:if="{{form.status !== 'visited'}}" bindtap="recordVisit">记录到访</button><button class="button secondary" wx:if="{{form.status !== 'visited'}}" bindtap="addToTrip">{{form.tripId ? "调整行程" : "加入行程"}}</button><button class="button secondary" bindtap="edit">编辑</button><button class="button danger" bindtap="remove">删除</button></view>
+  <block wx:else><view class="actions" wx:if="{{form.status !== 'visited'}}"><button class="button primary" bindtap="recordVisit">记录到访</button><button class="button secondary" bindtap="addToTrip">{{form.tripId ? "调整行程" : "加入行程"}}</button></view><view class="actions"><button class="button secondary" bindtap="edit">编辑</button><button class="button danger" bindtap="remove">删除</button></view></block>
 </scroll-view>
+<scroll-view class="page" scroll-y wx:if="{{missing}}"><view class="section"><view class="suggestion-title">找不到这条想去计划</view><view class="label spaced">它可能已经被删除或被备份恢复替换。</view><button class="button primary plain-button" bindtap="goBack">返回上一页</button></view></scroll-view>

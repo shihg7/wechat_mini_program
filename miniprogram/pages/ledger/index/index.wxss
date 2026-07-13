@@ -33,9 +33,11 @@
 .status-tag { flex: none; padding: 4rpx 10rpx; border-radius: 6rpx; font-size: 19rpx; font-weight: 700; }
 .status-tag.active { background: #fff0de; color: #a35b12; }
 .status-tag.settled { background: #e7f4ef; color: #1f7a55; }
+.status-tag.empty { background: #eef0f2; color: #667085; }
 .ledger-total { position: absolute; right: 26rpx; top: 25rpx; font-size: 30rpx; font-weight: 800; }
 .ledger-meta { margin-top: 9rpx; color: #667085; font-size: 23rpx; line-height: 34rpx; }
 .ledger-bottom { margin-top: 20rpx; padding-top: 18rpx; border-top: 1rpx solid #edf0f3; }
 .remaining { color: #a34b32; font-size: 23rpx; font-weight: 700; }
 .remaining.settled { color: #1f7a55; }
+.remaining.empty { color: #667085; }
 .manage { min-width: 100rpx; color: #2864d9; font-size: 23rpx; font-weight: 700; text-align: right; }

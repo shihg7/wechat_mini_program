@@ -2,16 +2,18 @@ const tripStore = require("../../utils/tripStore");
 const { getLedgers } = require("../../utils/repositories/ledgerRepository");
 
 Page({
-  data: { id: "", trip: null, summary: null, ledgers: [], editingExpenseId: "", expense: { title: "", amountText: "", category: "餐饮", date: "", currency: "CNY", rate: "1", note: "" }, categories: tripStore.CATEGORIES },
-  onLoad(options) { this.setData({ id: options.id || "" }); },
+  data: { id: "", trip: null, summary: null, missing: false, ledgers: [], editingExpenseId: "", expense: { title: "", amountText: "", category: "餐饮", date: "", currency: "CNY", rate: "1", note: "" }, categories: tripStore.CATEGORIES },
+  onLoad(options = {}) { this.setData({ id: options.id || "" }); },
   onShow() { this.load(); },
   load() {
     const trip = tripStore.getTripById(this.data.id);
+    if (!trip) { if (!this.data.missing) wx.showToast({ title: "行程不存在", icon: "none" }); this.setData({ trip: null, summary: null, missing: true }); return; }
     const ledgers = getLedgers();
     const summary = tripStore.calculateBudget(trip, ledgers);
     summary.byCategory = summary.byCategory.map((row) => ({ ...row, budgetInput: row.budgetCents ? String(row.budgetCents / 100) : "" }));
-    this.setData({ trip, summary, ledgers: ledgers.map((ledger) => { const expenses = ledger.expenses || []; const amountCents = expenses.reduce((sum, expense) => sum + Number(expense.amountCents || 0), 0); return { ...ledger, linked: trip.linkedLedgerIds.indexOf(ledger.id) >= 0, expenseCount: expenses.length, amountText: tripStore.money(amountCents) }; }), "expense.currency": trip.baseCurrency, "expense.date": this.data.expense.date || trip.startDate });
+    this.setData({ trip, summary, missing: false, ledgers: ledgers.map((ledger) => { const expenses = ledger.expenses || []; const amountCents = expenses.reduce((sum, expense) => sum + Number(expense.amountCents || 0), 0); return { ...ledger, linked: trip.linkedLedgerIds.indexOf(ledger.id) >= 0, expenseCount: expenses.length, amountText: tripStore.money(amountCents) }; }), "expense.currency": trip.baseCurrency, "expense.date": this.data.expense.date || trip.startDate });
   },
+  goBack() { wx.navigateBack(); },
   input(event) { this.setData({ [`expense.${event.currentTarget.dataset.field}`]: event.detail.value }); },
   expenseDate(event) { this.setData({ "expense.date": event.detail.value }); },
   category(event) { this.setData({ "expense.category": event.currentTarget.dataset.value }); },

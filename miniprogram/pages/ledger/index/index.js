@@ -10,16 +10,18 @@ function buildListItem(ledger) {
   const summary = ledgerStore.calculateLedgerSummary(ledger);
   const settlements = ledgerStore.calculateSettlements(ledger) || [];
   const remainingCents = settlements.reduce((total, item) => total + Number(item.amountCents || 0), 0);
+  const expenseCount = summary.expenseCount;
+  const status = expenseCount === 0 ? "empty" : remainingCents > 0 ? "active" : "settled";
   return Object.assign({}, ledger, {
     totalCents: summary.totalCents,
     totalText: summary.totalText,
-    expenseCount: summary.expenseCount,
+    expenseCount,
     memberCount: memberCount(ledger),
     settlementCount: settlements.length,
     remainingCents,
     remainingText: ledgerStore.formatCents(remainingCents),
-    status: remainingCents > 0 ? "active" : "settled",
-    statusText: remainingCents > 0 ? "进行中" : "已结清"
+    status,
+    statusText: status === "empty" ? "未记账" : status === "active" ? "进行中" : "已结清"
   });
 }
 
@@ -41,11 +43,12 @@ Page({
       ? ledgerStore.getLedgers()
       : ledgerStore.getLedgerListItems();
     const ledgers = source.map(buildListItem);
+    const activeCount = ledgers.filter((item) => item.status === "active").length;
     const settledCount = ledgers.filter((item) => item.status === "settled").length;
     this.setData({
       ledgers,
       totalCount: ledgers.length,
-      activeCount: ledgers.length - settledCount,
+      activeCount,
       settledCount,
       totalSpentText: ledgerStore.formatCents(ledgers.reduce((sum, item) => sum + item.totalCents, 0))
     });

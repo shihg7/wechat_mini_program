@@ -3,15 +3,16 @@ const { LAYOUTS, buildStoryModel, loadStoryPreferences, renderStory, saveStoryPr
 const { withAvailability } = require("../../utils/mediaStore");
 
 Page({
-  data: { record: null, layouts: LAYOUTS, optionItems: [{ key: "showCity", label: "城市" }, { key: "showMonth", label: "月份" }, { key: "showScore", label: "总分" }, { key: "showCategories", label: "分类评分" }, { key: "showTags", label: "标签" }, { key: "showSummary", label: "公开摘要" }], preferences: null, photoOptions: [], model: null, exporting: false },
+  data: { record: null, missing: false, layouts: LAYOUTS, optionItems: [{ key: "showCity", label: "城市" }, { key: "showMonth", label: "月份" }, { key: "showScore", label: "总分" }, { key: "showCategories", label: "分类评分" }, { key: "showTags", label: "标签" }, { key: "showSummary", label: "公开摘要" }], preferences: null, photoOptions: [], model: null, exporting: false },
   onLoad(options) {
     const record = getRecordById(options && options.id);
-    if (!record) return wx.showToast({ title: "体验不存在", icon: "none" });
+    if (!record) { this.setData({ missing: true }); wx.showToast({ title: "体验不存在", icon: "none" }); return; }
     const stored = loadStoryPreferences(record.id) || {};
     const preferences = { title: stored.title || record.displayName, layout: stored.layout || "archive", photoIds: stored.photoIds || (record.photos || []).slice(0, 6).map((photo) => photo.id), options: { showCity: true, showMonth: true, showScore: true, showCategories: true, showTags: true, showSummary: true, ...(stored.options || {}) } };
     const photoOptions = withAvailability(record.photos, record.recordType).map((photo) => ({ ...photo, checked: preferences.photoIds.indexOf(photo.id) >= 0 }));
     this.setData({ record, preferences, photoOptions, model: buildStoryModel(record, preferences) });
   },
+  goBack() { wx.navigateBack(); },
   refreshModel() { saveStoryPreferences(this.data.record.id, this.data.preferences); this.setData({ model: buildStoryModel(this.data.record, this.data.preferences) }); },
   onTitleInput(event) { this.setData({ "preferences.title": event.detail.value }, () => this.refreshModel()); },
   onLayoutTap(event) { this.setData({ "preferences.layout": event.currentTarget.dataset.value }, () => this.refreshModel()); },

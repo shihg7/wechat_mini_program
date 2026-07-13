@@ -1,7 +1,7 @@
 const assert = require("assert");
 
 const memory = {};
-const ui = { toasts: [], navigations: [], locationMode: "success" };
+const ui = { toasts: [], navigations: [], locationMode: "success", leaveAlertEnabled: false };
 const savedFiles = new Set();
 let photoIndex = 0;
 global.wx = {
@@ -13,8 +13,8 @@ global.wx = {
   navigateBack() {},
   navigateTo(options) { ui.navigations.push(options.url); },
   redirectTo(options) { ui.navigations.push(options.url); },
-  enableAlertBeforeUnload() {},
-  disableAlertBeforeUnload() {},
+  enableAlertBeforeUnload() { ui.leaveAlertEnabled = true; },
+  disableAlertBeforeUnload() { ui.leaveAlertEnabled = false; },
   chooseLocation(options) {
     if (ui.locationMode === "success") options.success({ name: "地图酒店", address: "上海市浦东新区世纪大道", latitude: 31.2, longitude: 121.5 });
     else options.fail({ errMsg: "chooseLocation:fail auth deny" });
@@ -71,6 +71,7 @@ function reset() {
   ui.toasts = [];
   ui.navigations = [];
   ui.locationMode = "success";
+  ui.leaveAlertEnabled = false;
   savedFiles.clear();
 }
 
@@ -128,6 +129,8 @@ function testWishlistPageRequiresExplicitPlaceChoice() {
   const page = loadPage("../miniprogram/pages/wishlist/edit.js");
   page.onLoad({ type: "hotel" });
   page.onInput(input("name", "明确关联酒店"));
+  assert.strictEqual(page.data.dirty, true);
+  assert.strictEqual(ui.leaveAlertEnabled, true);
   page.onInput(input("city", "上海"));
   assert.strictEqual(page.data.suggestions.length, 1);
   page.save();
@@ -139,6 +142,29 @@ function testWishlistPageRequiresExplicitPlaceChoice() {
   const saved = wishlistApi.getWishlist()[0];
   assert.strictEqual(saved.placeId, place.id);
   assert.strictEqual(saved.priority, "high");
+  assert.strictEqual(page.data.dirty, false);
+  assert.strictEqual(ui.leaveAlertEnabled, false);
+}
+
+function testWishlistMissingAndPlaceEditDiscard() {
+  reset();
+  const missingPage = loadPage("../miniprogram/pages/wishlist/edit.js");
+  missingPage.onLoad({ id: "missing-wishlist" });
+  assert.strictEqual(missingPage.data.missing, true);
+
+  const place = placesApi.createPlace({ type: "restaurant", name: "原地点", city: "上海" });
+  const placePage = loadPage("../miniprogram/pages/place/detail.js");
+  placePage.onLoad({ id: place.id });
+  placePage.onShow();
+  placePage.startEdit();
+  placePage.onInput(input("name", "未保存的新名称"));
+  assert.strictEqual(placePage.data.dirty, true);
+  assert.strictEqual(ui.leaveAlertEnabled, true);
+  placePage.cancelEdit();
+  assert.strictEqual(placePage.data.editing, false);
+  assert.strictEqual(placePage.data.dirty, false);
+  assert.strictEqual(placePage.data.form.name, "原地点");
+  assert.strictEqual(ui.leaveAlertEnabled, false);
 }
 
 function testSuggestedPlaceAndRepeatedVisit() {
@@ -225,6 +251,7 @@ async function run() {
   testPlaceDetailMergeAndDeleteProtection();
   testWishlistConvertsAfterRecordSave();
   testWishlistPageRequiresExplicitPlaceChoice();
+  testWishlistMissingAndPlaceEditDiscard();
   await testPhotoClickFlow();
   console.log("record and place page tests passed");
 }

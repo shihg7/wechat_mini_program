@@ -7,13 +7,22 @@ function emptyForm(type = "hotel") {
 }
 
 Page({
-  data: { mode: "create", itemId: "", readonly: false, form: emptyForm(), statuses: wishlistRepository.STATUSES, priorities: wishlistRepository.PRIORITIES, suggestions: [], placeChoiceConfirmed: false, dirty: false, trips: [] },
+  data: { mode: "create", itemId: "", readonly: false, missing: false, form: emptyForm(), statuses: wishlistRepository.STATUSES, priorities: wishlistRepository.PRIORITIES, suggestions: [], placeChoiceConfirmed: false, dirty: false, trips: [] },
   onLoad(options) {
-    this.setData({ trips: tripStore.getTrips().filter((trip) => trip.status !== "ended" && trip.status !== "archived") });
+    this.refreshTrips();
     if (options && options.id) this.loadItem(options.id);
     else if (options && options.placeId) this.loadPlace(options.placeId);
     else this.setData({ form: emptyForm(options && options.type === "restaurant" ? "restaurant" : "hotel") });
   },
+  onShow() { this.refreshTrips(); },
+  onUnload() { this.setLeaveAlert(false); },
+  refreshTrips() { this.setData({ trips: tripStore.getTrips().filter((trip) => trip.status !== "ended" && trip.status !== "archived") }); },
+  setLeaveAlert(enabled) {
+    if (enabled && wx.enableAlertBeforeUnload) wx.enableAlertBeforeUnload({ message: "想去计划尚未保存，确定离开吗？" });
+    if (!enabled && wx.disableAlertBeforeUnload) wx.disableAlertBeforeUnload();
+  },
+  markDirty(patch, callback) { this.setData({ ...patch, dirty: true }, () => { this.setLeaveAlert(true); if (callback) callback(); }); },
+  clearDirty() { this.setData({ dirty: false }); this.setLeaveAlert(false); },
   loadPlace(placeId) {
     const place = placeRepository.getPlaceById(placeId);
     if (!place) return this.setData({ form: emptyForm() });
@@ -21,18 +30,20 @@ Page({
   },
   loadItem(id) {
     const item = wishlistRepository.getWishlistItem(id);
-    if (!item) return wx.showToast({ title: "清单项不存在", icon: "none" });
+    if (!item) { this.setData({ missing: true }); wx.showToast({ title: "清单项不存在", icon: "none" }); return; }
     this.setData({ mode: "detail", itemId: item.id, readonly: true, form: item, placeChoiceConfirmed: !!item.placeId, dirty: false });
+    this.setLeaveAlert(false);
   },
   edit() { this.setData({ mode: "edit", readonly: false, dirty: false }); },
-  onTypeTap(event) { if (!this.data.readonly) this.setData({ "form.type": event.currentTarget.dataset.type, "form.placeId": "", placeChoiceConfirmed: false, dirty: true }, () => this.refreshSuggestions()); },
+  goBack() { wx.navigateBack(); },
+  onTypeTap(event) { if (!this.data.readonly) this.markDirty({ "form.type": event.currentTarget.dataset.type, "form.placeId": "", placeChoiceConfirmed: false }, () => this.refreshSuggestions()); },
   onInput(event) {
     const field = event.currentTarget.dataset.field;
-    this.setData({ [`form.${field}`]: event.detail.value, dirty: true }, () => { if (["name", "city"].indexOf(field) >= 0) this.refreshSuggestions(); });
+    this.markDirty({ [`form.${field}`]: event.detail.value }, () => { if (["name", "city"].indexOf(field) >= 0) this.refreshSuggestions(); });
   },
-  onDateChange(event) { this.setData({ "form.targetDate": event.detail.value, dirty: true }); },
-  onStatusTap(event) { if (!this.data.readonly) this.setData({ "form.status": event.currentTarget.dataset.value, dirty: true }); },
-  onPriorityTap(event) { if (!this.data.readonly) this.setData({ "form.priority": event.currentTarget.dataset.value, dirty: true }); },
+  onDateChange(event) { this.markDirty({ "form.targetDate": event.detail.value }); },
+  onStatusTap(event) { if (!this.data.readonly) this.markDirty({ "form.status": event.currentTarget.dataset.value }); },
+  onPriorityTap(event) { if (!this.data.readonly) this.markDirty({ "form.priority": event.currentTarget.dataset.value }); },
   refreshSuggestions() {
     if (this.data.placeChoiceConfirmed || !this.data.form.name) return this.setData({ suggestions: [] });
     this.setData({ suggestions: placeRepository.findPlaceSuggestions({ type: this.data.form.type, name: this.data.form.name, city: this.data.form.city }).slice(0, 4) });
@@ -40,12 +51,12 @@ Page({
   selectPlace(event) {
     const place = placeRepository.getPlaceById(event.currentTarget.dataset.id);
     if (!place) return;
-    this.setData({ form: { ...this.data.form, type: place.type, name: place.name, city: place.city, area: place.area, address: place.address, latitude: place.latitude, longitude: place.longitude, placeId: place.id }, suggestions: [], placeChoiceConfirmed: true, dirty: true });
+    this.markDirty({ form: { ...this.data.form, type: place.type, name: place.name, city: place.city, area: place.area, address: place.address, latitude: place.latitude, longitude: place.longitude, placeId: place.id }, suggestions: [], placeChoiceConfirmed: true });
   },
-  createIndependent() { this.setData({ "form.placeId": "", suggestions: [], placeChoiceConfirmed: true, dirty: true }); },
+  createIndependent() { this.markDirty({ "form.placeId": "", suggestions: [], placeChoiceConfirmed: true }); },
   chooseLocation() {
     if (this.data.readonly || !wx.chooseLocation) return;
-    wx.chooseLocation({ success: (location) => this.setData({ "form.name": this.data.form.name || location.name || "", "form.address": location.address || "", "form.latitude": location.latitude, "form.longitude": location.longitude, placeChoiceConfirmed: false, dirty: true }, () => this.refreshSuggestions()), fail: (error) => { if (String(error && error.errMsg).indexOf("cancel") < 0) wx.showToast({ title: "可继续手工填写", icon: "none" }); } });
+    wx.chooseLocation({ success: (location) => this.markDirty({ "form.name": this.data.form.name || location.name || "", "form.address": location.address || "", "form.latitude": location.latitude, "form.longitude": location.longitude, placeChoiceConfirmed: false }, () => this.refreshSuggestions()), fail: (error) => { if (String(error && error.errMsg).indexOf("cancel") < 0) wx.showToast({ title: "可继续手工填写", icon: "none" }); } });
   },
   save() {
     if (!String(this.data.form.name || "").trim()) return wx.showToast({ title: "先填写名称", icon: "none" });
@@ -53,6 +64,7 @@ Page({
     try {
       const item = this.data.mode === "edit" ? wishlistRepository.updateWishlistItem(this.data.itemId, this.data.form) : wishlistRepository.addWishlistItem(this.data.form);
       this.setData({ mode: "detail", itemId: item.id, readonly: true, form: item, dirty: false });
+      this.setLeaveAlert(false);
       wx.showToast({ title: "已保存", icon: "success" });
     } catch (error) { wx.showToast({ title: error.message || "保存失败", icon: "none" }); }
   },
@@ -67,6 +79,6 @@ Page({
     wx.showActionSheet({ itemList: choices.map((trip) => trip.title), success: (result) => { const trip = choices[result.tapIndex]; const item = tripStore.addItineraryItem(trip.id, { type: this.data.form.type, title: this.data.form.name, date: this.data.form.targetDate >= trip.startDate && this.data.form.targetDate <= trip.endDate ? this.data.form.targetDate : trip.startDate, placeId: this.data.form.placeId, wishlistId: this.data.itemId, city: this.data.form.city }); wishlistRepository.updateWishlistItem(this.data.itemId, { tripId: trip.id, itineraryItemId: item.itineraryItems[item.itineraryItems.length - 1].id }); this.loadItem(this.data.itemId); wx.showToast({ title: "已加入行程", icon: "success" }); } });
   },
   remove() {
-    wx.showModal({ title: "删除清单项", content: "确认删除这条计划吗？", confirmText: "删除", confirmColor: "#a34b32", success: (result) => { if (!result.confirm) return; wishlistRepository.deleteWishlistItem(this.data.itemId); wx.navigateBack(); } });
+    wx.showModal({ title: "删除清单项", content: "确认删除这条计划吗？", confirmText: "删除", confirmColor: "#a34b32", success: (result) => { if (!result.confirm) return; this.setLeaveAlert(false); wishlistRepository.deleteWishlistItem(this.data.itemId); wx.navigateBack(); } });
   }
 });

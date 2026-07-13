@@ -1,13 +1,17 @@
 const assert = require("assert");
 const memory = {};
-const ui = { toasts: [], navigations: [], modalContent: "" };
+const ui = { toasts: [], navigations: [], modalContent: "", actionItems: [], backCount: 0, leaveAlertCount: 0 };
 global.wx = {
   getStorageSync(key) { return memory[key]; },
   setStorageSync(key, value) { memory[key] = JSON.parse(JSON.stringify(value)); },
   showToast(options) { ui.toasts.push(options.title); },
   showModal(options) { ui.modalContent = options.content || ""; if (options.success) options.success({ confirm: true }); },
   navigateTo(options) { ui.navigations.push(options.url); },
-  navigateBack() {}
+  redirectTo(options) { ui.navigations.push(options.url); },
+  navigateBack() { ui.backCount += 1; },
+  showActionSheet(options) { ui.actionItems = options.itemList || []; },
+  enableAlertBeforeUnload() { ui.leaveAlertCount += 1; },
+  disableAlertBeforeUnload() { ui.leaveAlertCount = Math.max(0, ui.leaveAlertCount - 1); }
 };
 
 function setPath(target, path, value) { const parts = path.split("."); let cursor = target; parts.slice(0, -1).forEach((part) => { if (!cursor[part]) cursor[part] = {}; cursor = cursor[part]; }); cursor[parts[parts.length - 1]] = value; }
@@ -25,9 +29,14 @@ indexPage.search({ detail: { value: "周年" } });
 assert.strictEqual(indexPage.data.trips.length, 1);
 indexPage.search({ detail: { value: "北京" } });
 assert.strictEqual(indexPage.data.trips.length, 0);
-indexPage.search({ detail: { value: "" } });
+assert.strictEqual(indexPage.data.allTripCount, 1);
+assert.strictEqual(indexPage.data.hasActiveFilters, true);
+indexPage.clearFilters();
+assert.strictEqual(indexPage.data.keyword, "");
+assert.strictEqual(indexPage.data.trips.length, 1);
 indexPage.filterStatus({ currentTarget: { dataset: { status: "active" } } });
 assert.strictEqual(indexPage.data.trips.length, 0);
+assert.strictEqual(indexPage.data.allTripCount, 1);
 
 const detailPage = loadPage("../miniprogram/pages/trip/detail.js");
 memory.experience_demo_mode_state = { active: true, startedAt: "2026-07-13T00:00:00.000Z", completedStepIds: [] };
@@ -44,6 +53,8 @@ assert.strictEqual(detailPage.data.days[0].items.length, 3);
 assert(ui.toasts.includes("已复制日程"));
 detailPage.copyDay({ currentTarget: { dataset: { date: "2026-08-01" } } });
 assert.strictEqual(detailPage.data.days[0].items.length, 6);
+detailPage.showMoreActions();
+assert.deepStrictEqual(ui.actionItems, ["复制行程", "删除行程"]);
 detailPage.removeTrip();
 assert(ui.modalContent.includes("6 项日程"));
 assert(tripStore.getTripById(trip.id));
@@ -60,5 +71,28 @@ assert.strictEqual(tripStore.getTripById(trip.id).personalExpenses[0].amountCent
 assert(ui.toasts.includes("支出已更新"));
 budgetPage.removeExpense({ currentTarget: { dataset: { id: expenseId } } });
 assert.strictEqual(tripStore.getTripById(trip.id).personalExpenses.length, 0);
+
+const missingDetailPage = loadPage("../miniprogram/pages/trip/detail.js");
+missingDetailPage.onLoad({ id: "missing-trip" });
+missingDetailPage.onShow();
+assert.strictEqual(missingDetailPage.data.missing, true);
+missingDetailPage.goBack();
+
+const missingBudgetPage = loadPage("../miniprogram/pages/trip/budget.js");
+missingBudgetPage.onLoad({ id: "missing-trip" });
+missingBudgetPage.onShow();
+assert.strictEqual(missingBudgetPage.data.missing, true);
+
+const missingEditPage = loadPage("../miniprogram/pages/trip/edit.js");
+missingEditPage.onLoad({ id: "missing-trip" });
+assert.strictEqual(missingEditPage.data.missing, true);
+assert.strictEqual(missingEditPage.data.mode, "create", "a missing edit target must not silently become a new trip");
+
+const createPage = loadPage("../miniprogram/pages/trip/edit.js");
+createPage.onLoad({});
+createPage.input({ currentTarget: { dataset: { field: "title" } }, detail: { value: "测试行程" } });
+assert.strictEqual(createPage.data.dirty, true);
+assert.strictEqual(ui.leaveAlertCount, 1);
+assert(ui.backCount >= 1);
 
 console.log("trip page interaction tests passed");

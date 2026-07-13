@@ -17,7 +17,8 @@ Page({
     visits: [],
     mergeCandidates: [],
     editing: false,
-    form: null
+    form: null,
+    dirty: false
   },
 
   onLoad(options) {
@@ -25,8 +26,17 @@ Page({
   },
 
   onShow() {
-    if (this.data.placeId) this.refresh();
+    if (this.data.placeId && !this.data.editing) this.refresh();
   },
+
+  onUnload() { this.setLeaveAlert(false); },
+
+  setLeaveAlert(enabled) {
+    if (enabled && wx.enableAlertBeforeUnload) wx.enableAlertBeforeUnload({ message: "地点修改尚未保存，确定离开吗？" });
+    if (!enabled && wx.disableAlertBeforeUnload) wx.disableAlertBeforeUnload();
+  },
+
+  markDirty(patch) { this.setData({ ...patch, dirty: true }); this.setLeaveAlert(true); },
 
   refresh() {
     const place = getPlaceById(this.data.placeId);
@@ -58,23 +68,32 @@ Page({
   },
 
   startEdit() {
-    this.setData({ editing: true });
+    this.setData({ editing: true, dirty: false });
   },
 
   cancelEdit() {
+    if (this.data.dirty) {
+      wx.showModal({ title: "放弃修改？", content: "尚未保存的地点信息会丢失。", confirmText: "放弃", confirmColor: "#a34b32", success: (result) => { if (result.confirm) this.resetEdit(); } });
+      return;
+    }
+    this.resetEdit();
+  },
+
+  resetEdit() {
     const place = this.data.place;
-    this.setData({ editing: false, form: { ...place, aliasesText: (place.aliases || []).join("、") } });
+    this.setData({ editing: false, dirty: false, form: { ...place, aliasesText: (place.aliases || []).join("、") } });
+    this.setLeaveAlert(false);
   },
 
   onInput(event) {
-    this.setData({ [`form.${event.currentTarget.dataset.field}`]: event.detail.value });
+    this.markDirty({ [`form.${event.currentTarget.dataset.field}`]: event.detail.value });
   },
 
   chooseLocation() {
     if (!wx.chooseLocation) return;
     wx.chooseLocation({
       success: (location) => {
-        this.setData({
+        this.markDirty({
           "form.address": location.address || "",
           "form.latitude": location.latitude,
           "form.longitude": location.longitude,
@@ -99,7 +118,8 @@ Page({
         ...this.data.form,
         aliases: String(this.data.form.aliasesText || "").split(/[，,、\n]/).filter(Boolean)
       });
-      this.setData({ editing: false, place: updated });
+      this.setData({ editing: false, dirty: false, place: updated });
+      this.setLeaveAlert(false);
       this.refresh();
       wx.showToast({ title: "地点已更新", icon: "success" });
     } catch (error) {

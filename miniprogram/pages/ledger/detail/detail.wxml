@@ -4,7 +4,7 @@
     <view class="hero-main">
       <view class="eyebrow">SPLIT LEDGER</view>
       <view class="title">{{ledger.title}}</view>
-      <view class="summary">{{ledger.city || "未填写城市"}} · {{memberCount}} 位当前成员 · {{summary.expenseCount}} 笔</view>
+      <view class="summary icon-label"><ui-icon name="pin" size="{{24}}" tone="white" /><text>{{ledger.city || "未填写城市"}} · {{memberCount}} 位当前成员 · {{summary.expenseCount}} 笔</text></view>
     </view>
     <view class="total-card">
       <view class="total-value">{{summary.totalText}}</view>
@@ -13,43 +13,46 @@
   </view>
 
   <view class="settled-banner {{isSettled ? 'done' : 'pending'}}">
-    <view>
-      <view class="settled-title">{{isSettled ? "已结清" : "进行中"}}</view>
-      <view class="settled-desc">{{isSettled ? "所有支出与已确认转账已平衡" : "剩余待结算 " + remainingText}}</view>
+    <view class="settled-copy icon-label">
+      <ui-icon name="{{isSettled ? 'check' : 'alert'}}" size="{{30}}" tone="{{isSettled ? 'green' : 'accent'}}" />
+      <view>
+        <view class="settled-title">{{isSettled ? "已结清" : "进行中"}}</view>
+        <view class="settled-desc">{{isSettled ? "所有支出与已确认转账已平衡" : "剩余待结算 " + remainingText}}</view>
+      </view>
     </view>
-    <view class="copy-link" bindtap="copySettlementText">复制结算文本</view>
+    <view class="copy-link icon-label" bindtap="copySettlementText"><ui-icon name="copy" size="{{23}}" tone="blue" /><text>复制结算文本</text></view>
   </view>
 
   <view class="overview-grid">
     <view class="overview-item">
       <view class="overview-value">{{summary.averageText}}</view>
-      <view class="overview-label">人均</view>
+      <view class="overview-label icon-label"><ui-icon name="users" size="{{21}}" tone="muted" /><text>人均</text></view>
     </view>
     <view class="overview-item">
       <view class="overview-value">{{settlements.length}}</view>
-      <view class="overview-label">待转账</view>
+      <view class="overview-label icon-label"><ui-icon name="route" size="{{21}}" tone="muted" /><text>待转账</text></view>
     </view>
     <view class="overview-item">
       <view class="overview-value">{{transfers.length}}</view>
-      <view class="overview-label">结算记录</view>
+      <view class="overview-label icon-label"><ui-icon name="check" size="{{21}}" tone="muted" /><text>结算记录</text></view>
     </view>
   </view>
 
   <view class="quick-actions">
-    <button class="button primary" bindtap="openExpenseForm">{{showExpenseForm ? "继续填写" : "记一笔支出"}}</button>
-    <button class="button secondary" bindtap="editLedger">成员与账本</button>
-    <button class="button secondary" bindtap="toggleExportPanel">导出结算</button>
+    <button class="button primary icon-action" bindtap="openExpenseForm"><ui-icon name="plus" size="{{26}}" tone="white" /><text>{{showExpenseForm ? "继续填写" : "记一笔支出"}}</text></button>
+    <button class="button secondary icon-action" bindtap="editLedger"><ui-icon name="users" size="{{26}}" /><text>成员与账本</text></button>
+    <button class="button secondary icon-action" bindtap="toggleExportPanel"><ui-icon name="download" size="{{26}}" tone="blue" /><text>导出结算</text></button>
   </view>
 
   <view class="section export-panel" wx:if="{{showExportPanel}}">
-    <view class="section-head"><view><view class="section-title">导出结算</view><view class="section-subtitle">分享版会稳定匿名化成员和支出备注</view></view><view class="close-link" bindtap="toggleExportPanel">收起</view></view>
-    <view class="export-grid"><button class="export-button" loading="{{exporting}}" data-format="image" data-mode="redacted" bindtap="exportLedger">结算图片</button><button class="export-button" loading="{{exporting}}" data-format="pdf" data-mode="private" bindtap="exportLedger">私人 PDF</button><button class="export-button" loading="{{exporting}}" data-format="pdf" data-mode="redacted" bindtap="exportLedger">分享 PDF</button><button class="export-button" loading="{{exporting}}" data-format="json" data-mode="private" bindtap="exportLedger">明细 JSON</button></view>
+    <view class="section-head"><view><view class="section-title icon-label"><ui-icon name="download" size="{{28}}" tone="blue" /><text>导出结算</text></view><view class="section-subtitle">分享版会稳定匿名化成员和支出备注</view></view><view class="close-link" bindtap="toggleExportPanel">收起</view></view>
+    <view class="export-grid"><button class="export-button icon-action" loading="{{exporting}}" data-format="image" data-mode="redacted" bindtap="exportLedger"><ui-icon name="image" size="{{24}}" tone="blue" /><text>结算图片</text></button><button class="export-button icon-action" loading="{{exporting}}" data-format="pdf" data-mode="private" bindtap="exportLedger"><ui-icon name="file" size="{{24}}" /><text>私人 PDF</text></button><button class="export-button icon-action" loading="{{exporting}}" data-format="pdf" data-mode="redacted" bindtap="exportLedger"><ui-icon name="shield" size="{{24}}" tone="green" /><text>分享 PDF</text></button><button class="export-button icon-action" loading="{{exporting}}" data-format="json" data-mode="private" bindtap="exportLedger"><ui-icon name="database" size="{{24}}" tone="accent" /><text>明细 JSON</text></button></view>
   </view>
 
   <view class="section member-section">
     <view class="section-head">
       <view>
-        <view class="section-title">成员</view>
+        <view class="section-title icon-label"><ui-icon name="users" size="{{28}}" tone="green" /><text>成员</text></view>
         <view class="section-subtitle">归档成员仍保留在历史账目中</view>
       </view>
       <view class="mini-link" bindtap="editLedger">管理</view>
@@ -62,7 +65,7 @@
   <view class="section form-section" wx:if="{{showExpenseForm}}">
     <view class="section-head">
       <view>
-        <view class="section-title">{{editingExpenseId ? "编辑支出" : "记一笔支出"}}</view>
+        <view class="section-title icon-label"><ui-icon name="{{editingExpenseId ? 'edit' : 'receipt'}}" size="{{28}}" tone="blue" /><text>{{editingExpenseId ? "编辑支出" : "记一笔支出"}}</text></view>
         <view class="section-subtitle">{{editingExpenseId ? "历史归档成员会完整保留" : "新支出默认只包含当前成员"}}</view>
       </view>
       <view class="close-link" bindtap="closeExpenseForm">收起</view>
@@ -143,19 +146,19 @@
     </view>
 
     <view class="form-actions">
-      <button class="button primary" bindtap="saveExpense">{{editingExpenseId ? "保存修改" : "保存支出"}}</button>
-      <button class="button secondary" bindtap="closeExpenseForm">取消</button>
+      <button class="button primary icon-action" bindtap="saveExpense"><ui-icon name="check" size="{{26}}" tone="white" /><text>{{editingExpenseId ? "保存修改" : "保存支出"}}</text></button>
+      <button class="button secondary icon-action" bindtap="closeExpenseForm"><ui-icon name="x" size="{{25}}" tone="muted" /><text>取消</text></button>
     </view>
   </view>
 
   <view class="section priority-section">
     <view class="section-head">
       <view>
-        <view class="section-title">推荐转账方案</view>
+        <view class="section-title icon-label"><ui-icon name="route" size="{{28}}" tone="blue" /><text>推荐转账方案</text></view>
         <view class="section-subtitle">{{settlements.length ? "可按实际到账金额分次确认" : "当前无需转账"}}</view>
       </view>
     </view>
-    <view class="empty-inner success-empty" wx:if="{{!settlements.length}}">账目已经平衡。</view>
+    <view class="empty-inner success-empty icon-label" wx:if="{{!settlements.length}}"><ui-icon name="check" size="{{27}}" tone="green" /><text>账目已经平衡。</text></view>
     <view class="settlement-wrap" wx:for="{{settlements}}" wx:key="key">
       <view class="settlement">
         <view>
@@ -174,8 +177,8 @@
       <view class="transfer-form-desc">可输入部分到账金额，剩余金额会继续保留在推荐方案中。</view>
       <input class="input transfer-input" type="digit" value="{{pendingTransfer.amount}}" bindinput="onTransferAmountInput" />
       <view class="form-actions">
-        <button class="button primary" bindtap="confirmTransfer">确认到账</button>
-        <button class="button secondary inset" bindtap="cancelTransfer">取消</button>
+        <button class="button primary icon-action" bindtap="confirmTransfer"><ui-icon name="check" size="{{26}}" tone="white" /><text>确认到账</text></button>
+        <button class="button secondary inset icon-action" bindtap="cancelTransfer"><ui-icon name="x" size="{{25}}" tone="muted" /><text>取消</text></button>
       </view>
     </view>
   </view>
@@ -183,7 +186,7 @@
   <view class="section">
     <view class="section-head">
       <view>
-        <view class="section-title">结算历史</view>
+        <view class="section-title icon-label"><ui-icon name="book" size="{{28}}" tone="accent" /><text>结算历史</text></view>
         <view class="section-subtitle">已确认与已撤销记录均保留</view>
       </view>
     </view>
@@ -203,7 +206,7 @@
   <view class="section">
     <view class="section-head">
       <view>
-        <view class="section-title">成员净额</view>
+        <view class="section-title icon-label"><ui-icon name="users" size="{{28}}" tone="green" /><text>成员净额</text></view>
         <view class="section-subtitle">已计入确认转账；正数应收，负数应付</view>
       </view>
     </view>
@@ -219,7 +222,7 @@
   <view class="section">
     <view class="section-head">
       <view>
-        <view class="section-title">支出明细</view>
+        <view class="section-title icon-label"><ui-icon name="receipt" size="{{28}}" tone="blue" /><text>支出明细</text></view>
         <view class="section-subtitle">{{summary.expenseCount}} 笔</view>
       </view>
     </view>
@@ -234,8 +237,8 @@
       <view class="expense-side">
         <view class="expense-amount">{{item.amountText}}</view>
         <view class="expense-actions">
-          <view class="edit-link" data-id="{{item.id}}" bindtap="editExpense">编辑</view>
-          <view class="delete-link" data-id="{{item.id}}" bindtap="removeExpense">删除</view>
+          <view class="edit-link icon-label" data-id="{{item.id}}" bindtap="editExpense"><ui-icon name="edit" size="{{21}}" tone="blue" /><text>编辑</text></view>
+          <view class="delete-link icon-label" data-id="{{item.id}}" bindtap="removeExpense"><ui-icon name="trash" size="{{21}}" tone="accent" /><text>删除</text></view>
         </view>
       </view>
     </view>
@@ -244,7 +247,7 @@
   <view class="section">
     <view class="section-head">
       <view>
-        <view class="section-title">分类统计</view>
+        <view class="section-title icon-label"><ui-icon name="chart" size="{{28}}" tone="amber" /><text>分类统计</text></view>
         <view class="section-subtitle">{{summary.categories.length}} 类</view>
       </view>
     </view>

@@ -1,5 +1,7 @@
 {
-  "usingComponents": {},
+  "usingComponents": {
+    "ui-icon": "/components/ui-icon/index"
+  },
   "navigationBarTitleText": "数据管理",
   "disableScroll": false
 }

@@ -4,7 +4,7 @@
       <view class="eyebrow">DATA &amp; PRIVACY</view>
       <view class="title">数据管理</view>
     </view>
-    <view class="shield">隐私优先</view>
+    <view class="shield"><ui-icon name="shield" size="{{25}}" tone="green" /><text>隐私优先</text></view>
   </view>
 
   <view class="summary-band">
@@ -28,22 +28,25 @@
 
   <view class="section">
     <view class="section-head">
-      <view>
+      <view class="section-icon section-icon-blue"><ui-icon name="database" size="{{34}}" tone="blue" /></view>
+      <view class="section-copy">
         <view class="section-title">完整备份</view>
-      <view class="section-subtitle">体验、行程、转盘、模板、偏好与账本一起保存为 schemaVersion 8</view>
+        <view class="section-subtitle">体验、行程、转盘、模板、偏好与账本一起保存为 schemaVersion 8</view>
       </view>
     </view>
-    <button class="button primary" loading="{{exportingBackup}}" bindtap="exportBackup">导出完整备份</button>
+    <button class="button primary" loading="{{exportingBackup}}" bindtap="exportBackup"><ui-icon name="download" size="{{29}}" tone="white" /><text>导出完整备份</text></button>
     <view class="section-subtitle media-warning">照片文件保存在当前设备，JSON 只包含照片路径和说明，跨设备恢复不包含图片本身。</view>
   </view>
 
   <view class="section">
-    <view class="section-title">恢复数据</view>
-    <view class="section-subtitle">支持 v8 完整备份，并兼容 v1-v7</view>
-    <button class="button secondary" bindtap="chooseBackup">选择 JSON 文件</button>
+    <view class="section-head">
+      <view class="section-icon section-icon-green"><ui-icon name="upload" size="{{34}}" tone="green" /></view>
+      <view class="section-copy"><view class="section-title">恢复数据</view><view class="section-subtitle">支持 v8 完整备份，并兼容 v1-v7</view></view>
+    </view>
+    <button class="button secondary" bindtap="chooseBackup"><ui-icon name="file" size="{{29}}" /><text>选择 JSON 文件</text></button>
 
     <view class="preview" wx:if="{{preview}}">
-      <view class="file-name">{{selectedFileName}}</view>
+      <view class="file-name-row"><ui-icon name="file" size="{{29}}" tone="blue" /><view class="file-name">{{selectedFileName}}</view></view>
       <view class="preview-meta">版本 v{{preview.schemaVersion}} · {{preview.ledgersLabel}}</view>
       <view class="preview-grid">
         <view><text class="metric">{{preview.recordCount}}</text><text class="metric-label">记录</text></view>
@@ -55,34 +58,38 @@
       </view>
       <view class="preview-time">导出时间：{{preview.exportedAtText}}</view>
       <view class="action-row">
-        <button class="button merge" loading="{{importing}}" data-mode="merge" bindtap="confirmImport">合并导入</button>
-        <button class="button danger" loading="{{importing}}" data-mode="replace" bindtap="confirmImport">覆盖本地</button>
+        <button class="button merge" loading="{{importing}}" data-mode="merge" bindtap="confirmImport"><ui-icon name="upload" size="{{27}}" tone="blue" /><text>合并导入</text></button>
+        <button class="button danger" loading="{{importing}}" data-mode="replace" bindtap="confirmImport"><ui-icon name="refresh" size="{{27}}" tone="accent" /><text>覆盖本地</text></button>
       </view>
     </view>
   </view>
 
   <view class="section">
-    <view class="section-title">PDF 隐私版本</view>
+    <view class="section-head">
+      <view class="section-icon section-icon-accent"><ui-icon name="shield" size="{{34}}" tone="accent" /></view>
+      <view class="section-copy"><view class="section-title">PDF 隐私版本</view><view class="section-subtitle">按分享对象选择信息范围</view></view>
+    </view>
     <view class="privacy-option">
+      <view class="privacy-icon"><ui-icon name="file" size="{{29}}" /></view>
       <view class="privacy-copy">
         <view class="option-title">私人版</view>
         <view class="option-desc">保留完整字段，仅供自己归档</view>
       </view>
-      <button class="small-button dark" loading="{{exportingPdf}}" data-mode="private" bindtap="exportPdf">导出</button>
+      <button class="small-button dark" loading="{{exportingPdf}}" data-mode="private" bindtap="exportPdf"><ui-icon name="download" size="{{25}}" tone="white" /><text>导出</text></button>
     </view>
     <view class="privacy-option divider">
+      <view class="privacy-icon privacy-icon-blue"><ui-icon name="shield" size="{{29}}" tone="blue" /></view>
       <view class="privacy-copy">
         <view class="option-title">脱敏版</view>
         <view class="option-desc">隐藏精确日期、价格、等级、私密备注与成员姓名</view>
       </view>
-      <button class="small-button blue" loading="{{exportingPdf}}" data-mode="redacted" bindtap="exportPdf">导出</button>
+      <button class="small-button blue" loading="{{exportingPdf}}" data-mode="redacted" bindtap="exportPdf"><ui-icon name="download" size="{{25}}" tone="white" /><text>导出</text></button>
     </view>
   </view>
 
   <view class="section dev-section" wx:if="{{isDevelopment}}">
-    <view class="section-title">开发测试数据</view>
-    <view class="section-subtitle">生成固定场景用于界面验收；清理不会影响真实数据。</view>
-    <view class="action-row"><button class="button primary" bindtap="generateDemoData">{{demoActive ? '重新生成示例' : '生成示例数据'}}</button><button class="button danger" wx:if="{{demoActive}}" bindtap="clearDemoData">清除示例</button></view>
+    <view class="section-head"><view class="section-icon section-icon-amber"><ui-icon name="sparkles" size="{{34}}" tone="amber" /></view><view class="section-copy"><view class="section-title">开发测试数据</view><view class="section-subtitle">生成固定场景用于界面验收；清理不会影响真实数据。</view></view></view>
+    <view class="action-row"><button class="button primary" bindtap="generateDemoData"><ui-icon name="sparkles" size="{{27}}" tone="white" /><text>{{demoActive ? '重新生成示例' : '生成示例数据'}}</text></button><button class="button danger" wx:if="{{demoActive}}" bindtap="clearDemoData"><ui-icon name="trash" size="{{27}}" tone="accent" /><text>清除示例</text></button></view>
   </view>
 
   <canvas type="2d" id="pdfCanvas" class="pdf-canvas"></canvas>

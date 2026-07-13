@@ -1,5 +1,7 @@
 {
-  "usingComponents": {},
+  "usingComponents": {
+    "ui-icon": "/components/ui-icon/index"
+  },
   "disableScroll": false,
   "navigationBarTitleText": "体验档案"
 }

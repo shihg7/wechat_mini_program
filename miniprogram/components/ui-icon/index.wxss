@@ -1,0 +1,11 @@
+.ui-icon {
+  display: block;
+  flex: none;
+}
+
+.tone-white { filter: brightness(0) invert(1); }
+.tone-blue { filter: brightness(0) saturate(100%) invert(35%) sepia(89%) saturate(1648%) hue-rotate(207deg) brightness(88%) contrast(95%); }
+.tone-accent { filter: brightness(0) saturate(100%) invert(35%) sepia(29%) saturate(1658%) hue-rotate(329deg) brightness(87%) contrast(90%); }
+.tone-green { filter: brightness(0) saturate(100%) invert(39%) sepia(35%) saturate(941%) hue-rotate(103deg) brightness(88%) contrast(86%); }
+.tone-amber { filter: brightness(0) saturate(100%) invert(46%) sepia(69%) saturate(603%) hue-rotate(356deg) brightness(91%) contrast(88%); }
+.tone-muted { opacity: 0.52; }

@@ -20,6 +20,9 @@
     "pages/ledger/edit/edit",
     "pages/ledger/detail/detail"
   ],
+  "usingComponents": {
+    "ui-icon": "/components/ui-icon/index"
+  },
   "window": {
     "backgroundTextStyle": "light",
     "navigationBarBackgroundColor": "#ffffff",

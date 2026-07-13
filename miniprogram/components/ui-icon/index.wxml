@@ -1,0 +1,9 @@
+<image
+  class="ui-icon tone-{{tone}}"
+  style="width: {{size}}rpx; height: {{size}}rpx;"
+  src="/assets/icons/{{name}}.svg"
+  mode="aspectFit"
+  role="img"
+  aria-hidden="{{!label}}"
+  aria-label="{{label}}"
+/>

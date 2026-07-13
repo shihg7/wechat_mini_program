@@ -1,4 +1,6 @@
 {
   "navigationBarTitleText": "AA 账本",
-  "usingComponents": {}
+  "usingComponents": {
+    "ui-icon": "/components/ui-icon/index"
+  }
 }

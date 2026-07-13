@@ -1,1 +1,7 @@
-{"usingComponents":{},"navigationBarTitleText":"待整理中心","disableScroll":false}
+{
+  "usingComponents": {
+    "ui-icon": "/components/ui-icon/index"
+  },
+  "navigationBarTitleText": "待整理中心",
+  "disableScroll": false
+}

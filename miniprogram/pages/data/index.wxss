@@ -34,6 +34,9 @@ page {
 }
 
 .shield {
+  display: flex;
+  align-items: center;
+  gap: 7rpx;
   padding: 12rpx 16rpx;
   border: 1rpx solid #b6c2d2;
   border-radius: 8rpx;
@@ -87,6 +90,29 @@ page {
   background: #ffffff;
 }
 
+.section-head {
+  justify-content: flex-start;
+  gap: 16rpx;
+}
+
+.section-icon,
+.privacy-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 62rpx;
+  height: 62rpx;
+  flex: none;
+  border-radius: 8rpx;
+  background: #eef2f5;
+}
+
+.section-icon-blue { background: #eaf1ff; }
+.section-icon-green { background: #e7f4ef; }
+.section-icon-accent { background: #f7e8e3; }
+.section-icon-amber { background: #fff0de; }
+.section-copy { flex: 1; min-width: 0; }
+
 .section-title {
   font-size: 30rpx;
   font-weight: 800;
@@ -105,13 +131,17 @@ page {
 .media-warning { margin-top: 14rpx; color: #8a5a19; }
 
 .button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9rpx;
   width: 100%;
   height: 84rpx;
   margin-top: 24rpx;
   border-radius: 8rpx;
   font-size: 27rpx;
   font-weight: 800;
-  line-height: 84rpx;
+  line-height: 34rpx;
 }
 
 .button::after,
@@ -137,6 +167,8 @@ page {
 }
 
 .file-name {
+  min-width: 0;
+  flex: 1;
   overflow: hidden;
   font-size: 27rpx;
   font-weight: 800;
@@ -144,6 +176,8 @@ page {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+.file-name-row { display: flex; align-items: center; gap: 10rpx; }
 
 .preview-grid {
   display: grid;
@@ -203,6 +237,9 @@ page {
   min-width: 0;
 }
 
+.privacy-icon { width: 54rpx; height: 54rpx; }
+.privacy-icon-blue { background: #eaf1ff; }
+
 .option-title {
   font-size: 27rpx;
   font-weight: 800;
@@ -210,13 +247,17 @@ page {
 }
 
 .small-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6rpx;
   width: 132rpx;
   height: 68rpx;
   margin: 0;
   border-radius: 8rpx;
   font-size: 24rpx;
   font-weight: 800;
-  line-height: 68rpx;
+  line-height: 30rpx;
 }
 
 .dark {

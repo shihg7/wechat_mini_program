@@ -12,3 +12,35 @@ input, textarea { caret-color: #2864d9; }
 input::placeholder, textarea::placeholder { color: #98a2b3; }
 
 .container { position: absolute; inset: 0; }
+
+.icon-center {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-action {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 8rpx;
+}
+
+.icon-label {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  min-width: 0;
+}
+
+.square-icon-button {
+  display: flex !important;
+  flex: 0 0 72rpx !important;
+  width: 72rpx !important;
+  min-width: 72rpx !important;
+  max-width: 72rpx !important;
+  height: 72rpx !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  box-sizing: border-box;
+}

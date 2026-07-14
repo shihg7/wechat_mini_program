@@ -122,6 +122,7 @@ function normalizeRecord(input = {}) {
     wishlistId: input.wishlistId ? String(input.wishlistId) : "",
     tripId: input.tripId ? String(input.tripId) : "",
     itineraryItemId: input.itineraryItemId ? String(input.itineraryItemId) : "",
+    bookingId: input.bookingId ? String(input.bookingId) : "",
     conflictSnapshot: input.conflictSnapshot && typeof input.conflictSnapshot === "object" ? clone(input.conflictSnapshot) : null
   };
 }
@@ -193,6 +194,7 @@ function duplicateRecord(id) {
     photos: [],
     coverPhotoId: "",
     wishlistId: "",
+    bookingId: "",
     note: source.note
   });
 }

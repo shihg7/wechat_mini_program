@@ -56,7 +56,7 @@ assert(ui.toasts.includes("已复制日程"));
 detailPage.copyDay({ currentTarget: { dataset: { date: "2026-08-01" } } });
 assert.strictEqual(detailPage.data.days[0].items.length, 6);
 detailPage.showMoreActions();
-assert.deepStrictEqual(ui.actionItems, ["复制行程", "删除行程"]);
+assert.deepStrictEqual(ui.actionItems, ["出发准备", "复制行程", "删除行程"]);
 detailPage.removeTrip();
 assert(ui.modalContent.includes("6 项日程"));
 assert(tripStore.getTripById(trip.id));

@@ -32,6 +32,7 @@ const {
 } = require("../../utils/repositories/placeRepository");
 const { getWishlistItem, markWishlistVisited } = require("../../utils/repositories/wishlistRepository");
 const tripStore = require("../../utils/tripStore");
+const departureStore = require("../../utils/departureStore");
 const { applyTemplate, buildRecentSuggestions, getTemplates, saveTemplate } = require("../../utils/formTemplateStore");
 const demoMode = require("../../utils/demoMode");
 
@@ -51,6 +52,10 @@ function buildInitialForm(recordType = "hotel") {
     longitude: null,
     cloudRecordId: "",
     publicReviewId: "",
+    bookingId: "",
+    wishlistId: "",
+    tripId: "",
+    itineraryItemId: "",
     city: "",
     stayDate: "",
     visitMonth: "",
@@ -151,6 +156,7 @@ Page({
     maxPhotos: MAX_PHOTOS,
     addingPhotos: false,
     sourceWishlistId: "",
+    sourceBookingId: "",
     templates: [],
     recentSuggestions: null,
     demoActive: false
@@ -171,6 +177,7 @@ Page({
     this.setRecordType(recordType, options && options.quick === "1");
     if (options && options.placeId) this.applyPlace(options.placeId);
     if (options && options.wishlistId) this.applyWishlist(options.wishlistId);
+    if (options && options.bookingId) this.applyBooking(options.bookingId);
   },
 
   setRecordType(recordType, isQuick = false) {
@@ -414,6 +421,39 @@ Page({
     this.setData(updates, () => {
       this.setData({ pageText: getPageText("create", item.type, this.data.form), publicPreview: buildPublicPreview(this.data.form) });
       if (!item.placeId) this.refreshPlaceSuggestions();
+      this.markDirty();
+    });
+  },
+
+  applyBooking(bookingId) {
+    const booking = departureStore.getBookingById(bookingId);
+    if (!booking || ["hotel", "restaurant"].indexOf(booking.type) < 0) return;
+    const nameField = booking.type === "restaurant" ? "restaurantName" : "hotelName";
+    const updates = {
+      sourceBookingId: booking.id,
+      sourceWishlistId: booking.wishlistId || "",
+      recordType: booking.type,
+      typeConfig: getTypeConfig(booking.type),
+      categories: getCategories(booking.type),
+      [`form.${nameField}`]: booking.name,
+      "form.recordType": booking.type,
+      "form.bookingId": booking.id,
+      "form.wishlistId": booking.wishlistId || "",
+      "form.tripId": booking.tripId || "",
+      "form.itineraryItemId": booking.itineraryItemId || "",
+      "form.placeId": booking.placeId || "",
+      "form.placeName": booking.name,
+      "form.city": booking.city,
+      "form.address": booking.address,
+      "form.stayDate": booking.startDate,
+      "form.visitMonth": booking.startDate ? booking.startDate.slice(0, 7) : "",
+      "form.note": booking.note || "",
+      "form.privateNote": booking.note || ""
+    };
+    if (booking.placeId) updates.placeChoiceConfirmed = true;
+    this.setData(updates, () => {
+      this.setData({ pageText: getPageText("create", booking.type, this.data.form), publicPreview: buildPublicPreview(this.data.form) });
+      if (!booking.placeId) this.refreshPlaceSuggestions();
       this.markDirty();
     });
   },
@@ -732,6 +772,7 @@ Page({
       this.commitPhotoChanges();
       if (updated.wishlistId && updated.status !== "draft") markWishlistVisited(updated.wishlistId, updated.placeId);
       if (updated.tripId && updated.itineraryItemId && updated.status !== "draft") tripStore.updateItineraryItem(updated.tripId, updated.itineraryItemId, { recordId: updated.id, bookingStatus: "visited" });
+      if (updated.bookingId && updated.status !== "draft") departureStore.markBookingCompleted(updated.bookingId, updated.id);
       this.setData({
         mode: "detail",
         isReadonly: true,
@@ -763,6 +804,7 @@ Page({
     this.commitPhotoChanges();
     if (createdRecord.wishlistId && createdRecord.status !== "draft") markWishlistVisited(createdRecord.wishlistId, createdRecord.placeId);
     if (createdRecord.tripId && createdRecord.itineraryItemId && createdRecord.status !== "draft") tripStore.updateItineraryItem(createdRecord.tripId, createdRecord.itineraryItemId, { recordId: createdRecord.id, bookingStatus: "visited" });
+    if (createdRecord.bookingId && createdRecord.status !== "draft") departureStore.markBookingCompleted(createdRecord.bookingId, createdRecord.id);
     this.disableLeaveAlert();
     wx.showToast({
       title: nextForm.status === "draft" ? "草稿已保存" : "已保存",

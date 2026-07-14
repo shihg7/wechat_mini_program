@@ -1,0 +1,51 @@
+page { background:#f2f5f7; color:#172033; }
+.page { min-height:100vh; box-sizing:border-box; padding:28rpx 28rpx calc(env(safe-area-inset-bottom) + 48rpx); }
+.topbar,.summary-band,.next-banner,.main-tabs,.status-tabs,.booking-head,.booking-meta,.deadline,.booking-bottom,.trip-select,.progress-row,.template-row,.task-form,.task-row { display:flex; align-items:center; }
+.topbar,.booking-head,.booking-bottom,.trip-select { justify-content:space-between; }
+.eyebrow { color:#667085; font-size:21rpx; font-weight:700; line-height:30rpx; }
+.title { margin-top:4rpx; font-size:46rpx; font-weight:850; line-height:60rpx; }
+.add-button { flex:0 0 146rpx; width:146rpx; min-width:146rpx; max-width:146rpx; height:72rpx; margin:0; padding:0 16rpx; box-sizing:border-box; border-radius:8rpx; background:#172033; color:#fff; font-size:24rpx; font-weight:800; line-height:72rpx; }
+.add-button::after,.empty-button::after,.task-add::after { border:0; }
+.summary-band { margin-top:22rpx; padding:27rpx 12rpx; border-radius:8rpx; background:#172033; color:#fff; }
+.summary-item { flex:1; min-width:0; text-align:center; }
+.summary-value { font-size:39rpx; font-weight:850; line-height:49rpx; }
+.summary-label { color:rgba(255,255,255,.68); font-size:20rpx; line-height:30rpx; }
+.summary-divider { width:1rpx; height:58rpx; background:rgba(255,255,255,.16); }
+.next-banner { gap:16rpx; margin-top:16rpx; padding:20rpx; border:1rpx solid #d9e4f8; border-radius:8rpx; background:#fff; }
+.next-icon,.empty-icon,.template-icon { display:flex; align-items:center; justify-content:center; flex:none; border-radius:8rpx; }
+.next-icon { width:62rpx; height:62rpx; background:#eaf1ff; }
+.next-copy,.template-copy,.task-copy { flex:1; min-width:0; }
+.next-label { color:#2864d9; font-size:20rpx; font-weight:800; line-height:28rpx; }
+.next-title { overflow:hidden; font-size:27rpx; font-weight:850; line-height:38rpx; text-overflow:ellipsis; white-space:nowrap; }
+.next-meta,.template-desc,.task-meta,.trip-name { color:#667085; font-size:20rpx; line-height:30rpx; }
+.main-tabs { gap:7rpx; margin-top:20rpx; padding:6rpx; border-radius:8rpx; background:#fff; }
+.main-tab { display:flex; align-items:center; justify-content:center; gap:9rpx; flex:1; height:66rpx; border-radius:7rpx; color:#667085; font-size:24rpx; font-weight:800; }
+.main-tab.active { background:#172033; color:#fff; }
+.status-tabs { gap:8rpx; margin-top:14rpx; }
+.status-tab { flex:1; height:58rpx; border-radius:8rpx; background:#fff; color:#667085; font-size:21rpx; font-weight:750; line-height:58rpx; text-align:center; }
+.status-tab.active { background:#2864d9; color:#fff; }
+.booking-card { margin-top:14rpx; padding:22rpx; border-left:5rpx solid #2864d9; border-radius:8rpx; background:#fff; }
+.type-badge,.payment { display:inline-flex; min-height:31rpx; padding:0 9rpx; border-radius:7rpx; background:#eef2f5; color:#667085; font-size:18rpx; font-weight:800; line-height:31rpx; }
+.timing { font-size:22rpx; font-weight:850; }.timing.blue{color:#2864d9}.timing.amber{color:#a35b12}.timing.accent{color:#a34b32}.timing.green{color:#1f7a55}.timing.muted{color:#667085}
+.booking-title { margin-top:10rpx; font-size:29rpx; font-weight:850; line-height:41rpx; word-break:break-all; }
+.booking-meta,.deadline { gap:7rpx; margin-top:6rpx; color:#667085; font-size:22rpx; line-height:32rpx; }
+.deadline { color:#a35b12; }.deadline.expired{color:#a34b32}
+.booking-bottom { margin-top:16rpx; padding-top:15rpx; border-top:1rpx solid #edf0f3; }
+.trip-name { margin-top:4rpx; }
+.amount { flex:none; font-size:28rpx; font-weight:850; }
+.empty { margin-top:16rpx; padding:44rpx 30rpx; border-radius:8rpx; background:#fff; text-align:center; }
+.empty-icon { width:76rpx; height:76rpx; margin:0 auto 16rpx; background:#eaf1ff; }
+.empty-title { font-size:29rpx; font-weight:850; line-height:40rpx; }
+.empty-desc { margin-top:8rpx; color:#667085; font-size:22rpx; line-height:34rpx; }
+.empty-button { height:72rpx; margin-top:22rpx; padding:0 26rpx; border-radius:8rpx; background:#2864d9; color:#fff; font-size:24rpx; font-weight:800; line-height:72rpx; }
+.checklist-head { margin-top:14rpx; padding:20rpx; border-radius:8rpx; background:#fff; }
+.trip-picker { width:100%; }.trip-select { width:100%; }
+.field-label { color:#667085; font-size:20rpx; line-height:28rpx; }.trip-title{font-size:27rpx;font-weight:850;line-height:38rpx}
+.progress-row { gap:14rpx; margin-top:17rpx; }.progress-track{height:13rpx;flex:1;overflow:hidden;border-radius:7rpx;background:#e7ebef}.progress-fill{height:100%;border-radius:7rpx;background:#1f7a55}.progress-text{width:86rpx;color:#667085;font-size:21rpx;text-align:right}
+.template-row { gap:14rpx; margin-top:14rpx; padding:18rpx 20rpx; border:1rpx solid #f0d57c; border-radius:8rpx; background:#fff9e7; }
+.template-icon { width:54rpx; height:54rpx; background:#fff0d4; }.template-title{font-size:24rpx;font-weight:850;line-height:34rpx}
+.task-form { gap:9rpx; margin-top:14rpx; padding:12rpx; border-radius:8rpx; background:#fff; }
+.task-input,.owner-input { height:66rpx; box-sizing:border-box; padding:0 14rpx; border:1rpx solid #dde2e8; border-radius:7rpx; background:#f8fafc; font-size:22rpx; }.task-input{flex:1;min-width:0}.owner-input{width:190rpx}.task-add{flex:0 0 66rpx;width:66rpx;height:66rpx;margin:0;padding:0;border-radius:8rpx;background:#2864d9}
+.checklist-empty { padding:34rpx 28rpx; }.checklist-empty .empty-icon{background:#e7f4ef}
+.task-row { gap:11rpx; margin-top:10rpx; padding:17rpx 16rpx; border-radius:8rpx; background:#fff; }
+.task-check,.task-more { flex:0 0 48rpx; width:48rpx; height:48rpx; }.task-title{font-size:24rpx;font-weight:800;line-height:34rpx}.task-row.done .task-title{text-decoration:line-through;color:#8a94a3}.task-row.done{opacity:.72}

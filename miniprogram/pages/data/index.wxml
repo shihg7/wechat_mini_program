@@ -31,7 +31,7 @@
       <view class="section-icon section-icon-blue"><ui-icon name="database" size="{{34}}" tone="blue" /></view>
       <view class="section-copy">
         <view class="section-title">完整备份</view>
-        <view class="section-subtitle">体验、行程、转盘、模板、偏好与账本一起保存为 schemaVersion 8</view>
+        <view class="section-subtitle">体验、行程、预订、行前清单、转盘、模板、偏好与账本一起保存为 schemaVersion 9</view>
       </view>
     </view>
     <button class="button primary" loading="{{exportingBackup}}" bindtap="exportBackup"><ui-icon name="download" size="{{29}}" tone="white" /><text>导出完整备份</text></button>
@@ -41,7 +41,7 @@
   <view class="section">
     <view class="section-head">
       <view class="section-icon section-icon-green"><ui-icon name="upload" size="{{34}}" tone="green" /></view>
-      <view class="section-copy"><view class="section-title">恢复数据</view><view class="section-subtitle">支持 v8 完整备份，并兼容 v1-v7</view></view>
+      <view class="section-copy"><view class="section-title">恢复数据</view><view class="section-subtitle">支持 v9 完整备份，并兼容 v1-v8</view></view>
     </view>
     <button class="button secondary" bindtap="chooseBackup"><ui-icon name="file" size="{{29}}" /><text>选择 JSON 文件</text></button>
 
@@ -55,6 +55,8 @@
         <view><text class="metric">{{preview.ledgerCount}}</text><text class="metric-label">账本</text></view>
         <view><text class="metric">{{preview.expenseCount}}</text><text class="metric-label">支出</text></view>
         <view><text class="metric">{{preview.wheelCount}}</text><text class="metric-label">转盘</text></view>
+        <view><text class="metric">{{preview.bookingCount}}</text><text class="metric-label">预订</text></view>
+        <view><text class="metric">{{preview.checklistCount}}</text><text class="metric-label">清单</text></view>
       </view>
       <view class="preview-time">导出时间：{{preview.exportedAtText}}</view>
       <view class="action-row">

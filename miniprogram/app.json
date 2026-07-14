@@ -14,6 +14,8 @@
     "pages/trip/detail",
     "pages/trip/budget",
     "pages/wheel/index",
+    "pages/departure/index",
+    "pages/departure/edit",
     "pages/demo/index",
     "pages/data/index",
     "pages/ledger/index/index",

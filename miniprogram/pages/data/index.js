@@ -7,6 +7,7 @@ const { exportHotelReport } = require("../../utils/pdfReport");
 const { PRIVATE_MODE, REDACTED_MODE } = require("../../utils/privacyPolicy");
 const demoData = require("../../utils/demoData");
 const { getWheels } = require("../../utils/wheelStore");
+const { getBookings, getChecklistItems } = require("../../utils/departureStore");
 
 function formatExportedAt(value) {
   if (!value) return "未记录";
@@ -16,7 +17,7 @@ function formatExportedAt(value) {
 
 Page({
   data: {
-    localSummary: { recordCount: 0, placeCount: 0, wishlistCount: 0, ledgerCount: 0, expenseCount: 0, wheelCount: 0 },
+    localSummary: { recordCount: 0, placeCount: 0, wishlistCount: 0, ledgerCount: 0, expenseCount: 0, wheelCount: 0, bookingCount: 0, checklistCount: 0 },
     selectedFileName: "",
     preview: null,
     importing: false,
@@ -47,7 +48,9 @@ Page({
         wishlistCount: getWishlist().length,
         ledgerCount: ledgers.length,
         expenseCount: ledgers.reduce((sum, ledger) => sum + ledger.expenses.length, 0),
-        wheelCount: getWheels().length
+        wheelCount: getWheels().length,
+        bookingCount: getBookings().length,
+        checklistCount: getChecklistItems().length
       }
     });
   },
@@ -94,6 +97,8 @@ Page({
           expenseCount: summary.expenseCount,
           wishlistCount: summary.wishlistCount,
           wheelCount: summary.wheelCount,
+          bookingCount: summary.bookingCount,
+          checklistCount: summary.checklistCount,
           ledgersLabel: `${summary.ledgersIncluded ? "包含账本" : "不含账本"} · ${summary.wishlistIncluded ? "包含想去清单" : "旧版无清单"}`,
           exportedAtText: formatExportedAt(summary.exportedAt)
         }
@@ -110,11 +115,14 @@ Page({
     const mode = event.currentTarget.dataset.mode;
     const replace = mode === "replace";
     const preview = this.data.preview;
-    const legacyNote = replace && preview.schemaVersion === 1 ? "旧版备份不含账本，现有账本会保留。" : "";
+    const legacyNotes = [];
+    if (replace && preview.schemaVersion === 1) legacyNotes.push("旧版备份不含账本，现有账本会保留");
+    if (replace && preview.schemaVersion < 9) legacyNotes.push("旧版备份不含预订和行前清单，现有内容会保留");
+    const legacyNote = legacyNotes.length ? `${legacyNotes.join("；")}。` : "";
     wx.showModal({
       title: replace ? "确认覆盖全部本地数据？" : "确认合并备份？",
       content: replace
-        ? `将使用备份替换体验、地点、想去、行程、账本、转盘、模板和偏好。备份包含 ${preview.recordCount} 条记录、${preview.placeCount} 个地点${preview.schemaVersion >= 2 ? `、${preview.ledgerCount} 本账本` : ""}${preview.schemaVersion >= 5 ? `、${preview.wishlistCount} 个想去项` : ""}${preview.schemaVersion >= 8 ? `、${preview.wheelCount} 个转盘` : ""}。${legacyNote}`
+        ? `将使用备份替换体验、地点、想去、行程、账本、转盘、预订、清单、模板和偏好。备份包含 ${preview.recordCount} 条记录、${preview.placeCount} 个地点${preview.schemaVersion >= 2 ? `、${preview.ledgerCount} 本账本` : ""}${preview.schemaVersion >= 5 ? `、${preview.wishlistCount} 个想去项` : ""}${preview.schemaVersion >= 8 ? `、${preview.wheelCount} 个转盘` : ""}${preview.schemaVersion >= 9 ? `、${preview.bookingCount} 项预订、${preview.checklistCount} 项清单` : ""}。${legacyNote}`
         : "同 ID 的不同内容会安全改名，记录与账本支出的关联会同步保留。",
       confirmText: replace ? "确认覆盖" : "确认合并",
       confirmColor: replace ? "#a33d2d" : "#2864d9",
@@ -132,8 +140,8 @@ Page({
       wx.showModal({
         title: "导入完成",
         content: mode === "merge"
-          ? `新增 ${result.recordsAdded} 条记录、${result.placesAdded} 个地点、${result.wishlistAdded} 个想去项、${result.ledgersAdded} 本账本、${result.wheelsAdded || 0} 个转盘；跳过 ${result.recordsSkipped + result.placesSkipped + result.wishlistSkipped + result.ledgersSkipped + (result.wheelsSkipped || 0)} 项重复内容。`
-          : `当前共有 ${result.recordCount} 条记录、${result.placeCount} 个地点、${result.wishlistCount} 个想去项、${result.ledgerCount} 本账本、${result.wheelCount} 个转盘。`,
+          ? `新增 ${result.recordsAdded} 条记录、${result.placesAdded} 个地点、${result.wishlistAdded} 个想去项、${result.ledgersAdded} 本账本、${result.wheelsAdded || 0} 个转盘、${result.bookingsAdded || 0} 项预订、${result.checklistAdded || 0} 项清单；跳过 ${result.recordsSkipped + result.placesSkipped + result.wishlistSkipped + result.ledgersSkipped + (result.wheelsSkipped || 0) + (result.bookingsSkipped || 0) + (result.checklistSkipped || 0)} 项重复内容。`
+          : `当前共有 ${result.recordCount} 条记录、${result.placeCount} 个地点、${result.wishlistCount} 个想去项、${result.ledgerCount} 本账本、${result.wheelCount} 个转盘、${result.bookingCount} 项预订。`,
         showCancel: false
       });
     } catch (error) {
@@ -151,7 +159,7 @@ Page({
       if (wx.shareFileMessage) {
         wx.shareFileMessage({
           filePath: result.filePath,
-          fileName: "体验档案-完整备份-v8.json",
+          fileName: "体验档案-完整备份-v9.json",
           fail: (error) => {
             if (String(error && error.errMsg).indexOf("cancel") < 0) wx.showToast({ title: "发送备份失败", icon: "none" });
           }

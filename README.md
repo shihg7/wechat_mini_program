@@ -1,6 +1,6 @@
 # 体验档案小程序
 
-这是一个本地优先的微信小程序，用于记录个人旅行体验。当前包含酒店测评、米其林餐厅测评、行程计划、预算中心、智能录入模板、想去清单、旅行地图、年度回忆册和 AA 旅行记账。数据层已预留未来后端同步能力，当前不连接服务器。
+这是一个本地优先的微信小程序，用于记录个人旅行体验。当前包含酒店测评、米其林餐厅测评、预订与出发中心、行程计划、预算中心、智能录入模板、想去清单、旅行地图、年度回忆册和 AA 旅行记账。数据层已预留未来后端同步能力，当前不连接服务器。
 
 ## 当前功能
 
@@ -37,6 +37,7 @@
 - 首页提供“新手演示”，自动准备一组不会覆盖个人内容的示例，通过四个任务串起体验记录、行程、AA 分账和决策转盘；退出后只清理由演示创建的数据。
 - 演示进度保存在本地，目标功能页成功打开后才计为完成；每个目标页都有当前任务提示和“返回演示”入口。
 - 首页会显示“演示中”与完成进度；演示数据缺失时会在当前点击内自动恢复，并支持重新开始或随时退出。
+- 首页常用工具增加“出发中心”，直接显示待出发数量和需要留意的取消期限；低频工具继续渐进展开。
 - 系统主题与 canvas 像素比改用微信新的细分设备 API，同时为旧基础库保留兼容回退。
 - 三个主入口统一使用相同的页面边距、字号层级、按钮高度、卡片边界和触控反馈。
 - 体验首页按“概览、继续记录、旅行工具、我的档案”分区，工具入口使用双列布局，减少长列表滚动。
@@ -80,14 +81,27 @@
 - 体验表单提供内置和自定义模板，并根据历史记录建议城市、房型或菜系。
 - 模板只保存安全字段，不保存日期、评分、照片、价格或私密备注；历史建议不会覆盖已填写内容。
 
+### 预订与出发中心
+
+- 集中管理住宿、餐厅、交通、门票和其他预订，展示出发倒计时、付款状态、金额、人数与预订编号。
+- 支持免费取消日期和具体时间；临近 72 小时与 24 小时时提高视觉优先级，过期后明确标记。
+- 预订支持新增、查看、编辑、删除和未保存离开提醒，删除预订不会静默删除已关联的行程或支出。
+- 行前清单可按具体行程或“通用清单”管理，内置证件、预订、通讯、保险、药品和充电设备模板；重复补齐不会生成重复任务。
+- 清单任务支持负责人、完成状态、编辑和删除，首页汇总整体完成进度。
+- 想去项可直接创建预订并回写“已预订”、日期、编号和关联 ID；已到访后仍可回看原预订。
+- 预订可一键加入行程，带入日期、时间、地点、金额和预订编号；重复操作会打开既有行程，不会重复创建日程。
+- 预订金额可计入行程个人预算，并以 `budgetExpenseId` 防止重复点击造成重复支出。
+- 预订可进入指定 AA 账本，自动预填名称、金额、分类和日期，但付款人、参与人和分摊方式仍须用户确认后才落账。
+- 酒店和餐厅预订完成后可直接创建体验，带入名称、日期、地点、想去项与行程关联；体验保存成功后回写预订完成状态和记录 ID。
+
 ### 决策转盘
 
 - 首页“旅行工具”提供决策转盘，支持保存多个转盘、批量导入 2–50 个等概率选项、编辑排序和临时停用。
 - 可点击按钮旋转，也可直接用手拨动；canvas 动画使用真实角速度、惯性衰减和固定指针命中，页面本身保持静止且不触发设备震动。
 - 转盘采用多色扇区、双层外圈、中心轴和独立于 canvas 的动态指针，编辑状态仍能看到明确指向；编辑区在添加后自动收起，结果弹层强化最终选择的视觉反馈。
-- 抽中后可再转一次或移出本轮，最近保留 50 条历史；完整备份升级为 schemaVersion 8 并包含转盘数据。
+- 抽中后可再转一次或移出本轮，最近保留 50 条历史；转盘数据继续包含在完整备份中。
 
-- 开发版的数据管理页可生成和清除固定示例集，覆盖酒店、餐厅、三人非整除分账、行程与预算联动；清理仅按登记 ID 删除示例内容。
+- 开发版的数据管理页可生成和清除固定示例集，覆盖酒店、餐厅、预订、行前清单、三人非整除分账、行程与预算联动；清理仅按登记 ID 删除示例内容。
 - 底部三个主入口使用一致的线性图标和选中状态，提升页面定位感。
 
 ### 同步架构预留
@@ -152,11 +166,11 @@ trip_split_ledgers
 
 ### 数据管理与隐私导出
 
-- 完整 JSON 备份同时包含酒店、餐厅、地点、账本、成员、支出和结算记录。
-- 完整备份格式为 `schemaVersion: 8`，包含记录、地点、行程、模板、想去清单、转盘、导出偏好和账本，并继续兼容 v1-v7。
+- 完整 JSON 备份同时包含酒店、餐厅、地点、预订、行前清单、账本、成员、支出和结算记录。
+- 完整备份格式为 `schemaVersion: 9`，包含记录、地点、行程、模板、想去清单、转盘、预订、行前清单、导出偏好和账本，并继续兼容 v1-v8。
 - v1 / v2 导入时会为没有地点对象的记录生成独立地点，不会按同名自动合并。
 - 导入前展示记录、账本和支出数量，支持合并或覆盖。
-- 恢复统一写入记录、地点、想去清单、账本、行程、模板及两类导出偏好；任一写入失败时自动回滚。
+- 恢复统一写入记录、地点、想去清单、账本、行程、转盘、预订、行前清单、模板及两类导出偏好；任一写入失败时自动回滚。
 - 同一备份重复合并会跳过已有内容，ID 冲突时会稳定重映射关联字段。
 - PDF 支持“私人版”和“脱敏版”。
 - 脱敏版把精确日期降为月份，隐藏会员等级、价格、私密备注和真实成员姓名。
@@ -167,7 +181,7 @@ trip_split_ledgers
 
 ```js
 {
-  schemaVersion: 8,
+  schemaVersion: 9,
   app: "experience-review-miniprogram",
   exportedAt: "...",
   records: [],
@@ -177,6 +191,8 @@ trip_split_ledgers
   trips: [],
   formTemplates: [],
   wheels: [],
+  bookings: [],
+  checklistItems: [],
   preferences: {
     story: {},
     yearbook: {}
@@ -202,6 +218,7 @@ miniprogram/
   pages/yearbook/       年度回忆册与导出
   pages/trip/           行程列表、编辑、按天日程和预算中心
   pages/wishlist/       想去清单新增、详情和编辑
+  pages/departure/      预订列表、行前清单和预订新增/详情/编辑
   pages/cleanup/        数据健康检查与安全整理
   pages/data/           完整备份、恢复和隐私 PDF
   pages/ledger/index/   AA 账本列表
@@ -219,6 +236,7 @@ miniprogram/
   utils/tripStore.js
   utils/formTemplateStore.js
   utils/wishlistStore.js
+  utils/departureStore.js
   utils/cleanupService.js
   utils/syncMetadata.js
   utils/syncDtos.js
@@ -280,7 +298,9 @@ npm test
 - 想去项转体验、状态更新和地点关联
 - Repository 待同步批次、软删除、冲突快照和公开 DTO 脱敏
 - 失效照片与登记无主文件的安全清理
-- v1-v8 备份兼容、偏好 ID 重映射和统一缓存回滚
+- v1-v9 备份兼容、预订关联 ID 重映射和统一缓存回滚
+- 预订金额分值解析、取消期限优先级、清单模板幂等与完成进度
+- 页面联动：想去转预订、加入行程、预算去重、AA 表单预填与真实支出回写
 - 页面事件流：创建账本、录入支出、确认部分结算、撤销结算和日期错误提示
 - 转盘角度命中、惯性衰减、选项约束、50 项绘制、结果历史和页面事件流
 - 页面回归：行程筛选无结果、清除筛选、空账本三态、失效详情恢复和危险操作菜单
@@ -309,6 +329,7 @@ node --check miniprogram/utils/wheelEngine.js
 node --check miniprogram/utils/wheelStore.js
 node --check miniprogram/utils/formTemplateStore.js
 node --check miniprogram/utils/wishlistStore.js
+node --check miniprogram/utils/departureStore.js
 node --check miniprogram/utils/cleanupService.js
 node --check miniprogram/utils/ledgerExport.js
 node --check miniprogram/pages/index/index.js
@@ -318,6 +339,8 @@ node --check miniprogram/pages/insights/index.js
 node --check miniprogram/pages/travel-map/index.js
 node --check miniprogram/pages/story/index.js
 node --check miniprogram/pages/yearbook/index.js
+node --check miniprogram/pages/departure/index.js
+node --check miniprogram/pages/departure/edit.js
 node --check miniprogram/pages/trip/index.js
 node --check miniprogram/pages/trip/edit.js
 node --check miniprogram/pages/trip/detail.js

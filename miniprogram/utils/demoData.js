@@ -3,12 +3,13 @@ const placeStore = require("./placeStore");
 const ledgerStore = require("./tripLedgerStore");
 const tripStore = require("./tripStore");
 const wheelStore = require("./wheelStore");
+const departureStore = require("./departureStore");
 
 const REGISTRY_KEY = "experience_demo_data_registry";
 
 function getRegistry() {
   const value = wx.getStorageSync(REGISTRY_KEY);
-  return value && typeof value === "object" ? { recordIds: value.recordIds || [], placeIds: value.placeIds || [], ledgerIds: value.ledgerIds || [], tripIds: value.tripIds || [], wheelIds: value.wheelIds || [] } : { recordIds: [], placeIds: [], ledgerIds: [], tripIds: [], wheelIds: [] };
+  return value && typeof value === "object" ? { recordIds: value.recordIds || [], placeIds: value.placeIds || [], ledgerIds: value.ledgerIds || [], tripIds: value.tripIds || [], wheelIds: value.wheelIds || [], bookingIds: value.bookingIds || [], checklistItemIds: value.checklistItemIds || [] } : { recordIds: [], placeIds: [], ledgerIds: [], tripIds: [], wheelIds: [], bookingIds: [], checklistItemIds: [] };
 }
 
 function getTargetId(stepId) {
@@ -17,11 +18,13 @@ function getTargetId(stepId) {
   const tripId = registry.tripIds[0];
   const ledgerId = registry.ledgerIds[0];
   const wheelId = registry.wheelIds[0];
+  const bookingId = registry.bookingIds[0];
   const candidates = {
     record: recordId && recordStore.getRecordById(recordId) ? recordId : "",
     trip: tripId && tripStore.getTripById(tripId) ? tripId : "",
     ledger: ledgerId && ledgerStore.getLedgerById(ledgerId) ? ledgerId : "",
-    wheel: wheelId && wheelStore.getWheelById(wheelId) ? wheelId : ""
+    wheel: wheelId && wheelStore.getWheelById(wheelId) ? wheelId : "",
+    departure: bookingId && departureStore.getBookingById(bookingId) ? bookingId : ""
   };
   return candidates[stepId] || "";
 }
@@ -44,8 +47,11 @@ function seedDemoData() {
   const trip = tripStore.addTrip({ title: "上海周末示例行程", cities: "上海", startDate: "2026-07-10", endDate: "2026-07-12", budgetTotalCents: 300000, linkedLedgerIds: [ledger.id], itineraryItems: [{ title: "入住云际酒店", type: "hotel", date: "2026-07-10", startTime: "15:00", sortOrder: 0 }, { title: "Lumiere 晚餐", type: "restaurant", date: "2026-07-11", startTime: "19:00", sortOrder: 0 }] });
   tripStore.addPersonalExpense(trip.id, { title: "机场快线", amountText: "45", category: "交通", date: "2026-07-10", currency: "CNY", rate: 1 });
   const wheel = wheelStore.createWheel({ title: "今晚吃什么", options: wheelStore.parseOptions("火锅\n日料\n本帮菜\n烧烤").map((text) => ({ text, enabled: true })) });
+  const booking = departureStore.addBooking({ type: "hotel", name: hotelPlace.name, city: "上海", address: hotelPlace.address, startDate: trip.startDate, endDate: trip.endDate, startTime: "15:00", peopleCount: 3, amountCents: 238800, paymentStatus: "paid", bookingReference: "DEMO-HOTEL-2026", cancellationDate: trip.startDate, cancellationTime: "12:00", tripId: trip.id, placeId: hotelPlace.id, note: "开发示例：提前确认行政酒廊开放时间。" });
+  const checklistItems = departureStore.seedChecklist(trip.id);
+  if (checklistItems[0]) departureStore.toggleChecklistItem(checklistItems[0].id);
 
-  const registry = { recordIds: records.map((item) => item.id), placeIds: [hotelPlace.id, restaurantPlace.id], ledgerIds: [ledger.id], tripIds: [trip.id], wheelIds: [wheel.id] };
+  const registry = { recordIds: records.map((item) => item.id), placeIds: [hotelPlace.id, restaurantPlace.id], ledgerIds: [ledger.id], tripIds: [trip.id], wheelIds: [wheel.id], bookingIds: [booking.id], checklistItemIds: checklistItems.map((item) => item.id) };
   wx.setStorageSync(REGISTRY_KEY, registry);
   return registry;
 }
@@ -58,7 +64,9 @@ function clearDemoData() {
   ledgerStore.setLedgers(exclude(ledgerStore.getLedgers(), registry.ledgerIds));
   tripStore.setTrips(exclude(tripStore.getTrips(), registry.tripIds));
   wheelStore.setWheels(exclude(wheelStore.getWheels(), registry.wheelIds));
-  wx.setStorageSync(REGISTRY_KEY, { recordIds: [], placeIds: [], ledgerIds: [], tripIds: [], wheelIds: [] });
+  departureStore.setBookings(exclude(departureStore.getBookings({ includeDeleted: true }), registry.bookingIds));
+  departureStore.setChecklistItems(exclude(departureStore.getChecklistItems({ includeDeleted: true }), registry.checklistItemIds));
+  wx.setStorageSync(REGISTRY_KEY, { recordIds: [], placeIds: [], ledgerIds: [], tripIds: [], wheelIds: [], bookingIds: [], checklistItemIds: [] });
   return registry;
 }
 

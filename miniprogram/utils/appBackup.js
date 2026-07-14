@@ -8,9 +8,17 @@ const { YEARBOOK_PREFS_KEY } = require("./yearbookBuilder");
 const { STORAGE_KEY: TRIPS_KEY, getTrips, normalizeTrip } = require("./tripStore");
 const { STORAGE_KEY: TEMPLATES_KEY } = require("./formTemplateStore");
 const { STORAGE_KEY: WHEELS_KEY, getWheels, normalizeWheel } = require("./wheelStore");
+const {
+  BOOKINGS_KEY,
+  CHECKLIST_KEY,
+  getBookings,
+  getChecklistItems,
+  normalizeBooking,
+  normalizeChecklistItem
+} = require("./departureStore");
 
 const APP_ID = "experience-review-miniprogram";
-const SCHEMA_VERSION = 8;
+const SCHEMA_VERSION = 9;
 
 function clone(value) {
   if (value === undefined) return undefined;
@@ -88,7 +96,7 @@ function preflightBackup(payload) {
   }
   assertObject(data, "备份");
   const version = Number(data.schemaVersion || data.version);
-  if ([1, 2, 3, 4, 5, 6, 7, 8].indexOf(version) < 0) throw new Error("仅支持 schemaVersion 1 至 8");
+  if (!Number.isInteger(version) || version < 1 || version > SCHEMA_VERSION) throw new Error(`仅支持 schemaVersion 1 至 ${SCHEMA_VERSION}`);
   if (data.app && data.app !== APP_ID) throw new Error("备份来源应用不匹配");
   assertItems(data.records, "records");
   if (version >= 2) assertItems(data.ledgers, "ledgers");
@@ -97,6 +105,7 @@ function preflightBackup(payload) {
   if (version >= 6) assertObject(data.preferences, "preferences");
   if (version >= 7) { assertItems(data.trips, "trips"); assertItems(data.formTemplates, "formTemplates"); }
   if (version >= 8) assertItems(data.wheels, "wheels");
+  if (version >= 9) { assertItems(data.bookings, "bookings"); assertItems(data.checklistItems, "checklistItems"); }
   validateUniqueIds(data.records, "records");
   validateUniqueIds(data.ledgers || [], "ledgers");
   validateUniqueIds(data.places || [], "places");
@@ -104,6 +113,8 @@ function preflightBackup(payload) {
   validateUniqueIds(data.trips || [], "trips");
   validateUniqueIds(data.formTemplates || [], "formTemplates");
   validateUniqueIds(data.wheels || [], "wheels");
+  validateUniqueIds(data.bookings || [], "bookings");
+  validateUniqueIds(data.checklistItems || [], "checklistItems");
 
   data.records.forEach((record, index) => {
     if (!record.hotelName && !record.restaurantName) throw new Error(`records[${index}]缺少体验名称`);
@@ -137,6 +148,15 @@ function preflightBackup(payload) {
   const normalizedTrips = version >= 7 ? data.trips.map(normalizeTrip) : null;
   const normalizedTemplates = version >= 7 ? clone(data.formTemplates) : null;
   const normalizedWheels = version >= 8 ? data.wheels.map(normalizeWheel) : null;
+  const normalizedBookings = version >= 9 ? data.bookings.map(normalizeBooking) : null;
+  const normalizedChecklistItems = version >= 9 ? data.checklistItems.map(normalizeChecklistItem) : null;
+  (normalizedBookings || []).forEach((booking, index) => {
+    if (!booking.name) throw new Error(`bookings[${index}]缺少名称`);
+    if (!booking.startDate) throw new Error(`bookings[${index}]缺少开始日期`);
+  });
+  (normalizedChecklistItems || []).forEach((item, index) => {
+    if (!item.title) throw new Error(`checklistItems[${index}]缺少任务内容`);
+  });
   const normalized = {
     schemaVersion: version,
     app: data.app || APP_ID,
@@ -149,7 +169,9 @@ function preflightBackup(payload) {
     preferences: normalizedPreferences,
     trips: normalizedTrips,
     formTemplates: normalizedTemplates,
-    wheels: normalizedWheels
+    wheels: normalizedWheels,
+    bookings: normalizedBookings,
+    checklistItems: normalizedChecklistItems
   };
   const expenseCount = (normalized.ledgers || []).reduce((sum, ledger) => sum + ledger.expenses.length, 0);
   return {
@@ -168,16 +190,22 @@ function preflightBackup(payload) {
       tripCount: normalized.trips ? normalized.trips.length : 0,
       templatesIncluded: normalized.formTemplates !== null,
       wheelCount: normalized.wheels ? normalized.wheels.length : 0,
-      wheelsIncluded: normalized.wheels !== null
+      wheelsIncluded: normalized.wheels !== null,
+      bookingCount: normalized.bookings ? normalized.bookings.length : 0,
+      checklistCount: normalized.checklistItems ? normalized.checklistItems.length : 0,
+      bookingsIncluded: normalized.bookings !== null,
+      checklistIncluded: normalized.checklistItems !== null
     }
   };
 }
 
-function createBackup(records, places, ledgers, wishlist, preferences = {}, trips = [], formTemplates = [], wheels = []) {
+function createBackup(records, places, ledgers, wishlist, preferences = {}, trips = [], formTemplates = [], wheels = [], bookings = [], checklistItems = []) {
   const normalizedRecords = (records || []).map(normalizeRecord);
   const normalizedPlaces = (places || []).map(normalizePlace);
   const normalizedLedgers = (ledgers || []).map(normalizeLedger);
   const normalizedWishlist = (wishlist || []).map(normalizeWishlistItem);
+  const normalizedBookings = (bookings || []).map(normalizeBooking);
+  const normalizedChecklistItems = (checklistItems || []).map(normalizeChecklistItem);
   return {
     schemaVersion: SCHEMA_VERSION,
     version: SCHEMA_VERSION,
@@ -194,7 +222,9 @@ function createBackup(records, places, ledgers, wishlist, preferences = {}, trip
       yearbookPreferenceCount: Object.keys(preferences.yearbook || {}).length,
       tripCount: trips.length,
       formTemplateCount: formTemplates.length,
-      wheelCount: wheels.length
+      wheelCount: wheels.length,
+      bookingCount: normalizedBookings.length,
+      checklistCount: normalizedChecklistItems.length
     },
     media: {
       binariesIncluded: false,
@@ -207,11 +237,13 @@ function createBackup(records, places, ledgers, wishlist, preferences = {}, trip
     preferences: { story: clone(preferences.story || {}), yearbook: clone(preferences.yearbook || {}) },
     trips: trips.map(normalizeTrip),
     formTemplates: clone(formTemplates),
-    wheels: wheels.map(normalizeWheel)
+    wheels: wheels.map(normalizeWheel),
+    bookings: normalizedBookings,
+    checklistItems: normalizedChecklistItems
   };
 }
 
-function exportFullBackup(records, places, ledgers, wishlist, preferences, trips, formTemplates, wheels) {
+function exportFullBackup(records, places, ledgers, wishlist, preferences, trips, formTemplates, wheels, bookings, checklistItems) {
   const sourcePlaces = places === undefined ? getPlaces({ includeDeleted: true }) : places;
   const sourceRecords = records === undefined ? getRecords({ includeDeleted: true }) : records;
   const sourceLedgers = ledgers === undefined ? getLedgers() : ledgers;
@@ -220,8 +252,10 @@ function exportFullBackup(records, places, ledgers, wishlist, preferences, trips
   const sourceTrips = trips === undefined ? getTrips() : trips;
   const sourceTemplates = formTemplates === undefined ? (wx.getStorageSync(TEMPLATES_KEY) || []) : formTemplates;
   const sourceWheels = wheels === undefined ? getWheels() : wheels;
-  const backup = createBackup(sourceRecords, sourcePlaces, sourceLedgers, sourceWishlist, sourcePreferences, sourceTrips, sourceTemplates, sourceWheels);
-  const filePath = `${wx.env.USER_DATA_PATH}/experience-review-full-backup-v8.json`;
+  const sourceBookings = bookings === undefined ? getBookings({ includeDeleted: true }) : bookings;
+  const sourceChecklistItems = checklistItems === undefined ? getChecklistItems({ includeDeleted: true }) : checklistItems;
+  const backup = createBackup(sourceRecords, sourcePlaces, sourceLedgers, sourceWishlist, sourcePreferences, sourceTrips, sourceTemplates, sourceWheels, sourceBookings, sourceChecklistItems);
+  const filePath = `${wx.env.USER_DATA_PATH}/experience-review-full-backup-v9.json`;
   wx.getFileSystemManager().writeFileSync(filePath, JSON.stringify(backup, null, 2), "utf8");
   return { filePath, backup, summary: backup.summary };
 }
@@ -270,7 +304,7 @@ function planCollection(existing, incoming, kind, backupToken) {
   return { result: additions.concat(existing), additions, skipped, idMap };
 }
 
-function buildMerge(existingRecords, existingPlaces, existingLedgers, existingWishlist, existingPreferences, existingTrips, existingTemplates, existingWheels, backup) {
+function buildMerge(existingRecords, existingPlaces, existingLedgers, existingWishlist, existingPreferences, existingTrips, existingTemplates, existingWheels, existingBookings, existingChecklistItems, backup) {
   const backupToken = backup.importToken || hashText(stableStringify(backup));
   const placesPlan = planCollection(existingPlaces, backup.places, "place", backupToken);
   const remappedRecords = backup.records.map((record) => ({ ...record, placeId: placesPlan.idMap[record.placeId] || record.placeId }));
@@ -285,13 +319,51 @@ function buildMerge(existingRecords, existingPlaces, existingLedgers, existingWi
   const tripsPlan = planCollection(existingTrips, backup.trips || [], "trip", backupToken);
   const templatesPlan = planCollection(existingTemplates, backup.formTemplates || [], "template", backupToken);
   const wheelsPlan = planCollection(existingWheels, backup.wheels || [], "wheel", backupToken);
+  const remappedBookings = (backup.bookings || []).map((booking) => ({
+    ...booking,
+    placeId: placesPlan.idMap[booking.placeId] || booking.placeId,
+    recordId: recordsPlan.idMap[booking.recordId] || booking.recordId,
+    ledgerId: ledgersPlan.idMap[booking.ledgerId] || booking.ledgerId,
+    wishlistId: wishlistPlan.idMap[booking.wishlistId] || booking.wishlistId,
+    tripId: tripsPlan.idMap[booking.tripId] || booking.tripId
+  }));
+  const bookingsPlan = planCollection(existingBookings, remappedBookings, "booking", backupToken);
+  const remappedChecklistItems = (backup.checklistItems || []).map((item) => ({ ...item, tripId: tripsPlan.idMap[item.tripId] || item.tripId }));
+  const checklistPlan = planCollection(existingChecklistItems, remappedChecklistItems, "check", backupToken);
+
+  recordsPlan.additions = recordsPlan.additions.map((record) => ({
+    ...record,
+    bookingId: bookingsPlan.idMap[record.bookingId] || record.bookingId,
+    wishlistId: wishlistPlan.idMap[record.wishlistId] || record.wishlistId,
+    tripId: tripsPlan.idMap[record.tripId] || record.tripId
+  }));
+  recordsPlan.result = recordsPlan.additions.concat(existingRecords);
+  wishlistPlan.additions = wishlistPlan.additions.map((item) => ({
+    ...item,
+    bookingId: bookingsPlan.idMap[item.bookingId] || item.bookingId,
+    tripId: tripsPlan.idMap[item.tripId] || item.tripId
+  }));
+  wishlistPlan.result = wishlistPlan.additions.concat(existingWishlist);
+  tripsPlan.additions = tripsPlan.additions.map((trip) => normalizeTrip({
+    ...trip,
+    linkedLedgerIds: (trip.linkedLedgerIds || []).map((id) => ledgersPlan.idMap[id] || id),
+    itineraryItems: (trip.itineraryItems || []).map((item) => ({
+      ...item,
+      placeId: placesPlan.idMap[item.placeId] || item.placeId,
+      recordId: recordsPlan.idMap[item.recordId] || item.recordId,
+      wishlistId: wishlistPlan.idMap[item.wishlistId] || item.wishlistId,
+      bookingId: bookingsPlan.idMap[item.bookingId] || item.bookingId
+    })),
+    personalExpenses: (trip.personalExpenses || []).map((item) => ({ ...item, bookingId: bookingsPlan.idMap[item.bookingId] || item.bookingId }))
+  }));
+  tripsPlan.result = tripsPlan.additions.concat(existingTrips);
   const incomingPreferences = backup.preferences || { story: {}, yearbook: {} };
   const remappedStory = Object.keys(incomingPreferences.story || {}).reduce((result, recordId) => { result[recordsPlan.idMap[recordId] || recordId] = incomingPreferences.story[recordId]; return result; }, {});
   const preferences = {
     story: { ...remappedStory, ...(existingPreferences.story || {}) },
     yearbook: { ...(incomingPreferences.yearbook || {}), ...(existingPreferences.yearbook || {}) }
   };
-  return { recordsPlan, placesPlan, ledgersPlan, wishlistPlan, tripsPlan, templatesPlan, wheelsPlan, preferences };
+  return { recordsPlan, placesPlan, ledgersPlan, wishlistPlan, tripsPlan, templatesPlan, wheelsPlan, bookingsPlan, checklistPlan, preferences };
 }
 
 function snapshotFor(key) {
@@ -318,7 +390,9 @@ function applyBackup(preflightOrPayload, mode = "merge") {
     yearbookPreferences: snapshotFor(YEARBOOK_PREFS_KEY),
     trips: snapshotFor(TRIPS_KEY),
     formTemplates: snapshotFor(TEMPLATES_KEY),
-    wheels: snapshotFor(WHEELS_KEY)
+    wheels: snapshotFor(WHEELS_KEY),
+    bookings: snapshotFor(BOOKINGS_KEY),
+    checklistItems: snapshotFor(CHECKLIST_KEY)
   };
   const rawRecords = snapshots.records.value;
   const rawPlaces = snapshots.places.value;
@@ -332,6 +406,8 @@ function applyBackup(preflightOrPayload, mode = "merge") {
   const existingTrips = Array.isArray(snapshots.trips.value) ? snapshots.trips.value.map(normalizeTrip) : [];
   const existingTemplates = Array.isArray(snapshots.formTemplates.value) ? snapshots.formTemplates.value : [];
   const existingWheels = Array.isArray(snapshots.wheels.value) ? snapshots.wheels.value.map(normalizeWheel) : [];
+  const existingBookings = Array.isArray(snapshots.bookings.value) ? snapshots.bookings.value.map(normalizeBooking) : [];
+  const existingChecklistItems = Array.isArray(snapshots.checklistItems.value) ? snapshots.checklistItems.value.map(normalizeChecklistItem) : [];
   let nextRecords;
   let nextPlaces;
   let nextLedgers;
@@ -340,6 +416,8 @@ function applyBackup(preflightOrPayload, mode = "merge") {
   let nextTrips;
   let nextTemplates;
   let nextWheels;
+  let nextBookings;
+  let nextChecklistItems;
   let result;
 
   if (mode === "replace" || mode === "overwrite") {
@@ -351,9 +429,11 @@ function applyBackup(preflightOrPayload, mode = "merge") {
     nextTrips = backup.trips === null ? existingTrips : backup.trips;
     nextTemplates = backup.formTemplates === null ? existingTemplates : backup.formTemplates;
     nextWheels = backup.wheels === null ? existingWheels : backup.wheels;
-    result = { mode: "replace", recordsAdded: nextRecords.length, placesAdded: nextPlaces.length, ledgersAdded: backup.ledgers === null ? 0 : nextLedgers.length, wishlistAdded: backup.wishlist === null ? 0 : nextWishlist.length, wheelsAdded: backup.wheels === null ? 0 : nextWheels.length, recordsSkipped: 0, placesSkipped: 0, ledgersSkipped: 0, wishlistSkipped: 0, wheelsSkipped: 0 };
+    nextBookings = backup.bookings === null ? existingBookings : backup.bookings;
+    nextChecklistItems = backup.checklistItems === null ? existingChecklistItems : backup.checklistItems;
+    result = { mode: "replace", recordsAdded: nextRecords.length, placesAdded: nextPlaces.length, ledgersAdded: backup.ledgers === null ? 0 : nextLedgers.length, wishlistAdded: backup.wishlist === null ? 0 : nextWishlist.length, wheelsAdded: backup.wheels === null ? 0 : nextWheels.length, bookingsAdded: backup.bookings === null ? 0 : nextBookings.length, checklistAdded: backup.checklistItems === null ? 0 : nextChecklistItems.length, recordsSkipped: 0, placesSkipped: 0, ledgersSkipped: 0, wishlistSkipped: 0, wheelsSkipped: 0, bookingsSkipped: 0, checklistSkipped: 0 };
   } else {
-    const plan = buildMerge(existingRecords, existingPlaces, existingLedgers, existingWishlist, existingPreferences, existingTrips, existingTemplates, existingWheels, backup);
+    const plan = buildMerge(existingRecords, existingPlaces, existingLedgers, existingWishlist, existingPreferences, existingTrips, existingTemplates, existingWheels, existingBookings, existingChecklistItems, backup);
     nextRecords = plan.recordsPlan.result;
     nextPlaces = plan.placesPlan.result;
     nextLedgers = backup.ledgers === null ? existingLedgers : plan.ledgersPlan.result;
@@ -362,6 +442,8 @@ function applyBackup(preflightOrPayload, mode = "merge") {
     nextTrips = backup.trips === null ? existingTrips : plan.tripsPlan.result;
     nextTemplates = backup.formTemplates === null ? existingTemplates : plan.templatesPlan.result;
     nextWheels = backup.wheels === null ? existingWheels : plan.wheelsPlan.result;
+    nextBookings = backup.bookings === null ? existingBookings : plan.bookingsPlan.result;
+    nextChecklistItems = backup.checklistItems === null ? existingChecklistItems : plan.checklistPlan.result;
     result = {
       mode: "merge",
       recordsAdded: plan.recordsPlan.additions.length,
@@ -374,10 +456,15 @@ function applyBackup(preflightOrPayload, mode = "merge") {
       wishlistSkipped: backup.wishlist === null ? 0 : plan.wishlistPlan.skipped,
       wheelsAdded: backup.wheels === null ? 0 : plan.wheelsPlan.additions.length,
       wheelsSkipped: backup.wheels === null ? 0 : plan.wheelsPlan.skipped,
+      bookingsAdded: backup.bookings === null ? 0 : plan.bookingsPlan.additions.length,
+      checklistAdded: backup.checklistItems === null ? 0 : plan.checklistPlan.additions.length,
+      bookingsSkipped: backup.bookings === null ? 0 : plan.bookingsPlan.skipped,
+      checklistSkipped: backup.checklistItems === null ? 0 : plan.checklistPlan.skipped,
       recordIdMap: plan.recordsPlan.idMap,
       placeIdMap: plan.placesPlan.idMap,
       ledgerIdMap: plan.ledgersPlan.idMap,
-      wishlistIdMap: plan.wishlistPlan.idMap
+      wishlistIdMap: plan.wishlistPlan.idMap,
+      bookingIdMap: plan.bookingsPlan.idMap
     };
   }
 
@@ -391,9 +478,11 @@ function applyBackup(preflightOrPayload, mode = "merge") {
     wx.setStorageSync(TRIPS_KEY, nextTrips.map(normalizeTrip));
     wx.setStorageSync(TEMPLATES_KEY, clone(nextTemplates));
     wx.setStorageSync(WHEELS_KEY, nextWheels.map(normalizeWheel));
+    wx.setStorageSync(BOOKINGS_KEY, nextBookings.map(normalizeBooking));
+    wx.setStorageSync(CHECKLIST_KEY, nextChecklistItems.map(normalizeChecklistItem));
   } catch (error) {
     const rollbackErrors = [];
-    [[RECORDS_KEY, snapshots.records], [PLACES_KEY, snapshots.places], [LEDGERS_KEY, snapshots.ledgers], [WISHLIST_KEY, snapshots.wishlist], [STORY_PREFS_KEY, snapshots.storyPreferences], [YEARBOOK_PREFS_KEY, snapshots.yearbookPreferences], [TRIPS_KEY, snapshots.trips], [TEMPLATES_KEY, snapshots.formTemplates], [WHEELS_KEY, snapshots.wheels]].forEach(([key, snapshot]) => {
+    [[RECORDS_KEY, snapshots.records], [PLACES_KEY, snapshots.places], [LEDGERS_KEY, snapshots.ledgers], [WISHLIST_KEY, snapshots.wishlist], [STORY_PREFS_KEY, snapshots.storyPreferences], [YEARBOOK_PREFS_KEY, snapshots.yearbookPreferences], [TRIPS_KEY, snapshots.trips], [TEMPLATES_KEY, snapshots.formTemplates], [WHEELS_KEY, snapshots.wheels], [BOOKINGS_KEY, snapshots.bookings], [CHECKLIST_KEY, snapshots.checklistItems]].forEach(([key, snapshot]) => {
       try { restoreStorage(key, snapshot); } catch (rollbackError) { rollbackErrors.push(rollbackError); }
     });
     const message = rollbackErrors.length ? "导入失败，且回滚未完整完成" : "导入失败，已自动回滚";
@@ -401,7 +490,7 @@ function applyBackup(preflightOrPayload, mode = "merge") {
     wrapped.rollbackErrors = rollbackErrors;
     throw wrapped;
   }
-  return { ...result, recordCount: nextRecords.length, placeCount: nextPlaces.length, ledgerCount: nextLedgers.length, wishlistCount: nextWishlist.length, tripCount: nextTrips.length, wheelCount: nextWheels.length };
+  return { ...result, recordCount: nextRecords.length, placeCount: nextPlaces.length, ledgerCount: nextLedgers.length, wishlistCount: nextWishlist.length, tripCount: nextTrips.length, wheelCount: nextWheels.length, bookingCount: nextBookings.length, checklistCount: nextChecklistItems.length };
 }
 
 module.exports = {
@@ -415,6 +504,8 @@ module.exports = {
   TRIPS_KEY,
   TEMPLATES_KEY,
   WHEELS_KEY,
+  BOOKINGS_KEY,
+  CHECKLIST_KEY,
   SCHEMA_VERSION,
   applyBackup,
   createBackup,

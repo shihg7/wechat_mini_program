@@ -9,6 +9,7 @@ const {
 const { getLedgerListItems } = require("../../utils/repositories/ledgerRepository");
 const { findPlaceSuggestions, getPlaceStats, getPlaces } = require("../../utils/repositories/placeRepository");
 const { getWishlist, searchWishlist } = require("../../utils/repositories/wishlistRepository");
+const departureStore = require("../../utils/departureStore");
 const demoMode = require("../../utils/demoMode");
 
 const SORT_OPTIONS = [
@@ -60,6 +61,7 @@ Page({
     demoActive: false,
     demoCompleted: 0,
     demoTotal: 4,
+    departureSummary: { upcomingCount: 0, urgentCount: 0, nextBooking: null },
     summary: {
       total: 0,
       hotelTotal: 0,
@@ -81,6 +83,7 @@ Page({
     const ledgers = getLedgerListItems();
     const wishlist = getWishlist();
     const demoProgress = demoMode.getProgress();
+    const departureSummary = departureStore.getDepartureOverview();
     const recentRecord = records.find((record) => record.status !== "draft") || null;
     const recentDraft = records.find((record) => record.status === "draft") || null;
     const recentLedger = ledgers[0] || null;
@@ -94,7 +97,8 @@ Page({
       wishlist,
       demoActive: demoProgress.active,
       demoCompleted: demoProgress.completed,
-      demoTotal: demoProgress.total
+      demoTotal: demoProgress.total,
+      departureSummary
     });
     this.refreshVisibleRecords();
   },
@@ -275,6 +279,7 @@ Page({
   goYearbook() { wx.navigateTo({ url: "/pages/yearbook/index" }); },
   goTravelMap() { wx.navigateTo({ url: "/pages/travel-map/index" }); },
   goWheel() { wx.navigateTo({ url: "/pages/wheel/index" }); },
+  goDeparture() { wx.navigateTo({ url: "/pages/departure/index" }); },
 
   toggleTools() { this.setData({ toolsExpanded: !this.data.toolsExpanded }); },
 

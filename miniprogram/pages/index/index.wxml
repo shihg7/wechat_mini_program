@@ -67,12 +67,17 @@
 
   <view class="content-heading tools-heading"><view><view class="content-title">旅行工具</view><view class="content-subtitle">回顾、计划与数据安全</view></view></view>
   <view class="utility-grid">
+    <view class="data-entry" bindtap="goDeparture">
+      <view class="utility-icon utility-blue"><ui-icon name="plane" size="{{34}}" tone="blue" /></view>
+      <view class="data-copy"><view class="data-title">出发中心</view><view class="data-desc">{{departureSummary.upcomingCount ? departureSummary.upcomingCount + " 项待出发" + (departureSummary.urgentCount ? " · " + departureSummary.urgentCount + " 项需留意" : "") : "预订、倒计时与行前清单"}}</view></view>
+      <ui-icon name="chevron-right" size="{{24}}" tone="muted" />
+    </view>
     <view class="data-entry demo-entry" wx:if="{{toolsExpanded}}" bindtap="goDemo">
       <view class="utility-icon utility-amber"><ui-icon name="play" size="{{34}}" tone="amber" /></view>
       <view class="data-copy"><view class="data-title">{{demoActive ? '继续演示' : '新手演示'}}</view><view class="data-desc">3 分钟熟悉核心功能</view></view>
       <ui-icon name="chevron-right" size="{{24}}" tone="muted" />
     </view>
-    <view class="data-entry" bindtap="goInsights">
+    <view class="data-entry" wx:if="{{toolsExpanded}}" bindtap="goInsights">
       <view class="utility-icon utility-blue"><ui-icon name="chart" size="{{34}}" tone="blue" /></view>
       <view class="data-copy"><view class="data-title">旅行洞察</view><view class="data-desc">年度最佳、城市分布与复访变化</view></view>
       <ui-icon name="chevron-right" size="{{24}}" tone="muted" />
@@ -109,7 +114,7 @@
     </view>
   </view>
   <view class="tools-toggle icon-label" bindtap="toggleTools">
-    <text>{{toolsExpanded ? "收起工具" : "查看全部 8 个工具"}}</text>
+    <text>{{toolsExpanded ? "收起工具" : "查看全部 9 个工具"}}</text>
     <ui-icon wx:if="{{toolsExpanded}}" name="arrow-up" size="{{23}}" tone="blue" />
     <ui-icon wx:else name="chevron-right" size="{{23}}" tone="blue" />
   </view>

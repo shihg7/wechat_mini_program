@@ -103,6 +103,7 @@ function v7(records, places, ledgers, wishlist, preferences, trips, formTemplate
   return { schemaVersion: 7, app: backupApi.APP_ID, exportedAt: "2026-07-10T10:00:00.000Z", records, places, ledgers, wishlist, preferences, trips, formTemplates };
 }
 function v8(records, places, ledgers, wishlist, preferences, trips, formTemplates, wheels) { return { ...v7(records, places, ledgers, wishlist, preferences, trips, formTemplates), schemaVersion: 8, wheels }; }
+function v9(records, places, ledgers, wishlist, preferences, trips, formTemplates, wheels, bookings, checklistItems) { return { ...v8(records, places, ledgers, wishlist, preferences, trips, formTemplates, wheels), schemaVersion: 9, bookings, checklistItems }; }
 
 function testPreflight() {
   const checked = backupApi.preflightBackup(JSON.stringify(v2([record("r1", "A")], [ledger("l1", "r1")])));
@@ -120,7 +121,11 @@ function testPreflight() {
     tripCount: 0,
     templatesIncluded: false,
     wheelCount: 0,
-    wheelsIncluded: false
+    wheelsIncluded: false,
+    bookingCount: 0,
+    checklistCount: 0,
+    bookingsIncluded: false,
+    checklistIncluded: false
   });
   assert.throws(() => backupApi.preflightBackup("{"), /有效的 JSON/);
   assert.throws(() => backupApi.preflightBackup({ schemaVersion: 2, records: [], ledgers: "bad" }), /ledgers必须是数组/);
@@ -139,6 +144,12 @@ function testPreflight() {
   const checkedV8 = backupApi.preflightBackup(v8([], [], [], [], { story: {}, yearbook: {} }, [], [], [{ id: "wheel1", title: "晚餐", options: [{ id: "o1", text: "火锅" }, { id: "o2", text: "日料" }], history: [] }]));
   assert.strictEqual(checkedV8.summary.wheelCount, 1);
   assert.strictEqual(checkedV8.summary.wheelsIncluded, true);
+  const checkedV9 = backupApi.preflightBackup(v9([], [], [], [], { story: {}, yearbook: {} }, [{ id: "trip9", title: "杭州", startDate: "2026-08-01", endDate: "2026-08-02" }], [], [], [{ id: "booking9", type: "hotel", name: "湖畔酒店", startDate: "2026-08-01", tripId: "trip9" }], [{ id: "check9", tripId: "trip9", title: "带证件" }]));
+  assert.strictEqual(checkedV9.summary.bookingCount, 1);
+  assert.strictEqual(checkedV9.summary.checklistCount, 1);
+  assert.strictEqual(checkedV9.summary.bookingsIncluded, true);
+  assert.throws(() => backupApi.preflightBackup(v9([], [], [], [], { story: {}, yearbook: {} }, [], [], [], [{ id: "bad-booking", name: "", startDate: "2026-08-01" }], [])), /缺少名称/);
+  assert.throws(() => backupApi.preflightBackup(v9([], [], [], [], { story: {}, yearbook: {} }, [], [], [], [], [{ id: "bad-check", title: "" }])), /缺少任务内容/);
 }
 
 function testMergeConflictMappingAndIdempotence() {
@@ -278,6 +289,43 @@ function testV7PreservesWheelsAndV8RollsBack() {
   assert.deepStrictEqual(memory, before);
 }
 
+function testV9DepartureRoundTripAndRollback() {
+  reset();
+  memory[backupApi.RECORDS_KEY] = [];
+  memory[backupApi.PLACES_KEY] = [];
+  memory[backupApi.LEDGERS_KEY] = [];
+  memory[backupApi.WISHLIST_KEY] = [];
+  memory[backupApi.TRIPS_KEY] = [];
+  memory[backupApi.BOOKINGS_KEY] = [];
+  memory[backupApi.CHECKLIST_KEY] = [];
+  const payload = v9(
+    [],
+    [],
+    [],
+    [],
+    { story: {}, yearbook: {} },
+    [{ id: "trip9", title: "杭州", startDate: "2026-08-01", endDate: "2026-08-02" }],
+    [],
+    [],
+    [{ id: "booking9", type: "hotel", name: "湖畔酒店", startDate: "2026-08-01", tripId: "trip9", amountCents: 168800 }],
+    [{ id: "check9", tripId: "trip9", title: "带证件", done: true }]
+  );
+  const merged = backupApi.applyBackup(payload, "merge");
+  assert.strictEqual(merged.bookingsAdded, 1);
+  assert.strictEqual(merged.checklistAdded, 1);
+  assert.strictEqual(memory[backupApi.BOOKINGS_KEY][0].tripId, "trip9");
+  assert.strictEqual(memory[backupApi.CHECKLIST_KEY][0].tripId, "trip9");
+  const second = backupApi.applyBackup(payload, "merge");
+  assert.strictEqual(second.bookingsAdded, 0);
+  assert.strictEqual(second.checklistAdded, 0);
+
+  const before = JSON.parse(JSON.stringify(memory));
+  failKey = backupApi.CHECKLIST_KEY;
+  failCount = 1;
+  assert.throws(() => backupApi.applyBackup(v9([], [], [], [], { story: {}, yearbook: {} }, [], [], [], [], []), "replace"), /已自动回滚/);
+  assert.deepStrictEqual(memory, before);
+}
+
 function testPrivacyCopy() {
   const source = { records: [record("r1", "私密酒店")], places: [place("place-r1", "私密酒店")], ledgers: [ledger("l1", "r1")] };
   const snapshot = JSON.parse(JSON.stringify(source));
@@ -299,13 +347,13 @@ function testPrivacyCopy() {
   assert.deepStrictEqual(source, snapshot, "privacy policy must not mutate source data");
 }
 
-function testExportMigratesRecordsBeforeBuildingV8() {
+function testExportMigratesRecordsBeforeBuildingV9() {
   reset();
   memory[backupApi.RECORDS_KEY] = [record("legacy", "旧酒店", { placeId: "" })];
   memory[backupApi.LEDGERS_KEY] = [];
   global.wx.getFileSystemManager = () => ({ writeFileSync() {} });
   const exported = backupApi.exportFullBackup();
-  assert.strictEqual(exported.backup.schemaVersion, 8);
+  assert.strictEqual(exported.backup.schemaVersion, 9);
   assert.strictEqual(exported.backup.media.binariesIncluded, false);
   assert.strictEqual(exported.backup.places.length, 1);
   assert.strictEqual(exported.backup.records[0].placeId, exported.backup.places[0].id);
@@ -314,6 +362,8 @@ function testExportMigratesRecordsBeforeBuildingV8() {
   assert.deepStrictEqual(exported.backup.trips, []);
   assert.deepStrictEqual(exported.backup.formTemplates, []);
   assert.deepStrictEqual(exported.backup.wheels, []);
+  assert.deepStrictEqual(exported.backup.bookings, []);
+  assert.deepStrictEqual(exported.backup.checklistItems, []);
 }
 
 function run() {
@@ -325,8 +375,9 @@ function run() {
   testV6PreferencesRemapAndSixthWriteRollback();
   testV7TripWriteRollback();
   testV7PreservesWheelsAndV8RollsBack();
+  testV9DepartureRoundTripAndRollback();
   testPrivacyCopy();
-  testExportMigratesRecordsBeforeBuildingV8();
+  testExportMigratesRecordsBeforeBuildingV9();
   console.log("app backup tests passed");
 }
 

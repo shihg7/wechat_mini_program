@@ -4,10 +4,16 @@
       <view class="eyebrow">酒店 · 餐厅 · 行程</view>
       <view class="title">旅行档案</view>
     </view>
-    <button class="top-add-button icon-action" bindtap="goQuickCreate">
-      <ui-icon name="plus" size="{{28}}" tone="white" />
-      <text>新增</text>
-    </button>
+    <view class="top-actions">
+      <button class="top-help-button icon-action" bindtap="goHelp" aria-label="打开帮助与使用手册">
+        <ui-icon name="book" size="{{26}}" tone="blue" />
+        <text>手册</text>
+      </button>
+      <button class="top-add-button icon-action" bindtap="goQuickCreate">
+        <ui-icon name="plus" size="{{28}}" tone="white" />
+        <text>新增</text>
+      </button>
+    </view>
   </view>
 
   <view class="hero">

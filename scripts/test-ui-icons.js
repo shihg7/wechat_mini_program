@@ -50,7 +50,8 @@ const pageExpectations = {
   "pages/cleanup/index.wxml": ["sparkles", "copy", "image"],
   "pages/wheel/index.wxml": ["wheel", "sliders", "refresh"],
   "pages/departure/index.wxml": ["plane", "clipboard", "clock"],
-  "pages/departure/edit.wxml": ["calendar", "route", "wallet", "users"]
+  "pages/departure/edit.wxml": ["calendar", "route", "wallet", "users"],
+  "pages/help/index.wxml": ["plus", "play", "search", "alert", "shield"]
 };
 
 Object.entries(pageExpectations).forEach(([relativePath, names]) => {

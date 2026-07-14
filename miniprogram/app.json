@@ -17,6 +17,7 @@
     "pages/departure/index",
     "pages/departure/edit",
     "pages/demo/index",
+    "pages/help/index",
     "pages/data/index",
     "pages/ledger/index/index",
     "pages/ledger/edit/edit",

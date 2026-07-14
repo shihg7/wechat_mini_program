@@ -1,4 +1,5 @@
-<scroll-view class="page" scroll-y>
+<view class="record-shell">
+<scroll-view class="page {{mode === 'create' || mode === 'edit' ? 'page-with-action-bar' : ''}}" scroll-y enhanced show-scrollbar="{{false}}">
   <demo-guide active="{{demoActive}}" step-label="任务 1 / 4 · 体验记录" title="看懂一条完整测评" hint="先看总分与分项，再向下找到标签和备注。" />
   <view class="hero">
     <view>
@@ -340,12 +341,6 @@
     <view class="privacy-hint">公开预览不会展示精确日期、会员等级、价格和私密备注；这些字段未来只进入私有同步。</view>
   </view>
 
-  <view class="actions" wx:if="{{mode === 'create' || mode === 'edit'}}">
-    <button class="button primary" data-status="completed" bindtap="saveRecord">{{mode === "edit" ? "保存修改" : "保存记录"}}</button>
-    <button class="button secondary" data-status="draft" bindtap="saveRecord">{{mode === "edit" ? "保存为草稿" : "保存草稿"}}</button>
-    <button class="button secondary" wx:if="{{mode === 'edit'}}" bindtap="cancelEdit">取消</button>
-  </view>
-
   <view class="actions detail-actions" wx:if="{{mode === 'detail'}}">
     <button class="button secondary" bindtap="goStory">生成回顾</button>
     <button class="button secondary" wx:if="{{form.placeId}}" bindtap="goPlaceDetail">查看地点</button>
@@ -354,3 +349,20 @@
     <button class="button danger" bindtap="deleteRecord">删除记录</button>
   </view>
 </scroll-view>
+
+<view class="fixed-actions" wx:if="{{mode === 'create' || mode === 'edit'}}">
+  <view class="fixed-actions-inner">
+    <button class="fixed-cancel icon-center" wx:if="{{mode === 'edit'}}" bindtap="cancelEdit" aria-label="取消编辑">
+      <ui-icon name="x" size="{{29}}" />
+    </button>
+    <button class="fixed-button fixed-draft icon-action" data-status="draft" bindtap="saveRecord">
+      <ui-icon name="file" size="{{26}}" />
+      <text>{{mode === "edit" ? "存为草稿" : "保存草稿"}}</text>
+    </button>
+    <button class="fixed-button fixed-primary icon-action" data-status="completed" bindtap="saveRecord">
+      <ui-icon name="check" size="{{27}}" tone="white" />
+      <text>{{mode === "edit" ? "保存修改" : "保存记录"}}</text>
+    </button>
+  </view>
+</view>
+</view>

@@ -280,6 +280,7 @@ Page({
   goTravelMap() { wx.navigateTo({ url: "/pages/travel-map/index" }); },
   goWheel() { wx.navigateTo({ url: "/pages/wheel/index" }); },
   goDeparture() { wx.navigateTo({ url: "/pages/departure/index" }); },
+  goHelp() { wx.navigateTo({ url: "/pages/help/index" }); },
 
   toggleTools() { this.setData({ toolsExpanded: !this.data.toolsExpanded }); },
 

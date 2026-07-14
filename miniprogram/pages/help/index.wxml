@@ -1,0 +1,98 @@
+<scroll-view class="page" scroll-y enhanced show-scrollbar="{{false}}" scroll-into-view="{{scrollTarget}}" scroll-with-animation>
+  <view class="hero">
+    <view class="eyebrow">HELP CENTER</view>
+    <view class="title">帮助与使用手册</view>
+    <view class="hero-copy">从第一条体验到行程、AA 分账和数据备份，按真实旅行流程快速找到答案。</view>
+    <view class="hero-actions">
+      <button class="hero-button hero-primary icon-action" data-url="/pages/record/record?type=hotel" bindtap="openFeature">
+        <ui-icon name="plus" size="{{27}}" tone="white" />
+        <text>新增体验</text>
+      </button>
+      <button class="hero-button hero-secondary icon-action" data-url="/pages/demo/index" bindtap="openFeature">
+        <ui-icon name="play" size="{{27}}" />
+        <text>新手演示</text>
+      </button>
+    </view>
+  </view>
+
+  <view class="search-panel">
+    <view class="search-box">
+      <ui-icon name="search" size="{{28}}" tone="muted" />
+      <input class="search-input" value="{{keyword}}" placeholder="搜索分账、照片、备份等问题" bindinput="onSearchInput" />
+      <view class="search-clear" wx:if="{{keyword}}" bindtap="clearSearch" aria-label="清除搜索"><ui-icon name="x" size="{{24}}" tone="muted" /></view>
+    </view>
+    <view class="search-meta">
+      <text>{{keyword ? '找到 ' + visibleSections.length + ' 个相关章节' : '共 ' + sections.length + ' 个功能章节'}}</text>
+      <view class="expand-action icon-label" bindtap="toggleAll">
+        <ui-icon name="{{allExpanded ? 'arrow-up' : 'arrow-down'}}" size="{{22}}" tone="blue" />
+        <text>{{allExpanded ? "全部收起" : "全部展开"}}</text>
+      </view>
+    </view>
+  </view>
+
+  <scroll-view class="chapter-scroll" scroll-x enhanced show-scrollbar="{{false}}">
+    <view class="chapter-row">
+      <view class="chapter-chip" wx:for="{{sections}}" wx:key="id" data-id="{{item.id}}" bindtap="jumpToSection">
+        <ui-icon name="{{item.icon}}" size="{{24}}" tone="{{item.tone}}" />
+        <text>{{item.navTitle}}</text>
+      </view>
+    </view>
+  </scroll-view>
+
+  <view class="help-empty" wx:if="{{!visibleSections.length}}">
+    <view class="empty-icon"><ui-icon name="search" size="{{40}}" tone="muted" /></view>
+    <view class="empty-title">没有找到相关内容</view>
+    <view class="empty-copy">换个关键词，或清除搜索查看全部章节。</view>
+    <button class="empty-button" bindtap="clearSearch">查看全部章节</button>
+  </view>
+
+  <view class="help-section {{item.expanded ? 'section-expanded' : ''}}" id="help-{{item.id}}" wx:for="{{visibleSections}}" wx:key="id">
+    <view class="section-head" data-id="{{item.id}}" bindtap="toggleSection" role="button" aria-label="{{item.title}}，{{item.expanded ? '收起' : '展开'}}">
+      <view class="section-icon tone-bg-{{item.tone}}"><ui-icon name="{{item.icon}}" size="{{34}}" tone="{{item.tone}}" /></view>
+      <view class="section-copy">
+        <view class="section-title">{{item.title}}</view>
+        <view class="section-subtitle">{{item.subtitle}}</view>
+      </view>
+      <ui-icon name="{{item.expanded ? 'arrow-up' : 'arrow-down'}}" size="{{26}}" tone="muted" />
+    </view>
+
+    <view class="section-body" wx:if="{{item.expanded}}">
+      <view class="section-intro">{{item.intro}}</view>
+
+      <view class="flow-band">
+        <block wx:for="{{item.flow}}" wx:key="label" wx:for-item="flowItem" wx:for-index="flowIndex">
+          <view class="flow-item">
+            <view class="flow-icon"><ui-icon name="{{flowItem.icon}}" size="{{29}}" tone="{{item.tone}}" /></view>
+            <view class="flow-label">{{flowItem.label}}</view>
+          </view>
+          <view class="flow-arrow" wx:if="{{flowIndex < item.flow.length - 1}}">›</view>
+        </block>
+      </view>
+
+      <view class="step-list">
+        <view class="step" wx:for="{{item.steps}}" wx:key="title" wx:for-item="stepItem" wx:for-index="stepIndex">
+          <view class="step-number">{{stepIndex + 1}}</view>
+          <view class="step-copy">
+            <view class="step-title">{{stepItem.title}}</view>
+            <view class="step-text">{{stepItem.text}}</view>
+          </view>
+        </view>
+      </view>
+
+      <view class="tip-band" wx:if="{{item.tips.length}}">
+        <view class="tip-heading"><ui-icon name="alert" size="{{24}}" tone="amber" /><text>使用提醒</text></view>
+        <view class="tip-item" wx:for="{{item.tips}}" wx:key="*this">{{index + 1}}. {{item}}</view>
+      </view>
+
+      <button class="feature-button icon-action" wx:if="{{item.url}}" data-url="{{item.url}}" data-tab="{{item.tab}}" bindtap="openFeature">
+        <text>{{item.actionLabel}}</text>
+        <ui-icon name="chevron-right" size="{{25}}" tone="blue" />
+      </button>
+    </view>
+  </view>
+
+  <view class="footer-note">
+    <ui-icon name="shield" size="{{28}}" tone="green" />
+    <view><view class="footer-title">当前为本地优先版本</view><view class="footer-copy">没有账号和云同步，重要数据请定期在“数据管理”中导出完整备份。</view></view>
+  </view>
+</scroll-view>

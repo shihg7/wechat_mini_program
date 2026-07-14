@@ -1,13 +1,24 @@
 page {
+  height: 100%;
+  overflow: hidden;
   background: #eef2f5;
   color: #172033;
   font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", Arial, sans-serif;
 }
 
+.record-shell {
+  height: 100vh;
+  overflow: hidden;
+}
+
 .page {
   box-sizing: border-box;
-  min-height: 100vh;
+  height: 100vh;
   padding: 28rpx 28rpx calc(env(safe-area-inset-bottom) + 48rpx);
+}
+
+.page-with-action-bar {
+  padding-bottom: calc(env(safe-area-inset-bottom) + 174rpx);
 }
 
 .hero {
@@ -474,7 +485,7 @@ page {
 }
 
 .detail-actions {
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
 }
 
 .button {
@@ -503,6 +514,66 @@ page {
 
 .danger {
   background: #a34b32;
+  color: #ffffff;
+}
+
+.fixed-actions {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 30;
+  padding: 16rpx 28rpx calc(env(safe-area-inset-bottom) + 16rpx);
+  border-top: 1rpx solid #dce2ea;
+  background: rgba(255, 255, 255, .98);
+  box-shadow: 0 -8rpx 24rpx rgba(23, 32, 51, .1);
+}
+
+.fixed-actions-inner {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  width: 100%;
+  max-width: 750rpx;
+  margin: 0 auto;
+}
+
+.fixed-button,
+.fixed-cancel {
+  height: 84rpx;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  border-radius: 8rpx;
+  font-size: 25rpx;
+  font-weight: 800;
+  line-height: 84rpx;
+}
+
+.fixed-button::after,
+.fixed-cancel::after { border: 0; }
+
+.fixed-cancel {
+  flex: 0 0 76rpx;
+  width: 76rpx;
+  min-width: 76rpx;
+  background: #eef2f5;
+  color: #172033;
+}
+
+.fixed-draft {
+  flex: 0 0 196rpx;
+  width: 196rpx;
+  min-width: 196rpx;
+  border: 1rpx solid #cbd5e1;
+  background: #ffffff;
+  color: #172033;
+}
+
+.fixed-primary {
+  flex: 1;
+  min-width: 0;
+  background: #2864d9;
   color: #ffffff;
 }
 .template-scroll{width:100%;white-space:nowrap}.template-row{display:flex;gap:12rpx;padding:8rpx 0}.template-chip,.recent-chip{display:inline-block;padding:14rpx 20rpx;background:#eef2f6;border-radius:6rpx;font-size:23rpx;color:#263248}.save-template{border:1rpx dashed #2864d9;color:#2864d9;background:#fff}.recent{margin-top:20rpx}.recent-title{font-size:22rpx;color:#667085;margin-bottom:10rpx}.recent-row{display:flex;gap:10rpx;flex-wrap:wrap}.recent-chip{background:#eaf1ff;color:#2054b2}

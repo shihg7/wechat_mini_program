@@ -35,6 +35,8 @@
 
 ### 界面与交互
 
+- 首页右上角常驻“手册”入口，小程序内帮助中心提供 10 个功能章节、图标流程、关键词搜索、章节展开/收起和对应功能直达，不需要离开小程序查看仓库文档。
+- 酒店与餐厅新增/编辑页把取消、保存草稿和保存记录固定在底部安全区域，表单独立滚动并预留遮挡空间，不必滑到页面末尾才能保存。
 - 新增全局 `ui-icon` 组件和本地线性 SVG 图标集，统一 24×24 视口、线宽、色调和无障碍属性，不依赖运行时图标包。
 - 首页、行程、预算、AA 账本、数据管理、待整理中心和决策转盘使用语义图标区分新增、搜索、日期、成员、支出、转账、导出和危险操作；关键命令仍保留文字标签，顶部图标按钮固定为方形以避免原生按钮在 flex 布局中拉伸。
 - 首页隐藏无内容的最近草稿和账本卡片，旅行工具默认只显示 4 个常用入口；AA 详情按“账目 / 结算 / 成员”分区，行程日程的移动、复制和删除收进单一操作菜单。
@@ -223,6 +225,7 @@ miniprogram/
   pages/trip/           行程列表、编辑、按天日程和预算中心
   pages/wishlist/       想去清单新增、详情和编辑
   pages/departure/      预订列表、行前清单和预订新增/详情/编辑
+  pages/help/           小程序内帮助与使用手册
   pages/cleanup/        数据健康检查与安全整理
   pages/data/           完整备份、恢复和隐私 PDF
   pages/ledger/index/   AA 账本列表
@@ -310,6 +313,8 @@ npm test
 - 页面回归：行程筛选无结果、清除筛选、空账本三态、失效详情恢复和危险操作菜单
 - 未保存保护：想去项和地点编辑启用提醒，保存或放弃后解除提醒并恢复原值
 - 返回刷新：年度回忆册保留年份选择并读取新增记录，地图空状态输出明确原因和待补充数量
+- 帮助中心：十章内容、口语关键词搜索、展开收起、章节定位和功能直达
+- 记录操作栏：新增/编辑保存操作位于滚动区外、固定底部并适配设备安全区
 - 图标系统：组件注册、SVG 资源完整性、统一视口和核心页面语义图标覆盖
 
 常用语法检查：
@@ -345,6 +350,7 @@ node --check miniprogram/pages/story/index.js
 node --check miniprogram/pages/yearbook/index.js
 node --check miniprogram/pages/departure/index.js
 node --check miniprogram/pages/departure/edit.js
+node --check miniprogram/pages/help/index.js
 node --check miniprogram/pages/trip/index.js
 node --check miniprogram/pages/trip/edit.js
 node --check miniprogram/pages/trip/detail.js

@@ -40,8 +40,13 @@
 
   <view class="quick-actions">
     <button class="button primary icon-action" bindtap="openExpenseForm"><ui-icon name="plus" size="{{26}}" tone="white" /><text>{{showExpenseForm ? "继续填写" : "记一笔支出"}}</text></button>
-    <button class="button secondary icon-action" bindtap="editLedger"><ui-icon name="users" size="{{26}}" /><text>成员与账本</text></button>
-    <button class="button secondary icon-action" bindtap="toggleExportPanel"><ui-icon name="download" size="{{26}}" tone="blue" /><text>导出结算</text></button>
+    <button class="button secondary icon-action" bindtap="showLedgerActions"><ui-icon name="more" size="{{26}}" tone="blue" /><text>更多</text></button>
+  </view>
+
+  <view class="ledger-tabs">
+    <view class="ledger-tab {{ledgerTab === 'expenses' ? 'active' : ''}}" data-tab="expenses" bindtap="onLedgerTab"><text>账目</text><text class="tab-count">{{summary.expenseCount}}</text></view>
+    <view class="ledger-tab {{ledgerTab === 'settlement' ? 'active' : ''}}" data-tab="settlement" bindtap="onLedgerTab"><text>结算</text><text class="tab-count">{{settlements.length}}</text></view>
+    <view class="ledger-tab {{ledgerTab === 'members' ? 'active' : ''}}" data-tab="members" bindtap="onLedgerTab"><text>成员</text><text class="tab-count">{{memberCount}}</text></view>
   </view>
 
   <view class="section export-panel" wx:if="{{showExportPanel}}">
@@ -49,7 +54,7 @@
     <view class="export-grid"><button class="export-button icon-action" loading="{{exporting}}" data-format="image" data-mode="redacted" bindtap="exportLedger"><ui-icon name="image" size="{{24}}" tone="blue" /><text>结算图片</text></button><button class="export-button icon-action" loading="{{exporting}}" data-format="pdf" data-mode="private" bindtap="exportLedger"><ui-icon name="file" size="{{24}}" /><text>私人 PDF</text></button><button class="export-button icon-action" loading="{{exporting}}" data-format="pdf" data-mode="redacted" bindtap="exportLedger"><ui-icon name="shield" size="{{24}}" tone="green" /><text>分享 PDF</text></button><button class="export-button icon-action" loading="{{exporting}}" data-format="json" data-mode="private" bindtap="exportLedger"><ui-icon name="database" size="{{24}}" tone="accent" /><text>明细 JSON</text></button></view>
   </view>
 
-  <view class="section member-section">
+  <view class="section member-section" wx:if="{{ledgerTab === 'members'}}">
     <view class="section-head">
       <view>
         <view class="section-title icon-label"><ui-icon name="users" size="{{28}}" tone="green" /><text>成员</text></view>
@@ -62,7 +67,7 @@
     </view>
   </view>
 
-  <view class="section form-section" wx:if="{{showExpenseForm}}">
+  <view class="section form-section" wx:if="{{showExpenseForm && ledgerTab === 'expenses'}}">
     <view class="section-head">
       <view>
         <view class="section-title icon-label"><ui-icon name="{{editingExpenseId ? 'edit' : 'receipt'}}" size="{{28}}" tone="blue" /><text>{{editingExpenseId ? "编辑支出" : "记一笔支出"}}</text></view>
@@ -151,7 +156,7 @@
     </view>
   </view>
 
-  <view class="section priority-section">
+  <view class="section priority-section" wx:if="{{ledgerTab === 'settlement'}}">
     <view class="section-head">
       <view>
         <view class="section-title icon-label"><ui-icon name="route" size="{{28}}" tone="blue" /><text>推荐转账方案</text></view>
@@ -183,7 +188,7 @@
     </view>
   </view>
 
-  <view class="section">
+  <view class="section" wx:if="{{ledgerTab === 'settlement'}}">
     <view class="section-head">
       <view>
         <view class="section-title icon-label"><ui-icon name="book" size="{{28}}" tone="accent" /><text>结算历史</text></view>
@@ -203,7 +208,7 @@
     </view>
   </view>
 
-  <view class="section">
+  <view class="section" wx:if="{{ledgerTab === 'settlement'}}">
     <view class="section-head">
       <view>
         <view class="section-title icon-label"><ui-icon name="users" size="{{28}}" tone="green" /><text>成员净额</text></view>
@@ -219,7 +224,7 @@
     </view>
   </view>
 
-  <view class="section">
+  <view class="section" wx:if="{{ledgerTab === 'expenses'}}">
     <view class="section-head">
       <view>
         <view class="section-title icon-label"><ui-icon name="receipt" size="{{28}}" tone="blue" /><text>支出明细</text></view>
@@ -244,7 +249,7 @@
     </view>
   </view>
 
-  <view class="section">
+  <view class="section" wx:if="{{ledgerTab === 'expenses'}}">
     <view class="section-head">
       <view>
         <view class="section-title icon-label"><ui-icon name="chart" size="{{28}}" tone="amber" /><text>分类统计</text></view>

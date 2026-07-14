@@ -4,7 +4,7 @@
     <view class="eyebrow">{{trip.status === 'active' ? 'IN PROGRESS' : 'TRIP PLAN'}}</view>
     <view class="title">{{trip.title}}</view>
     <view class="meta icon-label"><ui-icon name="calendar" size="{{25}}" tone="white" /><text>{{trip.cityText}} · {{trip.startDate}} 至 {{trip.endDate}}</text></view>
-    <view class="hero-actions"><button class="icon-action" bindtap="edit"><ui-icon name="edit" size="{{24}}" tone="white" /><text>编辑</text></button><button class="budget icon-action" bindtap="budget"><ui-icon name="wallet" size="{{24}}" /><text>预算</text></button><button class="icon-center" bindtap="showMoreActions" aria-label="更多行程操作"><ui-icon name="more" size="{{27}}" tone="white" /></button></view>
+    <view class="hero-actions"><button class="trip-hero-action icon-action" bindtap="edit"><ui-icon name="edit" size="{{24}}" tone="white" /><text>编辑</text></button><button class="trip-hero-action budget icon-action" bindtap="budget"><ui-icon name="wallet" size="{{24}}" /><text>预算</text></button><button class="trip-more-action icon-center" bindtap="showMoreActions" aria-label="更多行程操作"><ui-icon name="more" size="{{27}}" tone="white" /></button></view>
   </view>
   <view class="warning icon-label" wx:if="{{conflicts.length}}"><ui-icon name="alert" size="{{28}}" tone="accent" /><text>发现 {{conflicts.length}} 处时间冲突，请调整日程。</text></view>
   <view class="day" wx:for="{{days}}" wx:key="date">
@@ -13,7 +13,7 @@
     <view class="plan {{plan.conflict ? 'conflict' : ''}}" wx:for="{{item.items}}" wx:for-item="plan" wx:key="id" data-id="{{plan.id}}" bindtap="editItem">
       <view class="time">{{plan.startTime || '--:--'}}</view>
       <view class="plan-main"><view class="plan-title">{{plan.title}}</view><view class="plan-meta">{{plan.typeLabel}}{{plan.endTime ? ' · 至 ' + plan.endTime : ''}} · 点击编辑</view></view>
-      <view class="plan-tools"><view class="tool icon-center {{!plan.canMoveUp ? 'disabled' : ''}}" data-id="{{plan.id}}" data-direction="up" catchtap="moveItem" aria-label="上移日程"><ui-icon name="arrow-up" size="{{24}}" tone="blue" /></view><view class="tool icon-center {{!plan.canMoveDown ? 'disabled' : ''}}" data-id="{{plan.id}}" data-direction="down" catchtap="moveItem" aria-label="下移日程"><ui-icon name="arrow-down" size="{{24}}" tone="blue" /></view><view class="tool icon-label" data-id="{{plan.id}}" catchtap="copyItem"><ui-icon name="copy" size="{{23}}" tone="blue" /><text>复制</text></view><view class="remove icon-label" data-id="{{plan.id}}" catchtap="remove"><ui-icon name="trash" size="{{23}}" tone="accent" /><text>删除</text></view></view>
+      <view class="tool icon-center" data-id="{{plan.id}}" catchtap="showItemActions" aria-label="更多日程操作"><ui-icon name="more" size="{{27}}" tone="blue" /></view>
     </view>
   </view>
   <view class="form" wx:if="{{showForm}}">

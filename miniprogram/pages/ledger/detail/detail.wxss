@@ -159,6 +159,52 @@ page {
   margin-top: 18rpx;
 }
 
+.ledger-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6rpx;
+  margin-top: 18rpx;
+  padding: 6rpx;
+  border-radius: 8rpx;
+  background: #ffffff;
+}
+
+.ledger-tab {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8rpx;
+  min-width: 0;
+  height: 66rpx;
+  border-radius: 7rpx;
+  color: #667085;
+  font-size: 24rpx;
+  font-weight: 800;
+}
+
+.ledger-tab.active {
+  background: #172033;
+  color: #ffffff;
+}
+
+.tab-count {
+  min-width: 30rpx;
+  height: 30rpx;
+  padding: 0 7rpx;
+  border-radius: 7rpx;
+  background: #eef2f5;
+  color: #667085;
+  font-size: 18rpx;
+  line-height: 30rpx;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.ledger-tab.active .tab-count {
+  background: rgba(255, 255, 255, 0.16);
+  color: #ffffff;
+}
+
 .export-grid { display:grid; grid-template-columns:1fr 1fr; gap:12rpx; margin-top:18rpx; }
 .export-button { height:70rpx; margin:0; padding:0 8rpx; border-radius:8rpx; background:#eef2f5; color:#263248; font-size:23rpx; font-weight:800; line-height:70rpx; }.export-button::after{border:0}.export-canvas{position:fixed;left:-2000px;top:0;width:595px;height:842px;pointer-events:none}
 

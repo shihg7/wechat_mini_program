@@ -60,11 +60,20 @@ const homeSource = fs.readFileSync(path.join(miniprogramRoot, "pages/index/index
 const tripSource = fs.readFileSync(path.join(miniprogramRoot, "pages/trip/index.wxml"), "utf8");
 const ledgerSource = fs.readFileSync(path.join(miniprogramRoot, "pages/ledger/index/index.wxml"), "utf8");
 const wheelSource = fs.readFileSync(path.join(miniprogramRoot, "pages/wheel/index.wxml"), "utf8");
+const ledgerDetailSource = fs.readFileSync(path.join(miniprogramRoot, "pages/ledger/detail/detail.wxml"), "utf8");
+const tripDetailSource = fs.readFileSync(path.join(miniprogramRoot, "pages/trip/detail.wxml"), "utf8");
 assert(!homeSource.includes('aria-label="快速新增">+</button>'));
 assert(!tripSource.includes(">＋ 新建</button>"));
 assert(!ledgerSource.includes("管理 ···"));
-assert(homeSource.includes("square-icon-button"), "home create action should stay square");
+assert(homeSource.includes('class="top-add-button icon-action"'), "home create action should include an explicit label");
+assert(homeSource.includes("hasRecentContent"), "home should hide the recent section when it has no useful content");
+assert(!homeSource.includes("没有待完成草稿"), "home should not spend space on an empty draft card");
+assert((homeSource.match(/wx:if="\{\{toolsExpanded\}\}"/g) || []).length >= 4, "secondary tools should use progressive disclosure");
 assert(ledgerSource.includes("square-icon-button"), "ledger create action should stay square");
 assert(wheelSource.includes('class="pointer {{spinning'), "wheel pointer should remain visible above the canvas");
+assert(ledgerDetailSource.includes('data-tab="expenses"') && ledgerDetailSource.includes('data-tab="settlement"') && ledgerDetailSource.includes('data-tab="members"'), "ledger detail should separate its three core tasks");
+assert(tripDetailSource.includes('catchtap="showItemActions"'), "trip item actions should be grouped into one menu");
+assert(!tripDetailSource.includes('class="plan-tools"'), "trip items should not show every low-frequency action at once");
+assert(tripDetailSource.includes("trip-more-action"), "trip header should keep its more action compact");
 
 console.log("ui icon integration tests passed (" + referencedIcons.size + " icons referenced)");

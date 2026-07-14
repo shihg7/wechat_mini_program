@@ -44,3 +44,24 @@ input::placeholder, textarea::placeholder { color: #98a2b3; }
   padding: 0 !important;
   box-sizing: border-box;
 }
+
+.trip-hero-action {
+  flex: 0 0 160rpx !important;
+  width: 160rpx !important;
+  min-width: 160rpx !important;
+  max-width: 160rpx !important;
+  height: 68rpx !important;
+  padding: 0 !important;
+  box-sizing: border-box;
+}
+
+.trip-more-action {
+  flex: 0 0 68rpx !important;
+  width: 68rpx !important;
+  min-width: 68rpx !important;
+  max-width: 68rpx !important;
+  height: 68rpx !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  box-sizing: border-box;
+}

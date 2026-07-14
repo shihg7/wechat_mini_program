@@ -95,7 +95,14 @@ function testDetailClickFlowAndSettlementHistory() {
   page.onLoad({ id: ledger.id, demo: "ledger" });
   assert.strictEqual(page.data.demoActive, true);
   assert.deepStrictEqual(memory.experience_demo_mode_state.completedStepIds, ["ledger"]);
+  assert.strictEqual(page.data.ledgerTab, "expenses");
+  page.onLedgerTab({ currentTarget: { dataset: { tab: "settlement" } } });
+  assert.strictEqual(page.data.ledgerTab, "settlement");
+  ui.actionIndex = 1;
+  page.showLedgerActions();
+  assert.strictEqual(page.data.showExportPanel, true);
   page.openExpenseForm();
+  assert.strictEqual(page.data.ledgerTab, "expenses");
   page.onExpenseInput(input("title", "酒店"));
   page.onExpenseInput(input("amount", "900.00"));
   page.onSplitModeTap({ currentTarget: { dataset: { mode: "shares" } } });

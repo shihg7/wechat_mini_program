@@ -1,6 +1,6 @@
 const assert = require("assert");
 const memory = {};
-const ui = { toasts: [], navigations: [], modalContent: "", actionItems: [], backCount: 0, leaveAlertCount: 0 };
+const ui = { toasts: [], navigations: [], modalContent: "", actionItems: [], actionHandler: null, backCount: 0, leaveAlertCount: 0 };
 global.wx = {
   getStorageSync(key) { return memory[key]; },
   setStorageSync(key, value) { memory[key] = JSON.parse(JSON.stringify(value)); },
@@ -9,7 +9,7 @@ global.wx = {
   navigateTo(options) { ui.navigations.push(options.url); },
   redirectTo(options) { ui.navigations.push(options.url); },
   navigateBack() { ui.backCount += 1; },
-  showActionSheet(options) { ui.actionItems = options.itemList || []; },
+  showActionSheet(options) { ui.actionItems = options.itemList || []; ui.actionHandler = options.success || null; },
   enableAlertBeforeUnload() { ui.leaveAlertCount += 1; },
   disableAlertBeforeUnload() { ui.leaveAlertCount = Math.max(0, ui.leaveAlertCount - 1); }
 };
@@ -46,7 +46,9 @@ assert.deepStrictEqual(memory.experience_demo_mode_state.completedStepIds, [], "
 detailPage.onShow();
 assert.deepStrictEqual(memory.experience_demo_mode_state.completedStepIds, ["trip"]);
 const dinnerId = detailPage.data.trip.itineraryItems.find((item) => item.title === "晚餐").id;
-detailPage.moveItem({ currentTarget: { dataset: { id: dinnerId, direction: "up" } } });
+detailPage.showItemActions({ currentTarget: { dataset: { id: dinnerId } } });
+assert.deepStrictEqual(ui.actionItems, ["上移日程", "复制日程", "删除日程"]);
+ui.actionHandler({ tapIndex: 0 });
 assert.strictEqual(detailPage.data.days[0].items[0].id, dinnerId);
 detailPage.copyItem({ currentTarget: { dataset: { id: dinnerId } } });
 assert.strictEqual(detailPage.data.days[0].items.length, 3);

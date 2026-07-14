@@ -213,6 +213,7 @@ Page({
     isSettled: true,
     showExportPanel: false,
     exporting: false,
+    ledgerTab: "expenses",
     demoActive: false
   },
 
@@ -274,6 +275,21 @@ Page({
     wx.navigateTo({ url: `/pages/ledger/edit/edit?id=${this.data.ledgerId}` });
   },
 
+  onLedgerTab(event) {
+    const tab = event.currentTarget.dataset.tab;
+    if (["expenses", "settlement", "members"].indexOf(tab) >= 0) this.setData({ ledgerTab: tab });
+  },
+
+  showLedgerActions() {
+    wx.showActionSheet({
+      itemList: ["管理成员与账本", "导出结算"],
+      success: (result) => {
+        if (result.tapIndex === 0) this.editLedger();
+        if (result.tapIndex === 1) this.setData({ showExportPanel: true });
+      }
+    });
+  },
+
   toggleExportPanel() { this.setData({ showExportPanel: !this.data.showExportPanel }); },
 
   async exportLedger(event) {
@@ -300,6 +316,7 @@ Page({
   },
 
   openExpenseForm() {
+    this.setData({ ledgerTab: "expenses" });
     if (!this.data.showExpenseForm) {
       const form = buildExpenseForm(this.data.ledger, this.data.members, this.data.activeMembers, null);
       this.setData({

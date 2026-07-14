@@ -1,11 +1,12 @@
 <view class="page">
   <view class="topbar">
     <view>
-      <view class="eyebrow">个人旅行档案</view>
-      <view class="title">体验档案</view>
+      <view class="eyebrow">酒店 · 餐厅 · 行程</view>
+      <view class="title">旅行档案</view>
     </view>
-    <button class="icon-button square-icon-button" bindtap="goQuickCreate" aria-label="快速新增">
-      <ui-icon name="plus" size="{{34}}" tone="white" />
+    <button class="top-add-button icon-action" bindtap="goQuickCreate">
+      <ui-icon name="plus" size="{{28}}" tone="white" />
+      <text>新增</text>
     </button>
   </view>
 
@@ -38,7 +39,8 @@
     <button class="button secondary" bindtap="goQuickCreate"><ui-icon name="zap" size="{{28}}" tone="blue" /><text>快速记录</text></button>
   </view>
 
-  <view class="content-heading"><view><view class="content-title">继续记录</view><view class="content-subtitle">最近使用的内容</view></view></view>
+  <block wx:if="{{hasRecentContent}}">
+  <view class="content-heading"><view><view class="content-title">最近使用</view><view class="content-subtitle">快速回到上次内容</view></view></view>
   <view class="recent-grid">
     <view class="snapshot" wx:if="{{recentRecord}}" data-id="{{recentRecord.id}}" bindtap="goDetail">
       <image class="snapshot-cover" wx:if="{{recentRecord.coverPhotoPath}}" src="{{recentRecord.coverPhotoPath}}" mode="aspectFill" />
@@ -46,21 +48,10 @@
       <view class="snapshot-title">{{recentRecord.displayName}}</view>
       <view class="snapshot-meta">{{recentRecord.city || "未填写城市"}} · {{recentRecord.isRated ? recentRecord.overallScore + " 分" : "未评分"}}</view>
     </view>
-    <view class="snapshot" wx:else data-type="hotel" bindtap="goCreate">
-      <view class="snapshot-label"><ui-icon name="book" size="{{24}}" tone="muted" /><text>最近体验</text></view>
-      <view class="snapshot-title muted">还没有体验记录</view>
-      <view class="snapshot-meta link">新增第一条</view>
-    </view>
-
     <view class="snapshot" wx:if="{{recentDraft}}" data-id="{{recentDraft.id}}" bindtap="goDetail">
-      <view class="snapshot-label"><ui-icon name="file" size="{{24}}" tone="muted" /><text>最近草稿</text></view>
+      <view class="snapshot-label"><ui-icon name="file" size="{{24}}" tone="muted" /><text>待完成草稿</text></view>
       <view class="snapshot-title">{{recentDraft.displayName}}</view>
       <view class="snapshot-meta">继续补充这条记录</view>
-    </view>
-    <view class="snapshot" wx:else bindtap="goQuickCreate">
-      <view class="snapshot-label"><ui-icon name="file" size="{{24}}" tone="muted" /><text>最近草稿</text></view>
-      <view class="snapshot-title muted">没有待完成草稿</view>
-      <view class="snapshot-meta">记录可随时存为草稿</view>
     </view>
 
     <view class="snapshot wide" wx:if="{{recentLedger}}" data-id="{{recentLedger.id}}" bindtap="goLedgerDetail">
@@ -71,20 +62,14 @@
       </view>
       <view class="snapshot-amount">{{recentLedger.totalText}}</view>
     </view>
-    <view class="snapshot wide" wx:else bindtap="goLedgers">
-      <view>
-        <view class="snapshot-label"><ui-icon name="receipt" size="{{24}}" tone="muted" /><text>最近账本</text></view>
-        <view class="snapshot-title muted">还没有 AA 账本</view>
-      </view>
-      <view class="snapshot-link">去新建</view>
-    </view>
   </view>
+  </block>
 
   <view class="content-heading tools-heading"><view><view class="content-title">旅行工具</view><view class="content-subtitle">回顾、计划与数据安全</view></view></view>
   <view class="utility-grid">
-    <view class="data-entry demo-entry" bindtap="goDemo">
+    <view class="data-entry demo-entry" wx:if="{{toolsExpanded}}" bindtap="goDemo">
       <view class="utility-icon utility-amber"><ui-icon name="play" size="{{34}}" tone="amber" /></view>
-      <view class="data-copy"><view class="data-title">{{demoActive ? '继续演示' : '新手演示'}}</view><view class="data-desc">3 分钟走遍核心功能</view></view>
+      <view class="data-copy"><view class="data-title">{{demoActive ? '继续演示' : '新手演示'}}</view><view class="data-desc">3 分钟熟悉核心功能</view></view>
       <ui-icon name="chevron-right" size="{{24}}" tone="muted" />
     </view>
     <view class="data-entry" bindtap="goInsights">
@@ -92,9 +77,9 @@
       <view class="data-copy"><view class="data-title">旅行洞察</view><view class="data-desc">年度最佳、城市分布与复访变化</view></view>
       <ui-icon name="chevron-right" size="{{24}}" tone="muted" />
     </view>
-    <view class="data-entry" bindtap="goYearbook">
+    <view class="data-entry" wx:if="{{toolsExpanded}}" bindtap="goYearbook">
       <view class="utility-icon utility-accent"><ui-icon name="book" size="{{34}}" tone="accent" /></view>
-      <view class="data-copy"><view class="data-title">年度回忆册</view><view class="data-desc">年度最佳、照片时间线与 PDF</view></view>
+      <view class="data-copy"><view class="data-title">年度回忆册</view><view class="data-desc">照片时间线与 PDF</view></view>
       <ui-icon name="chevron-right" size="{{24}}" tone="muted" />
     </view>
     <view class="data-entry" bindtap="goTravelMap">
@@ -112,16 +97,21 @@
       <view class="data-copy"><view class="data-title">想去清单</view><view class="data-desc">{{wishlist.length}} 个计划 · 预订和到访状态</view></view>
       <ui-icon name="chevron-right" size="{{24}}" tone="muted" />
     </view>
-    <view class="data-entry" bindtap="goDataManagement">
+    <view class="data-entry" wx:if="{{toolsExpanded}}" bindtap="goDataManagement">
       <view class="utility-icon utility-blue"><ui-icon name="database" size="{{34}}" tone="blue" /></view>
       <view class="data-copy"><view class="data-title">数据管理</view><view class="data-desc">备份、PDF 导出与数据恢复</view></view>
       <ui-icon name="chevron-right" size="{{24}}" tone="muted" />
     </view>
-    <view class="data-entry" bindtap="goCleanup">
+    <view class="data-entry" wx:if="{{toolsExpanded}}" bindtap="goCleanup">
       <view class="utility-icon utility-green"><ui-icon name="sparkles" size="{{34}}" tone="green" /></view>
       <view class="data-copy"><view class="data-title">待整理中心</view><view class="data-desc">重复地点、缺失信息与照片健康</view></view>
       <ui-icon name="chevron-right" size="{{24}}" tone="muted" />
     </view>
+  </view>
+  <view class="tools-toggle icon-label" bindtap="toggleTools">
+    <text>{{toolsExpanded ? "收起工具" : "查看全部 8 个工具"}}</text>
+    <ui-icon wx:if="{{toolsExpanded}}" name="arrow-up" size="{{23}}" tone="blue" />
+    <ui-icon wx:else name="chevron-right" size="{{23}}" tone="blue" />
   </view>
 
   <view class="content-heading archive-heading"><view><view class="content-title">我的档案</view><view class="content-subtitle">查找每一次体验</view></view></view>

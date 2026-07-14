@@ -55,6 +55,8 @@ Page({
     recentRecord: null,
     recentDraft: null,
     recentLedger: null,
+    hasRecentContent: false,
+    toolsExpanded: false,
     demoActive: false,
     demoCompleted: 0,
     demoTotal: 4,
@@ -79,12 +81,16 @@ Page({
     const ledgers = getLedgerListItems();
     const wishlist = getWishlist();
     const demoProgress = demoMode.getProgress();
+    const recentRecord = records.find((record) => record.status !== "draft") || null;
+    const recentDraft = records.find((record) => record.status === "draft") || null;
+    const recentLedger = ledgers[0] || null;
     this.setData({
       records,
       summary: getSummary(records),
-      recentRecord: records.find((record) => record.status !== "draft") || null,
-      recentDraft: records.find((record) => record.status === "draft") || null,
-      recentLedger: ledgers[0] || null,
+      recentRecord,
+      recentDraft,
+      recentLedger,
+      hasRecentContent: !!(recentRecord || recentDraft || recentLedger),
       wishlist,
       demoActive: demoProgress.active,
       demoCompleted: demoProgress.completed,
@@ -269,6 +275,8 @@ Page({
   goYearbook() { wx.navigateTo({ url: "/pages/yearbook/index" }); },
   goTravelMap() { wx.navigateTo({ url: "/pages/travel-map/index" }); },
   goWheel() { wx.navigateTo({ url: "/pages/wheel/index" }); },
+
+  toggleTools() { this.setData({ toolsExpanded: !this.data.toolsExpanded }); },
 
   goDemo() {
     if (this.data.demoActive) {

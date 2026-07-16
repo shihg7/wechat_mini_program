@@ -1,4 +1,4 @@
-const cleanupService = require("../../../utils/cleanupService");
+const cleanupService = require("../utils/cleanupService");
 
 Page({
   data: { report: null },

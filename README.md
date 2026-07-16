@@ -217,7 +217,7 @@ trip_split_ledgers
 
 ```text
 miniprogram/
-  components/ui-icon/  全局线性图标组件
+  components/ui-icon/  语义线性图标组件
   assets/icons/         本地 24×24 语义图标
   pages/index/          首页体验档案
   pages/record/         酒店/餐厅记录新增、详情、编辑
@@ -229,20 +229,15 @@ miniprogram/
   pages/ledger/edit/    AA 账本新增/编辑
   pages/ledger/detail/  AA 账本详情、支出录入、结算
   packages/tools/       洞察、地图、故事、回忆册、转盘、演示、帮助、清理和数据管理分包
+    utils/              仅由工具分包使用的业务模块与转盘 Repository
   utils/hotelScore.js
   utils/hotelReviewStore.js
   utils/placeStore.js
   utils/mediaStore.js
-  utils/travelInsights.js
-  utils/travelMap.js
-  utils/storyRenderer.js
-  utils/yearbookBuilder.js
-  utils/reportCanvas.js
   utils/tripStore.js
   utils/formTemplateStore.js
   utils/wishlistStore.js
   utils/departureStore.js
-  utils/cleanupService.js
   utils/syncMetadata.js
   utils/syncDtos.js
   utils/repositories/   Repository 接口与本地适配器
@@ -251,7 +246,6 @@ miniprogram/
   utils/tripLedgerStore.js
   utils/ledgerMigration.js
   utils/ledgerValidation.js
-  utils/appBackup.js
   utils/privacyPolicy.js
   utils/ledgerExport.js
 ```
@@ -275,7 +269,7 @@ npm run verify
 npm run verify
 ```
 
-也可分别执行 `npm run check:syntax`、`npm run check:routes`、`npm run check:guide` 和 `npm test`。语法检查覆盖 JS 与页面 JSON；路由检查同时阻止页面绕过 Repository 直接引用本地 Store。修改小程序内帮助内容后，先运行 `npm run docs:generate` 同步生成 [完整图文用户手册](docs/USER_GUIDE.md)。
+也可分别执行 `npm run check:syntax`、`npm run check:routes`、`npm run check:bundle`、`npm run check:guide` 和 `npm test`。语法检查覆盖 JS 与页面 JSON；路由检查同时阻止页面绕过 Repository 直接引用本地 Store；主包检查会阻止只被工具分包使用的 JS 再次落入主包。修改小程序内帮助内容后，先运行 `npm run docs:generate` 同步生成 [完整图文用户手册](docs/USER_GUIDE.md)。
 
 该测试会 mock 小程序 `wx` 和 `Page`，覆盖：
 
@@ -321,6 +315,7 @@ npm run verify
 - 体验评分语义：未触碰评分不进入均分，快速记录不能把默认滑块值保存成已评分
 - 跨缓存事务：体验、地点、想去项、行程和预订任一写入失败时全部回滚
 - 图标系统：组件注册、SVG 资源完整性、统一视口和核心页面语义图标覆盖
+- 工具分包：七个依赖较重的工具页可独立加载，分包专用 JS 不回流主包
 
 微信开发者工具命令行可打开项目并触发真实编译：
 
@@ -328,7 +323,7 @@ npm run verify
 /Applications/wechatwebdevtools.app/Contents/MacOS/cli open --project /Users/shi/WeChatProjects/miniprogram-1
 ```
 
-当前没有小程序运行时 npm 包，因此不需要执行“构建 npm”；直接编译并检查控制台、主包/分包加载和主要交互即可。对本项目强行执行 `build-npm` 会得到 `__NO_NODE_MODULES__`，这表示没有待构建的运行时依赖，并非业务代码编译失败。
+当前没有小程序运行时 npm 包，因此不需要执行“构建 npm”；直接编译并检查控制台、主包/分包加载和主要交互即可。对本项目强行执行 `build-npm` 会得到 `__NO_NODE_MODULES__`，这表示没有待构建的运行时依赖，并非业务代码编译失败。洞察、地图、故事、回忆册、清理、备份和转盘等低频能力及其专用 JS 都放在 `packages/tools` 内，不会占用主包。
 
 ## 项目瘦身
 

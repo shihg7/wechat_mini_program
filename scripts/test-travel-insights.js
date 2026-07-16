@@ -2,7 +2,7 @@ const assert = require("assert");
 
 global.wx = { getStorageSync() { return []; }, setStorageSync() {} };
 const { buildScores } = require("../miniprogram/utils/hotelScore");
-const { buildTravelInsights, getAvailableYears } = require("../miniprogram/utils/travelInsights");
+const { buildTravelInsights, getAvailableYears } = require("../miniprogram/packages/tools/utils/travelInsights");
 
 function record(id, name, type, date, score, placeId, extra = {}) {
   const scores = buildScores(type, score);

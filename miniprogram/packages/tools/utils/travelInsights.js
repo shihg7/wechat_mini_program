@@ -1,5 +1,5 @@
-const { getAllRecordTags } = require("./hotelReviewStore");
-const { getCategoryScores, roundScore } = require("./hotelScore");
+const { getAllRecordTags } = require("../../../utils/hotelReviewStore");
+const { getCategoryScores, roundScore } = require("../../../utils/hotelScore");
 
 function recordDate(record) {
   return String(record.stayDate || record.createdAt || "");

@@ -1,5 +1,5 @@
 const { getRecords } = require("../../../utils/repositories/recordRepository");
-const { buildTravelInsights, getAvailableYears } = require("../../../utils/travelInsights");
+const { buildTravelInsights, getAvailableYears } = require("../utils/travelInsights");
 
 const YEAR_LABEL = (year) => year === "all" ? "全部年份" : `${year} 年`;
 

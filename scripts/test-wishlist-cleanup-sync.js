@@ -17,7 +17,7 @@ global.wx = {
 const records = require("../miniprogram/utils/repositories/recordRepository");
 const places = require("../miniprogram/utils/repositories/placeRepository");
 const wishlist = require("../miniprogram/utils/repositories/wishlistRepository");
-const cleanup = require("../miniprogram/utils/cleanupService");
+const cleanup = require("../miniprogram/packages/tools/utils/cleanupService");
 const media = require("../miniprogram/utils/mediaStore");
 
 function reset() {

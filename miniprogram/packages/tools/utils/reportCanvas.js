@@ -1,4 +1,4 @@
-const { buildPdf } = require("./pdfReport");
+const { buildPdf } = require("../../../utils/pdfReport");
 
 function prepareCanvas(page, selector, width, height, scale = 2) {
   return new Promise((resolve, reject) => {

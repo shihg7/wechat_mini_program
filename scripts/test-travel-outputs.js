@@ -30,9 +30,9 @@ function loadPage(modulePath) {
 }
 
 const { buildScores } = require("../miniprogram/utils/hotelScore");
-const { buildStoryModel, loadStoryPreferences, saveStoryPreferences } = require("../miniprogram/utils/storyRenderer");
-const { buildYearbook, loadYearbookPreferences, saveYearbookPreferences } = require("../miniprogram/utils/yearbookBuilder");
-const { buildTravelMapData, filterMapPoints, toMarkers } = require("../miniprogram/utils/travelMap");
+const { buildStoryModel, loadStoryPreferences, saveStoryPreferences } = require("../miniprogram/packages/tools/utils/storyRenderer");
+const { buildYearbook, loadYearbookPreferences, saveYearbookPreferences } = require("../miniprogram/packages/tools/utils/yearbookBuilder");
+const { buildTravelMapData, filterMapPoints, toMarkers } = require("../miniprogram/packages/tools/utils/travelMap");
 
 function experience(id, name, date, score, placeId, photos = []) {
   return { id, displayName: name, hotelName: name, recordType: "hotel", typeLabel: "酒店", city: "上海", stayDate: date, visitMonth: date.slice(0, 7), createdAt: `${date}T00:00:00Z`, status: "completed", isRated: true, overallScore: score, placeId, scores: buildScores("hotel", score), selectedTags: { lounge: ["景观好"], breakfast: [], pool: [] }, customTags: ["纪念日"], publicNote: "分享摘要", privateNote: "绝密", address: "精确地址", memberLevel: "钻石", photos };

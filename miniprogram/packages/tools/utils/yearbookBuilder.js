@@ -1,7 +1,7 @@
 const { buildTravelInsights, getAvailableYears } = require("./travelInsights");
-const { fileExists } = require("./mediaStore");
+const { fileExists } = require("../../../utils/mediaStore");
 const { canvasToJpg, drawImageCover, drawWrappedText, loadImage, prepareCanvas, setText, writePdfFromJpgs } = require("./reportCanvas");
-const { formatCents } = require("./tripLedgerStore");
+const { formatCents } = require("../../../utils/tripLedgerStore");
 
 const YEARBOOK_PREFS_KEY = "experience_yearbook_preferences";
 

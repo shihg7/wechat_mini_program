@@ -1,7 +1,7 @@
-const recordRepository = require("./repositories/recordRepository");
-const placeRepository = require("./repositories/placeRepository");
-const wishlistRepository = require("./repositories/wishlistRepository");
-const { fileExists, getOrphanPhotoPaths, removeSavedPhotos } = require("./mediaStore");
+const recordRepository = require("../../../utils/repositories/recordRepository");
+const placeRepository = require("../../../utils/repositories/placeRepository");
+const wishlistRepository = require("../../../utils/repositories/wishlistRepository");
+const { fileExists, getOrphanPhotoPaths, removeSavedPhotos } = require("../../../utils/mediaStore");
 
 const IGNORE_KEY = "cleanup_ignored_duplicates";
 

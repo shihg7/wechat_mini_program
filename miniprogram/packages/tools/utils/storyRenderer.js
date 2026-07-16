@@ -1,5 +1,5 @@
-const { fileExists } = require("./mediaStore");
-const { getCategoryScores } = require("./hotelScore");
+const { fileExists } = require("../../../utils/mediaStore");
+const { getCategoryScores } = require("../../../utils/hotelScore");
 const { canvasToJpg, drawImageCover, drawWrappedText, loadImage, prepareCanvas, setText } = require("./reportCanvas");
 
 const STORY_PREFS_KEY = "experience_story_drafts";

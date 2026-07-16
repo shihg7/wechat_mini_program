@@ -2,7 +2,7 @@ const assert = require("assert");
 const memory = {};
 global.wx = { getStorageSync(key) { return memory[key]; }, setStorageSync(key, value) { memory[key] = JSON.parse(JSON.stringify(value)); } };
 
-const engine = require("../miniprogram/utils/wheelEngine");
+const engine = require("../miniprogram/packages/tools/utils/wheelEngine");
 const store = require("../miniprogram/utils/wheelStore");
 
 assert.strictEqual(engine.normalizeAngle(-Math.PI / 2), Math.PI * 1.5);

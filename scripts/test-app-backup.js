@@ -21,7 +21,7 @@ global.wx = {
   }
 };
 
-const backupApi = require("../miniprogram/utils/appBackup");
+const backupApi = require("../miniprogram/packages/tools/utils/appBackup");
 const { createPrivacyCopy, REDACTED_MODE } = require("../miniprogram/utils/privacyPolicy");
 
 function record(id, name, extra = {}) {

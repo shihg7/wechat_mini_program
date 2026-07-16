@@ -1,5 +1,5 @@
 const { getRecordById } = require("../../../utils/repositories/recordRepository");
-const { LAYOUTS, buildStoryModel, loadStoryPreferences, renderStory, saveStoryPreferences } = require("../../../utils/storyRenderer");
+const { LAYOUTS, buildStoryModel, loadStoryPreferences, renderStory, saveStoryPreferences } = require("../utils/storyRenderer");
 const { withAvailability } = require("../../../utils/repositories/mediaRepository");
 
 Page({

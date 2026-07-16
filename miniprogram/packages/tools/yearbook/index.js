@@ -1,6 +1,6 @@
 const { getRecords } = require("../../../utils/repositories/recordRepository");
 const { getLedgers } = require("../../../utils/repositories/ledgerRepository");
-const { buildYearbook, drawYearbookLong, getAvailableYears, loadYearbookPreferences, renderYearbookPdf, saveYearbookPreferences } = require("../../../utils/yearbookBuilder");
+const { buildYearbook, drawYearbookLong, getAvailableYears, loadYearbookPreferences, renderYearbookPdf, saveYearbookPreferences } = require("../utils/yearbookBuilder");
 const { fileExists } = require("../../../utils/repositories/mediaRepository");
 
 Page({

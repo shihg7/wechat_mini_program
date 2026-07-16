@@ -1,4 +1,10 @@
 const ledgerStore = require("../../../utils/repositories/ledgerRepository");
+const CURRENCY_OPTIONS = ledgerStore.CURRENCY_OPTIONS;
+
+function currencyIndex(baseCurrency) {
+  const index = CURRENCY_OPTIONS.findIndex((item) => item.code === baseCurrency);
+  return index < 0 ? 0 : index;
+}
 
 function memberObject(member, index) {
   if (typeof member === "string") {
@@ -28,6 +34,10 @@ Page({
     mode: "create",
     ledgerId: "",
     newMemberName: "",
+    currencyOptions: CURRENCY_OPTIONS,
+    currencyIndex: 0,
+    selectedCurrencyLabel: CURRENCY_OPTIONS[0].label,
+    hasMoneyRecords: false,
     hasUnsavedChanges: false,
     originalForm: "",
     form: {
@@ -35,6 +45,7 @@ Page({
       city: "",
       startDate: "",
       endDate: "",
+      baseCurrency: ledgerStore.DEFAULT_BASE_CURRENCY,
       members: [createLocalMember("我")],
       note: ""
     }
@@ -88,6 +99,7 @@ Page({
       city: ledger.city,
       startDate: ledger.startDate,
       endDate: ledger.endDate,
+      baseCurrency: ledger.baseCurrency,
       members: normalizeMembers(ledger.members),
       note: ledger.note
     };
@@ -95,6 +107,9 @@ Page({
       mode: "edit",
       ledgerId: ledger.id,
       form,
+      currencyIndex: currencyIndex(form.baseCurrency),
+      selectedCurrencyLabel: CURRENCY_OPTIONS[currencyIndex(form.baseCurrency)].label,
+      hasMoneyRecords: !!((ledger.expenses || []).length || (ledger.transfers || []).length),
       originalForm: JSON.stringify(form),
       hasUnsavedChanges: false
     });
@@ -255,6 +270,31 @@ Page({
     this.setData({ "form.endDate": event.detail.value }, () => this.markDirty());
   },
 
+  onCurrencyChange(event) {
+    const nextIndex = Number(event.detail.value || 0);
+    const currency = this.data.currencyOptions[nextIndex];
+    if (!currency || currency.code === this.data.form.baseCurrency) return;
+    const applyCurrency = () => {
+      this.setData({
+        currencyIndex: nextIndex,
+        selectedCurrencyLabel: currency.label,
+        "form.baseCurrency": currency.code
+      }, () => this.markDirty());
+    };
+    if (this.data.mode !== "edit" || !this.data.hasMoneyRecords) {
+      applyCurrency();
+      return;
+    }
+    wx.showModal({
+      title: "更换账本币种？",
+      content: `现有支出与转账会统一改为 ${currency.label} 显示，金额数值不会换算。请确认已自行换算原有金额。`,
+      confirmText: "只改币种",
+      success: (result) => {
+        if (result.confirm) applyCurrency();
+      }
+    });
+  },
+
   saveLedger() {
     const form = this.data.form;
     const activeMembers = form.members.filter((member) => member.status !== "archived");
@@ -275,6 +315,7 @@ Page({
       city: form.city,
       startDate: form.startDate,
       endDate: form.endDate,
+      baseCurrency: form.baseCurrency,
       members: form.members,
       note: form.note
     };

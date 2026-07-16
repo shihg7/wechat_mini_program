@@ -1,4 +1,4 @@
-const tripStore = require("../../utils/tripStore");
+const tripStore = require("../../utils/repositories/tripRepository");
 
 function localDate(offsetDays) {
   const date = new Date();

@@ -9,7 +9,7 @@ const {
 const { getLedgerListItems } = require("../../utils/repositories/ledgerRepository");
 const { findPlaceSuggestions, getPlaceStats, getPlaces } = require("../../utils/repositories/placeRepository");
 const { getWishlist, searchWishlist } = require("../../utils/repositories/wishlistRepository");
-const departureStore = require("../../utils/departureStore");
+const departureStore = require("../../utils/repositories/departureRepository");
 const demoMode = require("../../utils/demoMode");
 
 const SORT_OPTIONS = [
@@ -260,7 +260,7 @@ Page({
   },
 
   goDataManagement() {
-    wx.navigateTo({ url: "/pages/data/index" });
+    wx.navigateTo({ url: "/packages/tools/data/index" });
   },
 
   goWishlistCreate(event) {
@@ -273,20 +273,20 @@ Page({
   },
 
   goInsights() {
-    wx.navigateTo({ url: "/pages/insights/index" });
+    wx.navigateTo({ url: "/packages/tools/insights/index" });
   },
 
-  goYearbook() { wx.navigateTo({ url: "/pages/yearbook/index" }); },
-  goTravelMap() { wx.navigateTo({ url: "/pages/travel-map/index" }); },
-  goWheel() { wx.navigateTo({ url: "/pages/wheel/index" }); },
+  goYearbook() { wx.navigateTo({ url: "/packages/tools/yearbook/index" }); },
+  goTravelMap() { wx.navigateTo({ url: "/packages/tools/travel-map/index" }); },
+  goWheel() { wx.navigateTo({ url: "/packages/tools/wheel/index" }); },
   goDeparture() { wx.navigateTo({ url: "/pages/departure/index" }); },
-  goHelp() { wx.navigateTo({ url: "/pages/help/index" }); },
+  goHelp() { wx.navigateTo({ url: "/packages/tools/help/index" }); },
 
   toggleTools() { this.setData({ toolsExpanded: !this.data.toolsExpanded }); },
 
   goDemo() {
     if (this.data.demoActive) {
-      wx.navigateTo({ url: "/pages/demo/index" });
+      wx.navigateTo({ url: "/packages/tools/demo/index" });
       return;
     }
     wx.showModal({
@@ -296,13 +296,13 @@ Page({
       success: (result) => {
         if (!result.confirm) return;
         demoMode.start();
-        wx.navigateTo({ url: "/pages/demo/index" });
+        wx.navigateTo({ url: "/packages/tools/demo/index" });
       }
     });
   },
 
   goCleanup() {
-    wx.navigateTo({ url: "/pages/cleanup/index" });
+    wx.navigateTo({ url: "/packages/tools/cleanup/index" });
   },
 
   selectCity(event) {

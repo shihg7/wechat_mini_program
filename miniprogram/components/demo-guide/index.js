@@ -11,7 +11,7 @@ Component({
     backToDemo() {
       wx.navigateBack({
         delta: 1,
-        fail: () => wx.navigateTo({ url: "/pages/demo/index" })
+        fail: () => wx.navigateTo({ url: "/packages/tools/demo/index" })
       });
     }
   }

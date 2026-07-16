@@ -1,12 +1,18 @@
 const assert = require("assert");
 
 const memory = {};
-const ui = { toasts: [], navigations: [], locationMode: "success", leaveAlertEnabled: false };
+const ui = { toasts: [], navigations: [], locationMode: "success", leaveAlertEnabled: false, failStorageKey: "" };
 const savedFiles = new Set();
 let photoIndex = 0;
 global.wx = {
   getStorageSync(key) { return memory[key]; },
-  setStorageSync(key, value) { memory[key] = JSON.parse(JSON.stringify(value)); },
+  setStorageSync(key, value) {
+    if (ui.failStorageKey === key) {
+      ui.failStorageKey = "";
+      throw new Error("simulated storage failure");
+    }
+    memory[key] = JSON.parse(JSON.stringify(value));
+  },
   removeStorageSync(key) { delete memory[key]; },
   showToast(options) { ui.toasts.push(options.title); },
   showModal(options) { if (options.success) options.success({ confirm: true }); },
@@ -72,7 +78,61 @@ function reset() {
   ui.navigations = [];
   ui.locationMode = "success";
   ui.leaveAlertEnabled = false;
+  ui.failStorageKey = "";
   savedFiles.clear();
+}
+
+function scoreEvent(category, metric, value) {
+  return { currentTarget: { dataset: { category, metric } }, detail: { value } };
+}
+
+function testRatingRequiresRealInteraction() {
+  reset();
+  let page = loadPage();
+  page.onLoad({ type: "hotel" });
+  assert.strictEqual(page.data.form.isRated, false);
+  assert.strictEqual(page.data.form.ratingTouched, false);
+  page.onFieldInput(input("hotelName", "未评分酒店"));
+  page.saveRecord({ currentTarget: { dataset: { status: "completed" } } });
+  let record = recordsApi.getRecords()[0];
+  assert.strictEqual(record.status, "completed");
+  assert.strictEqual(record.isRated, false, "untouched default sliders must not enter score statistics");
+  assert.strictEqual(record.ratingTouched, false);
+
+  page = loadPage();
+  page.onLoad({ type: "hotel" });
+  page.onFieldInput(input("hotelName", "已评分酒店"));
+  page.onScoreChange(scoreEvent("lounge", "food", 9.5));
+  page.saveRecord({ currentTarget: { dataset: { status: "completed" } } });
+  record = recordsApi.getRecords()[0];
+  assert.strictEqual(record.isRated, true);
+  assert.strictEqual(record.ratingTouched, true);
+  ["score_desc", "score_asc"].forEach((sortMode) => {
+    const sorted = recordsApi.searchAndSortRecords(recordsApi.getRecords(), { sortMode });
+    assert.strictEqual(sorted[0].hotelName, "已评分酒店", "unrated records must stay below rated records in score sorting");
+    assert.strictEqual(sorted[1].hotelName, "未评分酒店");
+  });
+
+  reset();
+  page = loadPage();
+  page.onLoad({ type: "restaurant", quick: "1" });
+  page.onFieldInput(input("restaurantName", "快速餐厅"));
+  page.saveRecord({ currentTarget: { dataset: { status: "completed" } } });
+  assert.strictEqual(recordsApi.getRecords().length, 0, "quick mode cannot complete hidden default scores");
+  assert.strictEqual(page.data.isQuick, false, "completed action should expand the full scoring form");
+}
+
+function testRecordWorkflowRollsBackAllRelations() {
+  reset();
+  const wish = wishlistApi.addWishlistItem({ type: "hotel", name: "事务酒店", city: "上海" });
+  const page = loadPage();
+  page.onLoad({ type: "hotel", wishlistId: wish.id });
+  ui.failStorageKey = "experience_wishlist";
+  page.saveRecord({ currentTarget: { dataset: { status: "completed" } } });
+  assert.strictEqual(recordsApi.getRecords().length, 0, "record write should roll back when a relation update fails");
+  assert.strictEqual(placesApi.getPlaces().length, 0, "new place should roll back with the record");
+  assert.strictEqual(wishlistApi.getWishlistItem(wish.id).status, "wishlist");
+  assert(ui.toasts.some((title) => title.indexOf("已恢复原数据") >= 0));
 }
 
 async function testPhotoClickFlow() {
@@ -245,6 +305,8 @@ function testPlaceDetailMergeAndDeleteProtection() {
 }
 
 async function run() {
+  testRatingRequiresRealInteraction();
+  testRecordWorkflowRollsBackAllRelations();
   testSuggestedPlaceAndRepeatedVisit();
   testQuickDraftAndOptionalMap();
   testDemoRecordMarksAfterPageLoad();

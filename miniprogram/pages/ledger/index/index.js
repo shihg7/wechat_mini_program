@@ -19,10 +19,23 @@ function buildListItem(ledger) {
     memberCount: memberCount(ledger),
     settlementCount: settlements.length,
     remainingCents,
-    remainingText: ledgerStore.formatCents(remainingCents),
+    remainingText: ledgerStore.formatCents(remainingCents, ledger.baseCurrency),
     status,
     statusText: status === "empty" ? "未记账" : status === "active" ? "进行中" : "已结清"
   });
+}
+
+function buildCurrencyTotals(ledgers) {
+  const totals = ledgers.reduce((result, ledger) => {
+    const code = ledger.baseCurrency || ledgerStore.DEFAULT_BASE_CURRENCY;
+    result[code] = (result[code] || 0) + Number(ledger.totalCents || 0);
+    return result;
+  }, {});
+  return ledgerStore.CURRENCY_OPTIONS.filter((currency) => Object.prototype.hasOwnProperty.call(totals, currency.code)).map((currency) => ({
+    baseCurrency: currency.code,
+    totalCents: totals[currency.code],
+    totalText: ledgerStore.formatCents(totals[currency.code], currency.code)
+  }));
 }
 
 Page({
@@ -31,7 +44,8 @@ Page({
     totalCount: 0,
     activeCount: 0,
     settledCount: 0,
-    totalSpentText: "¥0.00"
+    currencyTotals: [],
+    totalSpentText: ledgerStore.formatCents(0)
   },
 
   onShow() {
@@ -43,6 +57,7 @@ Page({
       ? ledgerStore.getLedgers()
       : ledgerStore.getLedgerListItems();
     const ledgers = source.map(buildListItem);
+    const currencyTotals = buildCurrencyTotals(ledgers);
     const activeCount = ledgers.filter((item) => item.status === "active").length;
     const settledCount = ledgers.filter((item) => item.status === "settled").length;
     this.setData({
@@ -50,7 +65,8 @@ Page({
       totalCount: ledgers.length,
       activeCount,
       settledCount,
-      totalSpentText: ledgerStore.formatCents(ledgers.reduce((sum, item) => sum + item.totalCents, 0))
+      currencyTotals,
+      totalSpentText: currencyTotals.length === 1 ? currencyTotals[0].totalText : currencyTotals.length ? "按币种分别统计" : ledgerStore.formatCents(0)
     });
   },
 

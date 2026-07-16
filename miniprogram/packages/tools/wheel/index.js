@@ -1,6 +1,6 @@
-const engine = require("../../utils/wheelEngine");
-const store = require("../../utils/wheelStore");
-const demoMode = require("../../utils/demoMode");
+const engine = require("../../../utils/wheelEngine");
+const store = require("../../../utils/repositories/wheelRepository");
+const demoMode = require("../../../utils/demoMode");
 
 const COLORS = ["#176b68", "#e86343", "#e6af2e", "#3568ad", "#a63d52", "#5f8f4e", "#7257a5", "#26849a"];
 

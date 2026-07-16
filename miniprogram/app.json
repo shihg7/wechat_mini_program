@@ -3,29 +3,34 @@
     "pages/index/index",
     "pages/record/record",
     "pages/place/detail",
-    "pages/insights/index",
     "pages/wishlist/edit",
-    "pages/cleanup/index",
-    "pages/story/index",
-    "pages/yearbook/index",
-    "pages/travel-map/index",
     "pages/trip/index",
     "pages/trip/edit",
     "pages/trip/detail",
     "pages/trip/budget",
-    "pages/wheel/index",
     "pages/departure/index",
     "pages/departure/edit",
-    "pages/demo/index",
-    "pages/help/index",
-    "pages/data/index",
     "pages/ledger/index/index",
     "pages/ledger/edit/edit",
     "pages/ledger/detail/detail"
   ],
-  "usingComponents": {
-    "ui-icon": "/components/ui-icon/index"
-  },
+  "subPackages": [
+    {
+      "root": "packages/tools",
+      "name": "tools",
+      "pages": [
+        "insights/index",
+        "cleanup/index",
+        "story/index",
+        "yearbook/index",
+        "travel-map/index",
+        "wheel/index",
+        "demo/index",
+        "help/index",
+        "data/index"
+      ]
+    }
+  ],
   "window": {
     "backgroundTextStyle": "light",
     "navigationBarBackgroundColor": "#ffffff",

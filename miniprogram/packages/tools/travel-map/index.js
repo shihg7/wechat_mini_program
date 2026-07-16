@@ -1,7 +1,7 @@
-const { getRecords } = require("../../utils/repositories/recordRepository");
-const { getPlaces } = require("../../utils/repositories/placeRepository");
-const { getWishlist } = require("../../utils/repositories/wishlistRepository");
-const { buildTravelMapData, filterMapPoints, toMarkers } = require("../../utils/travelMap");
+const { getRecords } = require("../../../utils/repositories/recordRepository");
+const { getPlaces } = require("../../../utils/repositories/placeRepository");
+const { getWishlist } = require("../../../utils/repositories/wishlistRepository");
+const { buildTravelMapData, filterMapPoints, toMarkers } = require("../../../utils/travelMap");
 
 const FILTERS = [{ key: "all", label: "全部" }, { key: "hotel", label: "酒店" }, { key: "restaurant", label: "餐厅" }, { key: "visited", label: "已到访" }, { key: "wishlist", label: "想去" }];
 

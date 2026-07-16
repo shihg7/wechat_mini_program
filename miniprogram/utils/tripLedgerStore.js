@@ -1,6 +1,6 @@
 const { createId } = require("./id");
 const { SCHEMA_VERSION, migrateLedger, migrateLedgers } = require("./ledgerMigration");
-const { assertValidLedger } = require("./ledgerValidation");
+const { DEFAULT_BASE_CURRENCY, SUPPORTED_CURRENCIES, assertValidLedger } = require("./ledgerValidation");
 
 const STORAGE_KEY = "trip_split_ledgers";
 const DEFAULT_CATEGORIES = ["酒店", "餐饮", "交通", "门票", "购物", "其他"];
@@ -9,6 +9,14 @@ const SPLIT_MODES = [
   { key: "amount", label: "按金额" },
   { key: "ratio", label: "按比例" },
   { key: "shares", label: "按份数" }
+];
+const CURRENCY_OPTIONS = [
+  { code: "CNY", name: "人民币", symbol: "¥", label: "人民币 CNY（¥）" },
+  { code: "USD", name: "美元", symbol: "US$", label: "美元 USD（US$）" },
+  { code: "EUR", name: "欧元", symbol: "€", label: "欧元 EUR（€）" },
+  { code: "JPY", name: "日元", symbol: "JP¥", label: "日元 JPY（JP¥）" },
+  { code: "HKD", name: "港币", symbol: "HK$", label: "港币 HKD（HK$）" },
+  { code: "GBP", name: "英镑", symbol: "£", label: "英镑 GBP（£）" }
 ];
 
 function clone(value) {
@@ -38,11 +46,26 @@ function parseAmountToCents(value) {
   return Number(match[1] || 0) * 100 + Number((match[2] || "").padEnd(2, "0"));
 }
 
-function formatCents(cents) {
+function getCurrencyInfo(baseCurrency = DEFAULT_BASE_CURRENCY) {
+  const code = String(baseCurrency || DEFAULT_BASE_CURRENCY).trim().toUpperCase();
+  return CURRENCY_OPTIONS.find((item) => item.code === code) || CURRENCY_OPTIONS[0];
+}
+
+function formatCents(cents, baseCurrency = DEFAULT_BASE_CURRENCY) {
   const value = Number(cents || 0);
   const sign = value < 0 ? "-" : "";
   const abs = Math.abs(value);
-  return `${sign}¥${Math.floor(abs / 100)}.${String(abs % 100).padStart(2, "0")}`;
+  const currency = getCurrencyInfo(baseCurrency);
+  return `${sign}${currency.symbol}${Math.floor(abs / 100)}.${String(abs % 100).padStart(2, "0")}`;
+}
+
+function assertEntryCurrency(input, ledger, field) {
+  const currencies = [input.currency, input.currencyCode, input.baseCurrency]
+    .map((value) => value == null ? "" : String(value).trim().toUpperCase())
+    .filter(Boolean);
+  if (currencies.some((currency) => currency !== ledger.baseCurrency)) {
+    throw new Error(`${field}币种必须与账本币种 ${ledger.baseCurrency} 一致，不支持混合币种或自动换算`);
+  }
 }
 
 function memberByReference(ledger, reference) {
@@ -120,6 +143,7 @@ function centsToPlainInput(cents) {
 }
 
 function normalizeExpense(input, ledger) {
+  assertEntryCurrency(input, ledger, "支出");
   const payer = requireMember(ledger, input.payerId || input.payer || ledger.members[0].id, "付款人");
   const participantRefs = input.participantIds && input.participantIds.length
     ? input.participantIds
@@ -216,11 +240,15 @@ function normalizeInternalLedger(input = {}, existing = null) {
     updatedAt: input.updatedAt || ""
   };
   delete ledger.memberRecords;
+  delete ledger.currencyLabel;
+  delete ledger.currencyName;
+  delete ledger.currencySymbol;
   assertValidLedger(ledger);
   return ledger;
 }
 
 function toPublicLedger(internal) {
+  const currency = getCurrencyInfo(internal.baseCurrency);
   const memberMap = internal.members.reduce((map, member) => {
     map[member.id] = member;
     return map;
@@ -228,6 +256,9 @@ function toPublicLedger(internal) {
   const activeMembers = internal.members.filter((member) => member.status === "active");
   return {
     ...clone(internal),
+    currencyLabel: currency.label,
+    currencyName: currency.name,
+    currencySymbol: currency.symbol,
     memberRecords: clone(internal.members),
     members: clone(internal.members),
     activeMemberNames: activeMembers.map((member) => member.name),
@@ -236,7 +267,7 @@ function toPublicLedger(internal) {
       const participants = expense.participantIds.map((id) => memberMap[id]).filter(Boolean);
       return {
         ...clone(expense),
-        amountText: formatCents(expense.amountCents),
+        amountText: formatCents(expense.amountCents, internal.baseCurrency),
         payer: payer ? payer.name : "",
         participants: participants.map((member) => member.name),
         participantsText: participants.map((member) => member.name).join("、"),
@@ -248,7 +279,7 @@ function toPublicLedger(internal) {
       ...clone(transfer),
       from: memberMap[transfer.fromMemberId] ? memberMap[transfer.fromMemberId].name : "",
       to: memberMap[transfer.toMemberId] ? memberMap[transfer.toMemberId].name : "",
-      amountText: formatCents(transfer.amountCents)
+      amountText: formatCents(transfer.amountCents, internal.baseCurrency)
     }))
   };
 }
@@ -403,6 +434,7 @@ function deleteExpense(ledgerId, expenseId) {
 function addTransfer(ledgerId, input) {
   let created = null;
   const updated = replaceLedger(ledgerId, (ledger) => {
+    assertEntryCurrency(input, ledger, "转账");
     const from = requireMember(ledger, input.fromMemberId || input.from, "转出成员");
     const to = requireMember(ledger, input.toMemberId || input.to, "转入成员");
     if (from.id === to.id) throw new Error("不能转给自己");
@@ -412,7 +444,7 @@ function addTransfer(ledgerId, input) {
     });
     if (!recommendation) throw new Error("当前没有这笔待结算款项");
     if (!Number.isSafeInteger(amountCents) || amountCents <= 0 || amountCents > recommendation.amountCents) {
-      throw new Error(`转账金额不能超过当前待结算金额 ${formatCents(recommendation.amountCents)}`);
+      throw new Error(`转账金额不能超过当前待结算金额 ${formatCents(recommendation.amountCents, ledger.baseCurrency)}`);
     }
     const timestamp = nowIso();
     created = {
@@ -480,18 +512,19 @@ function calculateLedgerSummary(ledgerInput) {
   const members = Object.keys(memberMap).map((id) => {
     const member = memberMap[id];
     member.balanceCents = member.paidCents - member.shareCents + member.transferredOutCents - member.transferredInCents;
-    member.paidText = formatCents(member.paidCents);
-    member.shareText = formatCents(member.shareCents);
-    member.balanceText = formatCents(member.balanceCents);
+    member.paidText = formatCents(member.paidCents, internal.baseCurrency);
+    member.shareText = formatCents(member.shareCents, internal.baseCurrency);
+    member.balanceText = formatCents(member.balanceCents, internal.baseCurrency);
     return member;
   }).sort((a, b) => b.balanceCents - a.balanceCents);
-  const categories = Object.keys(categoryMap).map((category) => ({ ...categoryMap[category], totalText: formatCents(categoryMap[category].totalCents) })).sort((a, b) => b.totalCents - a.totalCents);
+  const categories = Object.keys(categoryMap).map((category) => ({ ...categoryMap[category], totalText: formatCents(categoryMap[category].totalCents, internal.baseCurrency) })).sort((a, b) => b.totalCents - a.totalCents);
   const activeCount = internal.members.filter((member) => member.status === "active").length;
   return {
+    baseCurrency: internal.baseCurrency,
     totalCents,
-    totalText: formatCents(totalCents),
+    totalText: formatCents(totalCents, internal.baseCurrency),
     averageCents: activeCount ? Math.round(totalCents / activeCount) : 0,
-    averageText: formatCents(activeCount ? Math.round(totalCents / activeCount) : 0),
+    averageText: formatCents(activeCount ? Math.round(totalCents / activeCount) : 0, internal.baseCurrency),
     expenseCount: internal.expenses.length,
     confirmedTransferCount: internal.transfers.filter((transfer) => transfer.status === "confirmed").length,
     members,
@@ -510,7 +543,10 @@ function calculateSettlements(ledgerInput) {
     const debtor = debtors[debtorIndex];
     const creditor = creditors[creditorIndex];
     const amount = Math.min(debtor.amount, creditor.amount);
-    if (amount > 0) settlements.push({ fromMemberId: debtor.id, toMemberId: creditor.id, from: debtor.name, to: creditor.name, amountCents: amount, amountText: formatCents(amount), text: `${debtor.name} 给 ${creditor.name} ${formatCents(amount)}` });
+    if (amount > 0) {
+      const amountText = formatCents(amount, summary.baseCurrency);
+      settlements.push({ fromMemberId: debtor.id, toMemberId: creditor.id, from: debtor.name, to: creditor.name, amountCents: amount, amountText, text: `${debtor.name} 给 ${creditor.name} ${amountText}` });
+    }
     debtor.amount -= amount;
     creditor.amount -= amount;
     if (debtor.amount === 0) debtorIndex += 1;
@@ -531,7 +567,7 @@ function getLedgerListItems(ledgers = getLedgers()) {
       memberCount: getActiveMembers(ledger).length,
       settlementCount: settlements.length,
       remainingCents,
-      remainingText: formatCents(remainingCents),
+      remainingText: formatCents(remainingCents, ledger.baseCurrency),
       status: remainingCents > 0 ? "active" : "settled",
       statusText: remainingCents > 0 ? "进行中" : "已结清"
     };
@@ -543,10 +579,13 @@ function normalizeLedger(input) {
 }
 
 module.exports = {
+  CURRENCY_OPTIONS,
   DEFAULT_CATEGORIES,
+  DEFAULT_BASE_CURRENCY,
   SPLIT_MODES,
   SCHEMA_VERSION,
   STORAGE_KEY,
+  SUPPORTED_CURRENCIES,
   addExpense,
   addLedger,
   addLedgerMember,
@@ -557,6 +596,7 @@ module.exports = {
   deleteExpense,
   deleteLedger,
   formatCents,
+  getCurrencyInfo,
   getParticipantShares,
   getActiveMembers,
   getLedgerById,

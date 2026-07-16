@@ -1,4 +1,5 @@
 const { createId } = require("./id");
+const { formatCents } = require("./tripLedgerStore");
 
 const STORAGE_KEY = "experience_trips";
 const CATEGORIES = ["住宿", "餐饮", "交通", "门票", "购物", "其他"];
@@ -6,7 +7,7 @@ const ITEM_TYPES = ["hotel", "restaurant", "transport", "attraction", "custom"];
 
 function clone(value) { return JSON.parse(JSON.stringify(value)); }
 function cents(value) { const text = String(value == null ? "" : value).trim(); if (!/^\d+(\.\d{0,2})?$/.test(text)) return 0; const parts = text.split("."); return Number(parts[0]) * 100 + Number((parts[1] || "").padEnd(2, "0")); }
-function money(value) { return `¥${Math.floor(Number(value || 0) / 100)}.${String(Number(value || 0) % 100).padStart(2, "0")}`; }
+function money(value, currency = "CNY") { return formatCents(value, currency); }
 function dateRange(start, end) { const days = []; if (!start || !end || start > end) return days; const cursor = new Date(`${start}T00:00:00Z`); const last = new Date(`${end}T00:00:00Z`); while (cursor <= last && days.length < 370) { days.push(cursor.toISOString().slice(0, 10)); cursor.setUTCDate(cursor.getUTCDate() + 1); } return days; }
 
 function normalizeItem(input = {}) {
@@ -35,6 +36,48 @@ function findConflicts(items) { const sorted = items.filter((item) => item.date 
 function addPersonalExpense(id, input) { const trip = getTripById(id); if (!trip) return null; const originalAmountCents = input.originalAmountCents == null ? cents(input.amountText) : Number(input.originalAmountCents); const rate = input.rate == null || input.rate === "" ? 1 : Number(input.rate); if (!(originalAmountCents > 0) || !(rate > 0)) throw new Error("请输入有效金额和汇率"); const amountCents = Math.round(originalAmountCents * rate); return updateTrip(id, { personalExpenses: trip.personalExpenses.concat({ ...input, id: createId("personal"), originalAmountCents, rate, amountCents }) }); }
 function updatePersonalExpense(id, expenseId, patch) { const trip = getTripById(id); if (!trip) return null; const current = trip.personalExpenses.find((item) => item.id === String(expenseId)); if (!current) return null; const originalAmountCents = patch.originalAmountCents == null ? cents(patch.amountText == null ? current.originalAmountCents / 100 : patch.amountText) : Number(patch.originalAmountCents); const rate = patch.rate == null || patch.rate === "" ? Number(current.rate || 1) : Number(patch.rate); if (!(originalAmountCents > 0) || !(rate > 0)) throw new Error("请输入有效金额和汇率"); const updated = { ...current, ...patch, id: current.id, originalAmountCents, rate, amountCents: Math.round(originalAmountCents * rate) }; return updateTrip(id, { personalExpenses: trip.personalExpenses.map((item) => item.id === current.id ? updated : item) }); }
 function removePersonalExpense(id, expenseId) { const trip = getTripById(id); return trip ? updateTrip(id, { personalExpenses: trip.personalExpenses.filter((item) => item.id !== String(expenseId)) }) : null; }
-function calculateBudget(trip, ledgers = []) { const normalized = normalizeTrip(trip); const linked = new Set(normalized.linkedLedgerIds); const ledgerExpenses = (ledgers || []).filter((ledger) => linked.has(ledger.id)).reduce((items, ledger) => items.concat(ledger.expenses || []), []); const personalCents = normalized.personalExpenses.reduce((sum, item) => sum + Number(item.amountCents || 0), 0); const ledgerCents = ledgerExpenses.reduce((sum, item) => sum + Number(item.amountCents || 0), 0); const rows = normalized.personalExpenses.concat(ledgerExpenses.map((expense) => ({ amountCents: Number(expense.amountCents || 0), category: expense.category || "其他", source: "ledger" }))); const byCategory = CATEGORIES.reduce((map, category) => { map[category] = 0; return map; }, {}); rows.forEach((item) => { const category = CATEGORIES.indexOf(item.category) >= 0 ? item.category : "其他"; byCategory[category] += Number(item.amountCents || 0); }); const spentCents = personalCents + ledgerCents; return { spentCents, spentText: money(spentCents), personalCents, personalText: money(personalCents), personalExpenseCount: normalized.personalExpenses.length, ledgerCents, ledgerText: money(ledgerCents), ledgerExpenseCount: ledgerExpenses.length, remainingCents: normalized.budgetTotalCents - spentCents, remainingText: money(Math.abs(normalized.budgetTotalCents - spentCents)), percent: normalized.budgetTotalCents ? Math.round(spentCents / normalized.budgetTotalCents * 100) : 0, overBudget: normalized.budgetTotalCents > 0 && spentCents > normalized.budgetTotalCents, byCategory: CATEGORIES.map((category) => ({ category, spentCents: byCategory[category], spentText: money(byCategory[category]), budgetCents: normalized.categoryBudgets[category], budgetText: money(normalized.categoryBudgets[category]), over: normalized.categoryBudgets[category] > 0 && byCategory[category] > normalized.categoryBudgets[category] })) }; }
+function calculateBudget(trip, ledgers = []) {
+  const normalized = normalizeTrip(trip);
+  const linkedIds = new Set(normalized.linkedLedgerIds);
+  const linkedLedgers = (ledgers || []).filter((ledger) => linkedIds.has(String(ledger.id)));
+  const compatibleLedgers = linkedLedgers.filter((ledger) => String(ledger.baseCurrency || "CNY").toUpperCase() === normalized.baseCurrency);
+  const incompatibleLedgers = linkedLedgers.filter((ledger) => String(ledger.baseCurrency || "CNY").toUpperCase() !== normalized.baseCurrency);
+  const ledgerExpenses = compatibleLedgers.reduce((items, ledger) => items.concat(ledger.expenses || []), []);
+  const personalCents = normalized.personalExpenses.reduce((sum, item) => sum + Number(item.amountCents || 0), 0);
+  const ledgerCents = ledgerExpenses.reduce((sum, item) => sum + Number(item.amountCents || 0), 0);
+  const rows = normalized.personalExpenses.concat(ledgerExpenses.map((expense) => ({ amountCents: Number(expense.amountCents || 0), category: expense.category || "其他", source: "ledger" })));
+  const byCategory = CATEGORIES.reduce((map, category) => { map[category] = 0; return map; }, {});
+  rows.forEach((item) => {
+    const category = CATEGORIES.indexOf(item.category) >= 0 ? item.category : "其他";
+    byCategory[category] += Number(item.amountCents || 0);
+  });
+  const spentCents = personalCents + ledgerCents;
+  const remainingCents = normalized.budgetTotalCents - spentCents;
+  return {
+    baseCurrency: normalized.baseCurrency,
+    spentCents,
+    spentText: money(spentCents, normalized.baseCurrency),
+    personalCents,
+    personalText: money(personalCents, normalized.baseCurrency),
+    personalExpenseCount: normalized.personalExpenses.length,
+    ledgerCents,
+    ledgerText: money(ledgerCents, normalized.baseCurrency),
+    ledgerExpenseCount: ledgerExpenses.length,
+    incompatibleLedgerIds: incompatibleLedgers.map((ledger) => String(ledger.id)),
+    incompatibleLedgerCount: incompatibleLedgers.length,
+    remainingCents,
+    remainingText: money(Math.abs(remainingCents), normalized.baseCurrency),
+    percent: normalized.budgetTotalCents ? Math.round(spentCents / normalized.budgetTotalCents * 100) : 0,
+    overBudget: normalized.budgetTotalCents > 0 && spentCents > normalized.budgetTotalCents,
+    byCategory: CATEGORIES.map((category) => ({
+      category,
+      spentCents: byCategory[category],
+      spentText: money(byCategory[category], normalized.baseCurrency),
+      budgetCents: normalized.categoryBudgets[category],
+      budgetText: money(normalized.categoryBudgets[category], normalized.baseCurrency),
+      over: normalized.categoryBudgets[category] > 0 && byCategory[category] > normalized.categoryBudgets[category]
+    }))
+  };
+}
 
 module.exports = { CATEGORIES, ITEM_TYPES, STORAGE_KEY, addItineraryItem, addPersonalExpense, addTrip, calculateBudget, cents, dateRange, deleteTrip, duplicateItineraryItem, duplicateTrip, findConflicts, getTripById, getTrips, money, moveItineraryItem, normalizeTrip, removeItineraryItem, removePersonalExpense, setTrips, updateItineraryItem, updatePersonalExpense, updateTrip, validateTrip };

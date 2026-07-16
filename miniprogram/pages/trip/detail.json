@@ -1,6 +1,7 @@
 {
   "navigationBarTitleText": "行程详情",
   "usingComponents": {
-    "demo-guide": "/components/demo-guide/index"
+    "demo-guide": "/components/demo-guide/index",
+    "ui-icon": "/components/ui-icon/index"
   }
 }

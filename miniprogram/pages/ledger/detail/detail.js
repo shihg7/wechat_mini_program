@@ -1,7 +1,7 @@
 const ledgerStore = require("../../../utils/repositories/ledgerRepository");
 const { PRIVATE_MODE, REDACTED_MODE, exportLedgerImage, exportLedgerJson, exportLedgerPdf } = require("../../../utils/ledgerExport");
 const demoMode = require("../../../utils/demoMode");
-const departureStore = require("../../../utils/departureStore");
+const departureStore = require("../../../utils/repositories/departureRepository");
 
 const {
   DEFAULT_CATEGORIES,
@@ -96,7 +96,7 @@ function buildExpenseForm(ledger, members, activeMembers, expense) {
       const base = Math.floor(10000 / participantCount) / 100;
       value = String(index === participantCount - 1 ? Number((100 - base * (participantCount - 1)).toFixed(2)) : base);
     }
-    return { id: member.id, name: member.name, status: member.status, value, shareText: allocation.shareCents == null ? "" : formatCents(allocation.shareCents) };
+    return { id: member.id, name: member.name, status: member.status, value, shareText: allocation.shareCents == null ? "" : formatCents(allocation.shareCents, ledger.baseCurrency) };
   });
   return {
     id: expense ? expense.id : "",
@@ -126,7 +126,7 @@ function buildMemberOptions(members, selectedIds) {
   }));
 }
 
-function settlementView(item, members, index) {
+function settlementView(item, members, index, baseCurrency) {
   const fromValue = item.fromMemberId || item.fromId || item.from;
   const toValue = item.toMemberId || item.toId || item.to;
   const from = findMember(members, fromValue) || { id: String(fromValue || ""), name: String(item.fromName || fromValue || "") };
@@ -139,17 +139,17 @@ function settlementView(item, members, index) {
     fromName: from.name,
     toName: to.name,
     amountCents,
-    amountText: item.amountText || formatCents(amountCents),
-    text: `${from.name} 给 ${to.name} ${item.amountText || formatCents(amountCents)}`
+    amountText: item.amountText || formatCents(amountCents, baseCurrency),
+    text: `${from.name} 给 ${to.name} ${item.amountText || formatCents(amountCents, baseCurrency)}`
   };
 }
 
-function expenseView(expense, members) {
+function expenseView(expense, members, baseCurrency) {
   const payer = findMember(members, expensePayerId(expense, members));
   const participants = expenseMemberIds(expense, members).map((id) => findMember(members, id)).filter(Boolean);
   const allocationText = (expense.allocations || []).map((allocation) => {
     const member = findMember(members, allocation.memberId);
-    return `${member ? member.name : "未知成员"} ${formatCents(allocation.shareCents)}`;
+    return `${member ? member.name : "未知成员"} ${formatCents(allocation.shareCents, baseCurrency)}`;
   }).join(" · ");
   return Object.assign({}, expense, {
     payerName: payer ? payer.name : "未知成员",
@@ -160,7 +160,7 @@ function expenseView(expense, members) {
   });
 }
 
-function transferView(transfer, members) {
+function transferView(transfer, members, baseCurrency) {
   const fromValue = transfer.fromMemberId || transfer.fromId || transfer.from;
   const toValue = transfer.toMemberId || transfer.toId || transfer.to;
   const from = findMember(members, fromValue);
@@ -170,7 +170,7 @@ function transferView(transfer, members) {
   return Object.assign({}, transfer, {
     fromName: transfer.fromName || (from ? from.name : String(fromValue || "未知成员")),
     toName: transfer.toName || (to ? to.name : String(toValue || "未知成员")),
-    amountText: transfer.amountText || formatCents(transfer.amountCents),
+    amountText: transfer.amountText || formatCents(transfer.amountCents, baseCurrency),
     time,
     voided,
     statusText: voided ? "已撤销" : "已确认"
@@ -211,6 +211,8 @@ Page({
     expenseFormDirty: false,
     pendingTransfer: null,
     remainingText: formatCents(0),
+    baseCurrency: ledgerStore.DEFAULT_BASE_CURRENCY,
+    currencyLabel: ledgerStore.CURRENCY_OPTIONS[0].label,
     isSettled: true,
     showExportPanel: false,
     exporting: false,
@@ -248,7 +250,8 @@ Page({
     const members = getMembers(ledger);
     const activeMembers = getActiveMemberList(ledger, members);
     const summary = calculateLedgerSummary(ledger);
-    const settlements = (calculateSettlements(ledger) || []).map((item, index) => settlementView(item, members, index));
+    const baseCurrency = ledger.baseCurrency || ledgerStore.DEFAULT_BASE_CURRENCY;
+    const settlements = (calculateSettlements(ledger) || []).map((item, index) => settlementView(item, members, index, baseCurrency));
     const remainingCents = settlements.reduce((total, item) => total + item.amountCents, 0);
     let expenseForm = this.data.expenseForm;
     if (!expenseForm || !this.data.showExpenseForm) {
@@ -261,12 +264,14 @@ Page({
       members,
       activeMembers,
       memberCount: activeMembers.length,
+      baseCurrency,
+      currencyLabel: ledger.currencyLabel || baseCurrency,
       summary,
       summaryMembers: summaryMemberViews(summary, members),
       settlements,
-      transfers: (ledger.transfers || []).map((item) => transferView(item, members)),
-      expenseViews: (ledger.expenses || []).map((item) => expenseView(item, members)),
-      remainingText: formatCents(remainingCents),
+      transfers: (ledger.transfers || []).map((item) => transferView(item, members, baseCurrency)),
+      expenseViews: (ledger.expenses || []).map((item) => expenseView(item, members, baseCurrency)),
+      remainingText: formatCents(remainingCents, baseCurrency),
       isSettled: remainingCents === 0,
       expenseForm,
       memberOptions: buildMemberOptions(participantMembers, expenseForm.participantIds),
@@ -317,7 +322,7 @@ Page({
 
   showLedgerActions() {
     wx.showActionSheet({
-      itemList: ["管理成员与账本", "导出结算"],
+      itemList: ["管理成员与账本", "导出单币种结算"],
       success: (result) => {
         if (result.tapIndex === 0) this.editLedger();
         if (result.tapIndex === 1) this.setData({ showExportPanel: true });
@@ -343,7 +348,7 @@ Page({
         wx.openDocument({ filePath, fileType: "pdf", showMenu: true });
       } else {
         filePath = exportLedgerJson(this.data.ledger, privacyMode);
-        if (wx.shareFileMessage) wx.shareFileMessage({ filePath, fileName: `AA账本-${privacyMode === REDACTED_MODE ? "分享版" : "私人版"}.json` });
+        if (wx.shareFileMessage) wx.shareFileMessage({ filePath, fileName: `AA账本-${this.data.baseCurrency}-${privacyMode === REDACTED_MODE ? "分享版" : "私人版"}.json` });
         else wx.showToast({ title: "JSON 已生成", icon: "none" });
       }
     } catch (error) { wx.showModal({ title: "导出失败", content: error.message || "请稍后重试", showCancel: false }); }
@@ -644,7 +649,7 @@ Page({
       ? this.data.transfers.map((item) => `${item.fromName} 给 ${item.toName} ${item.amountText}（${item.statusText}）`).join("\n")
       : "暂无结算记录";
     wx.setClipboardData({
-      data: `${this.data.ledger.title}\n${this.data.isSettled ? "已结清" : `剩余待结算 ${this.data.remainingText}`}\n\n结算建议\n${recommendation}\n\n结算历史\n${history}`
+      data: `${this.data.ledger.title}\n单币种 ${this.data.baseCurrency} · 金额按原值记录 · 未进行汇率换算\n${this.data.isSettled ? "已结清" : `剩余待结算 ${this.data.remainingText}`}\n\n结算建议\n${recommendation}\n\n结算历史\n${history}`
     });
   }
 });

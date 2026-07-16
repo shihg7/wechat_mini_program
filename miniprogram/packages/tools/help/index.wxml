@@ -8,7 +8,7 @@
         <ui-icon name="plus" size="{{27}}" tone="white" />
         <text>新增体验</text>
       </button>
-      <button class="hero-button hero-secondary icon-action" data-url="/pages/demo/index" bindtap="openFeature">
+      <button class="hero-button hero-secondary icon-action" data-url="/packages/tools/demo/index" bindtap="openFeature">
         <ui-icon name="play" size="{{27}}" />
         <text>新手演示</text>
       </button>

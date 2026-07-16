@@ -16,7 +16,7 @@ function collectFiles(directory, extension, result = []) {
 }
 
 const appConfig = JSON.parse(fs.readFileSync(path.join(miniprogramRoot, "app.json"), "utf8"));
-assert.strictEqual(appConfig.usingComponents["ui-icon"], "/components/ui-icon/index");
+assert(!appConfig.usingComponents || !appConfig.usingComponents["ui-icon"], "ui-icon should be registered per page so lazy loading remains effective");
 const appStyles = fs.readFileSync(path.join(miniprogramRoot, "app.wxss"), "utf8");
 assert(appStyles.includes(".square-icon-button"), "global square icon-button guard should exist");
 assert(appStyles.includes("flex: 0 0 72rpx !important"), "square icon buttons should not stretch in flex layouts");
@@ -26,8 +26,12 @@ assert(appStyles.includes("flex: 0 0 72rpx !important"), "square icon buttons sh
 });
 
 const referencedIcons = new Set();
-collectFiles(path.join(miniprogramRoot, "pages"), ".wxml").forEach((filePath) => {
+collectFiles(miniprogramRoot, ".wxml").forEach((filePath) => {
   const source = fs.readFileSync(filePath, "utf8");
+  if (source.includes("<ui-icon")) {
+    const pageConfig = JSON.parse(fs.readFileSync(filePath.replace(/\.wxml$/, ".json"), "utf8"));
+    assert.strictEqual(pageConfig.usingComponents && pageConfig.usingComponents["ui-icon"], "/components/ui-icon/index", path.relative(miniprogramRoot, filePath) + " must register ui-icon locally");
+  }
   const iconPattern = /<ui-icon\b[^>]*\bname="([a-z0-9-]+)"/g;
   let match;
   while ((match = iconPattern.exec(source))) referencedIcons.add(match[1]);
@@ -46,12 +50,12 @@ const pageExpectations = {
   "pages/index/index.wxml": ["hotel", "utensils", "chart", "database", "search"],
   "pages/trip/index.wxml": ["route", "calendar", "wallet"],
   "pages/ledger/index/index.wxml": ["receipt", "users", "check"],
-  "pages/data/index.wxml": ["shield", "download", "upload"],
-  "pages/cleanup/index.wxml": ["sparkles", "copy", "image"],
-  "pages/wheel/index.wxml": ["wheel", "sliders", "refresh"],
+  "packages/tools/data/index.wxml": ["shield", "download", "upload"],
+  "packages/tools/cleanup/index.wxml": ["sparkles", "copy", "image"],
+  "packages/tools/wheel/index.wxml": ["wheel", "sliders", "refresh"],
   "pages/departure/index.wxml": ["plane", "clipboard", "clock"],
   "pages/departure/edit.wxml": ["calendar", "route", "wallet", "users"],
-  "pages/help/index.wxml": ["plus", "play", "search", "alert", "shield"]
+  "packages/tools/help/index.wxml": ["plus", "play", "search", "alert", "shield"]
 };
 
 Object.entries(pageExpectations).forEach(([relativePath, names]) => {
@@ -62,7 +66,7 @@ Object.entries(pageExpectations).forEach(([relativePath, names]) => {
 const homeSource = fs.readFileSync(path.join(miniprogramRoot, "pages/index/index.wxml"), "utf8");
 const tripSource = fs.readFileSync(path.join(miniprogramRoot, "pages/trip/index.wxml"), "utf8");
 const ledgerSource = fs.readFileSync(path.join(miniprogramRoot, "pages/ledger/index/index.wxml"), "utf8");
-const wheelSource = fs.readFileSync(path.join(miniprogramRoot, "pages/wheel/index.wxml"), "utf8");
+const wheelSource = fs.readFileSync(path.join(miniprogramRoot, "packages/tools/wheel/index.wxml"), "utf8");
 const ledgerDetailSource = fs.readFileSync(path.join(miniprogramRoot, "pages/ledger/detail/detail.wxml"), "utf8");
 const tripDetailSource = fs.readFileSync(path.join(miniprogramRoot, "pages/trip/detail.wxml"), "utf8");
 assert(!homeSource.includes('aria-label="快速新增">+</button>'));

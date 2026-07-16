@@ -1,5 +1,5 @@
-const departureStore = require("../../utils/departureStore");
-const tripStore = require("../../utils/tripStore");
+const departureStore = require("../../utils/repositories/departureRepository");
+const tripStore = require("../../utils/repositories/tripRepository");
 
 Page({
   data: {

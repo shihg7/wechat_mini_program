@@ -9,9 +9,9 @@
         <ui-icon name="book" size="{{26}}" tone="blue" />
         <text>手册</text>
       </button>
-      <button class="top-add-button icon-action" bindtap="goQuickCreate">
+      <button class="top-add-button icon-action" bindtap="goQuickCreate" aria-label="快速记录酒店或餐厅">
         <ui-icon name="plus" size="{{28}}" tone="white" />
-        <text>新增</text>
+        <text>速记</text>
       </button>
     </view>
   </view>
@@ -42,11 +42,10 @@
   <view class="quick-actions">
     <button class="button primary" data-type="hotel" bindtap="goCreate"><ui-icon name="hotel" size="{{28}}" tone="white" /><text>新增酒店</text></button>
     <button class="button accent" data-type="restaurant" bindtap="goCreate"><ui-icon name="utensils" size="{{28}}" tone="white" /><text>新增餐厅</text></button>
-    <button class="button secondary" bindtap="goQuickCreate"><ui-icon name="zap" size="{{28}}" tone="blue" /><text>快速记录</text></button>
   </view>
 
   <block wx:if="{{hasRecentContent}}">
-  <view class="content-heading"><view><view class="content-title">最近使用</view><view class="content-subtitle">快速回到上次内容</view></view></view>
+  <view class="content-heading"><view><view class="content-title">继续记录</view><view class="content-subtitle">接着处理最近体验、草稿和账本</view></view></view>
   <view class="recent-grid">
     <view class="snapshot" wx:if="{{recentRecord}}" data-id="{{recentRecord.id}}" bindtap="goDetail">
       <image class="snapshot-cover" wx:if="{{recentRecord.coverPhotoPath}}" src="{{recentRecord.coverPhotoPath}}" mode="aspectFill" />

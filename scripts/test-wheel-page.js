@@ -11,7 +11,7 @@ function loadPage(modulePath) { let definition; global.Page = (config) => { defi
 
 const store = require("../miniprogram/utils/wheelStore");
 const engine = require("../miniprogram/utils/wheelEngine");
-const page = loadPage("../miniprogram/pages/wheel/index.js");
+const page = loadPage("../miniprogram/packages/tools/wheel/index.js");
 const demoWheel = store.createWheel({ title: "演示转盘", options: [] });
 memory.experience_demo_mode_state = { active: true, startedAt: "2026-07-13T00:00:00.000Z", completedStepIds: [] };
 page.onLoad({ id: demoWheel.id, demo: "wheel" });

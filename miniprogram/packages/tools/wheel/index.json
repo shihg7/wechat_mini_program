@@ -2,6 +2,7 @@
   "navigationBarTitleText": "决策转盘",
   "disableScroll": true,
   "usingComponents": {
-    "demo-guide": "/components/demo-guide/index"
+    "demo-guide": "/components/demo-guide/index",
+    "ui-icon": "/components/ui-icon/index"
   }
 }

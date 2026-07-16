@@ -1,7 +1,7 @@
 const wishlistRepository = require("../../utils/repositories/wishlistRepository");
 const placeRepository = require("../../utils/repositories/placeRepository");
-const tripStore = require("../../utils/tripStore");
-const departureStore = require("../../utils/departureStore");
+const tripStore = require("../../utils/repositories/tripRepository");
+const departureStore = require("../../utils/repositories/departureRepository");
 
 function emptyForm(type = "hotel") {
   return { type, name: "", city: "", area: "", address: "", latitude: null, longitude: null, placeId: "", status: "wishlist", priority: "medium", targetDate: "", budgetText: "", bookingReference: "", companions: "", tripId: "", itineraryItemId: "", bookingId: "", note: "" };

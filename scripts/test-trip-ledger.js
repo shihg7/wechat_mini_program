@@ -44,7 +44,9 @@ function testLegacyMigrationIsLosslessAndIdempotent() {
   resetMemory();
   memory[store.STORAGE_KEY] = [{
     id: "legacy-ledger",
+    schemaVersion: 3,
     title: "旧旅行",
+    legacyMetadata: { source: "v3", keep: true },
     members: ["我", "张三"],
     expenses: [{
       id: "legacy-expense",
@@ -61,7 +63,9 @@ function testLegacyMigrationIsLosslessAndIdempotent() {
   }];
 
   const ledger = store.getLedgers()[0];
-  assert.strictEqual(ledger.schemaVersion, 3);
+  assert.strictEqual(ledger.schemaVersion, 4);
+  assert.strictEqual(ledger.baseCurrency, "CNY");
+  assert.deepStrictEqual(ledger.legacyMetadata, { source: "v3", keep: true });
   assert.deepStrictEqual(ledger.members.map((item) => item.name), ["我", "张三"]);
   assert(ledger.members.every((item) => item.id && item.status === "active"));
   assert.strictEqual(ledger.expenses[0].payer, "我");
@@ -72,10 +76,51 @@ function testLegacyMigrationIsLosslessAndIdempotent() {
   store.getLedgers();
   assert.deepStrictEqual(snapshot(), firstWrite);
   assert(firstWrite[0].expenses[0].payerId);
+  assert.strictEqual(firstWrite[0].schemaVersion, 4);
+  assert.strictEqual(firstWrite[0].baseCurrency, "CNY");
+  assert.deepStrictEqual(firstWrite[0].legacyMetadata, { source: "v3", keep: true });
   assert.deepStrictEqual(firstWrite[0].expenses[0].participantIds.length, 2);
   assert.strictEqual(Object.prototype.hasOwnProperty.call(firstWrite[0].expenses[0], "payer"), false);
   assert.strictEqual(firstWrite[0].expenses[0].splitMode, "equal");
   assert.strictEqual(firstWrite[0].expenses[0].allocations.reduce((sum, item) => sum + item.shareCents, 0), 10001);
+}
+
+function testCanonicalV3MigrationOnlyAddsCurrencySemantics() {
+  const v3 = {
+    id: "canonical-v3",
+    schemaVersion: 3,
+    title: "原样迁移",
+    city: "伦敦",
+    startDate: "2026-07-01",
+    endDate: "2026-07-02",
+    note: "账本备注",
+    members: [
+      { id: "m1", name: "我", status: "active", legacyBadge: "保留" },
+      { id: "m2", name: "伙伴", status: "active" }
+    ],
+    expenses: [{
+      id: "e1",
+      title: "晚餐",
+      amountCents: 10001,
+      payerId: "m1",
+      participantIds: ["m1", "m2"],
+      splitMode: "shares",
+      allocations: [
+        { memberId: "m1", inputValue: "1", shareCents: 5001 },
+        { memberId: "m2", inputValue: "1", shareCents: 5000 }
+      ],
+      paidAt: "2026-07-01",
+      note: "支出备注",
+      legacyTag: { keep: true }
+    }],
+    transfers: [],
+    createdAt: "2026-07-01T00:00:00.000Z",
+    updatedAt: "2026-07-02T00:00:00.000Z",
+    legacyMetadata: { keep: true }
+  };
+  const migrated = migrateLedger(v3);
+  assert.deepStrictEqual(migrated, { ...v3, schemaVersion: 4, baseCurrency: "CNY" });
+  assert.deepStrictEqual(migrateLedger(migrated), migrated);
 }
 
 function testAdvancedSplitModesAndRemainders() {
@@ -275,10 +320,54 @@ function testParserAndFormattingCompatibility() {
   assert.strictEqual(store.parseAmountToCents("1.234"), 0);
   assert.strictEqual(store.parseAmountToCents("abc"), 0);
   assert.strictEqual(store.formatCents(-123), "-¥1.23");
+  assert.strictEqual(store.formatCents(123, "USD"), "US$1.23");
+  assert.strictEqual(store.formatCents(123, "EUR"), "€1.23");
+  assert.strictEqual(store.formatCents(123, "JPY"), "JP¥1.23");
+  assert.strictEqual(store.formatCents(123, "HKD"), "HK$1.23");
+  assert.strictEqual(store.formatCents(123, "GBP"), "£1.23");
+  assert.deepStrictEqual(store.CURRENCY_OPTIONS.map((item) => item.code), ["CNY", "USD", "EUR", "JPY", "HKD", "GBP"]);
+}
+
+function testLedgerCurrencyIsSingleAndRelabelsWithoutConversion() {
+  resetMemory();
+  let ledger = store.addLedger({ title: "美元账本", members: ["A", "B"], baseCurrency: "USD" });
+  const a = member(ledger, "A");
+  const b = member(ledger, "B");
+  store.addExpense(ledger.id, { title: "晚餐", amountCents: 12345, payerId: a.id, participantIds: [a.id, b.id] });
+  ledger = store.getLedgerById(ledger.id);
+  assert.strictEqual(ledger.expenses[0].amountText, "US$123.45");
+  assert.strictEqual(store.calculateLedgerSummary(ledger).totalText, "US$123.45");
+  assert(store.calculateSettlements(ledger)[0].amountText.startsWith("US$"));
+
+  const centsBeforeChange = ledger.expenses[0].amountCents;
+  ledger = store.updateLedger(ledger.id, { baseCurrency: "EUR" });
+  assert.strictEqual(ledger.baseCurrency, "EUR");
+  assert.strictEqual(ledger.expenses[0].amountCents, centsBeforeChange);
+  assert.strictEqual(ledger.expenses[0].amountText, "€123.45");
+
+  const beforeInvalid = snapshot();
+  assert.throws(() => store.updateLedger(ledger.id, { baseCurrency: "AUD" }), /baseCurrency/);
+  assert.deepStrictEqual(snapshot(), beforeInvalid);
+  assert.throws(() => store.addExpense(ledger.id, {
+    title: "混合币种",
+    amountCents: 100,
+    currency: "USD",
+    payerId: a.id,
+    participantIds: [a.id, b.id]
+  }), /不支持混合币种/);
+  assert.deepStrictEqual(snapshot(), beforeInvalid);
+  assert.throws(() => store.addTransfer(ledger.id, {
+    fromMemberId: b.id,
+    toMemberId: a.id,
+    amountCents: 100,
+    currencyCode: "USD"
+  }), /不支持混合币种/);
+  assert.deepStrictEqual(snapshot(), beforeInvalid);
 }
 
 function run() {
   testLegacyMigrationIsLosslessAndIdempotent();
+  testCanonicalV3MigrationOnlyAddsCurrencySemantics();
   testHistoricalUnknownMemberMigration();
   testMigrationFailureDoesNotOverwrite();
   testExpenseMathAndMemberLifecycle();
@@ -286,9 +375,10 @@ function run() {
   testInvalidDataNeverPersists();
   testTransferCannotExceedOutstandingAndLastActiveMemberStays();
   testParserAndFormattingCompatibility();
+  testLedgerCurrencyIsSingleAndRelabelsWithoutConversion();
   testAdvancedSplitModesAndRemainders();
   testRandomSplitConservation();
-  console.log("trip ledger v3 tests passed");
+  console.log("trip ledger v4 currency tests passed");
 }
 
 run();

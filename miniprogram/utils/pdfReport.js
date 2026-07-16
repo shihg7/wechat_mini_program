@@ -122,7 +122,7 @@ function drawSummaryPage(ctx, records, summary, pageNumber, privacyLabel) {
   ctx.fillText(`酒店：${summary.hotelTotal || 0} 条`, MARGIN, y);
   ctx.fillText(`米其林餐厅：${summary.restaurantTotal || 0} 条`, MARGIN + 180, y);
   y += 26;
-  ctx.fillText(`公开预备：${summary.publicTotal || 0} 条`, MARGIN, y);
+  ctx.fillText(`分享摘要：${summary.publicTotal || 0} 条`, MARGIN, y);
   ctx.fillText(`草稿：${summary.draftTotal || 0} 条`, MARGIN + 180, y);
   y += 26;
   ctx.fillText(`最高评分：${summary.bestRecordName || summary.bestHotelName || "暂无"}`, MARGIN, y);
@@ -140,7 +140,7 @@ function drawSummaryPage(ctx, records, summary, pageNumber, privacyLabel) {
     setText(ctx, 12, "#172033", "700");
     ctx.fillText(`${index + 1}. ${record.typeLabel || "酒店"} · ${getRecordTitle(record)}`, MARGIN, y);
     setText(ctx, 11, "#667085");
-    ctx.fillText(`${record.city || "未填写城市"} · ${record.stayDate || "未填写日期"} · ${record.isRated ? `${record.overallScore}分` : "未评分"} · ${record.visibilityLabel || "私密"}`, MARGIN, y + 19);
+    ctx.fillText(`${record.city || "未填写城市"} · ${record.stayDate || "未填写日期"} · ${record.isRated ? `${record.overallScore}分` : "未评分"}`, MARGIN, y + 19);
     y += 46;
   });
 
@@ -213,7 +213,7 @@ function drawRecordPage(ctx, record, pageNumber, privacyLabel) {
   ctx.fillText(`${record.recordType === "restaurant" ? "用餐日期" : "入住日期"}：${record.stayDate || "未填写"}`, MARGIN + 250, y);
   y += 24;
   ctx.fillText(`标准地点名：${record.placeName || getRecordTitle(record)}`, MARGIN, y);
-  ctx.fillText(`公开状态：${record.visibilityLabel || "私密"}`, MARGIN + 250, y);
+  ctx.fillText("数据状态：仅保存在本机", MARGIN + 250, y);
   y += 24;
   if (record.recordType === "restaurant") {
     ctx.fillText(`菜系：${record.cuisine || "未填写"}`, MARGIN, y);
@@ -245,7 +245,7 @@ function drawRecordPage(ctx, record, pageNumber, privacyLabel) {
   drawRule(ctx, y);
   y += 20;
   setText(ctx, 13, "#172033", "700");
-  ctx.fillText("公开摘要", MARGIN, y);
+  ctx.fillText("分享摘要", MARGIN, y);
   y += 24;
   setText(ctx, 11, "#4d596c");
   y = drawWrappedText(ctx, record.publicNote || "未填写", MARGIN, y, CONTENT_WIDTH, 17, 5) + 18;

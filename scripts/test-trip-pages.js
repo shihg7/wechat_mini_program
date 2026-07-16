@@ -18,6 +18,7 @@ function setPath(target, path, value) { const parts = path.split("."); let curso
 function loadPage(modulePath) { let definition; global.Page = (config) => { definition = config; }; delete require.cache[require.resolve(modulePath)]; require(modulePath); const page = {}; Object.keys(definition).forEach((key) => { page[key] = key === "data" ? JSON.parse(JSON.stringify(definition.data)) : definition[key]; }); page.setData = function setData(patch, callback) { Object.keys(patch).forEach((path) => setPath(this.data, path, patch[path])); if (callback) callback(); }; return page; }
 
 const tripStore = require("../miniprogram/utils/tripStore");
+const ledgerStore = require("../miniprogram/utils/tripLedgerStore");
 const trip = tripStore.addTrip({ title: "上海周末", cities: "上海", note: "周年旅行", startDate: "2026-08-01", endDate: "2026-08-02" });
 tripStore.addItineraryItem(trip.id, { title: "入住", date: "2026-08-01", startTime: "15:00" });
 tripStore.addItineraryItem(trip.id, { title: "晚餐", date: "2026-08-01", startTime: "19:00" });
@@ -73,6 +74,14 @@ assert.strictEqual(tripStore.getTripById(trip.id).personalExpenses[0].amountCent
 assert(ui.toasts.includes("支出已更新"));
 budgetPage.removeExpense({ currentTarget: { dataset: { id: expenseId } } });
 assert.strictEqual(tripStore.getTripById(trip.id).personalExpenses.length, 0);
+
+const usdLedger = ledgerStore.addLedger({ title: "美元账本", baseCurrency: "USD", members: ["Alice", "Bob"] });
+budgetPage.onShow();
+const usdLedgerView = budgetPage.data.ledgers.find((item) => item.id === usdLedger.id);
+assert.strictEqual(usdLedgerView.compatible, false);
+budgetPage.toggleLedger({ currentTarget: { dataset: { id: usdLedger.id } } });
+assert.strictEqual(tripStore.getTripById(trip.id).linkedLedgerIds.includes(usdLedger.id), false);
+assert(ui.toasts.includes("账本币种与行程不一致"));
 
 const missingDetailPage = loadPage("../miniprogram/pages/trip/detail.js");
 missingDetailPage.onLoad({ id: "missing-trip" });

@@ -36,7 +36,7 @@ function loadPage(modulePath) {
 
 const demoMode = require("../miniprogram/utils/demoMode");
 const demoData = require("../miniprogram/utils/demoData");
-const page = loadPage("../miniprogram/pages/demo/index.js");
+const page = loadPage("../miniprogram/packages/tools/demo/index.js");
 
 page.onLoad();
 page.onShow();
@@ -48,7 +48,7 @@ const expectedRoutes = {
   record: `/pages/record/record?id=${registry.recordIds[0]}&demo=record`,
   trip: `/pages/trip/detail?id=${registry.tripIds[0]}&demo=trip`,
   ledger: `/pages/ledger/detail/detail?id=${registry.ledgerIds[0]}&demo=ledger`,
-  wheel: `/pages/wheel/index?id=${registry.wheelIds[0]}&demo=wheel`
+  wheel: `/packages/tools/wheel/index?id=${registry.wheelIds[0]}&demo=wheel`
 };
 
 Object.keys(expectedRoutes).forEach((id, index) => {

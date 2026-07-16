@@ -21,15 +21,16 @@
 - 新增记录时按类型、名称和城市提示可能重复地点，必须由用户确认关联，不会自动合并。
 - 支持编辑地点、维护别名、手动合并重复地点；有到访记录的地点不能直接删除。
 - 支持可选微信地图位置；拒绝位置权限后仍可手工填写城市、地区和地址。
-- 快速草稿标记为“未评分”，地点和首页统计只计算已完成且已评分的记录。
+- 快速草稿标记为“未评分”；评分滑块的 8 分只是录入起点，只有用户实际调整评分项后才会进入已评分状态。地点和首页统计只计算已完成且已评分的记录。
 - 搜索和筛选会同步作用于列表、时间线、城市和标签统计，并支持一键清除。
 - 支持用 canvas 生成多页 PDF 并打开预览。
 - 每条体验最多保存 9 张照片，支持相册/拍照、分类、说明、排序和设置封面。
 - 照片使用 `wx.saveFile` 保存在小程序本地持久目录；失效路径会显示明确占位，不会渲染破损图片。
 - 首页、地点页和到访记录会展示体验封面。
+- 体验保存使用跨记录、地点、想去项、行程和预订的事务式工作流；任一缓存写入失败时会恢复保存前快照，避免只更新一半。
 - 旅行洞察支持年份筛选、酒店/餐厅构成、个人最佳、月度频次、评分轨迹、常去城市、常用标签和复访升降。
 - 旅行地图聚合已到访地点与想去项，支持按类型和状态筛选；未填写坐标的内容单独列出，不请求当前位置也能使用。
-- 单条体验可生成照片故事长图，最多选择 6 张照片，支持版式、顺序与公开字段开关；失效照片会自动跳过。
+- 单条体验可生成照片故事长图，最多选择 6 张照片，支持版式、顺序与分享字段开关；失效照片会自动跳过。
 - 年度回忆册按月份整理体验与年度最佳，最多选择 24 张照片，可导出分享长图和私人多页 PDF。
 - 回忆册分享长图不包含 AA 金额；私人 PDF 可选择加入年度 AA 聚合金额，不输出成员或支出明细。
 
@@ -37,7 +38,7 @@
 
 - 首页右上角常驻“手册”入口，小程序内帮助中心提供 10 个功能章节、图标流程、关键词搜索、章节展开/收起和对应功能直达，不需要离开小程序查看仓库文档。
 - 酒店与餐厅新增/编辑页把取消、保存草稿和保存记录固定在底部安全区域，表单独立滚动并预留遮挡空间，不必滑到页面末尾才能保存。
-- 新增全局 `ui-icon` 组件和本地线性 SVG 图标集，统一 24×24 视口、线宽、色调和无障碍属性，不依赖运行时图标包。
+- 新增 `ui-icon` 组件和本地线性 SVG 图标集，统一 24×24 视口、线宽、色调和无障碍属性；组件按实际页面局部注册，兼容按需注入且不依赖运行时图标包。
 - 首页、行程、预算、AA 账本、数据管理、待整理中心和决策转盘使用语义图标区分新增、搜索、日期、成员、支出、转账、导出和危险操作；关键命令仍保留文字标签，顶部图标按钮固定为方形以避免原生按钮在 flex 布局中拉伸。
 - 首页隐藏无内容的最近草稿和账本卡片，旅行工具默认只显示 4 个常用入口；AA 详情按“账目 / 结算 / 成员”分区，行程日程的移动、复制和删除收进单一操作菜单。
 - 首页提供“新手演示”，自动准备一组不会覆盖个人内容的示例，通过四个任务串起体验记录、行程、AA 分账和决策转盘；退出后只清理由演示创建的数据。
@@ -54,6 +55,7 @@
 - 已被删除或被备份替换的体验、行程、预算和想去项会显示可返回的恢复页面，不会静默落入新增模式或停留在空白页。
 - 旅行地图在无坐标点或当前筛选无结果时展示原因和下一步；年度回忆册返回页面后会刷新数据并保留仍有效的年份选择。
 - AA 首页突出累计支出和待结算状态，编辑与删除收进“管理”菜单并继续保留删除确认。
+- AA 首页按币种分别汇总，账本创建和编辑会明确显示本位币；修改已有账本币种时提示“只改标签、不换算”。
 - AA 账本明确区分“未记账 / 进行中 / 已结清”，没有支出的账本不会计入已结清统计。
 - 行程详情把复制和删除收进“更多”菜单；覆盖导入会明确列出将被替换的数据范围，清理操作完成后提供结果反馈。
 
@@ -74,7 +76,7 @@
 - 按天时间线使用 UTC 安全的纯日期计算，避免东八区日期显示提前一天。
 - 想去项可加入指定行程；完成体验后会回写对应日程的到访状态与记录 ID。
 - 复制行程保留日程结构和预算，但清空实际支出、关联账本和到访记录。
-- 预算中心实时读取所选 AA 账本支出，不复制账本数据；个人支出单独保存，避免重复统计。
+- 预算中心实时读取与行程本位币一致的所选 AA 账本支出，不复制账本数据；异币种账本不会被静默相加，个人支出单独保存以避免重复统计。
 - 预算中心拆分展示个人支出与 AA 账本支出，并在关联项中显示计入笔数和金额；个人支出可选择行程内日期。
 - 新建行程默认使用今天至明天，减少首次录入步骤。
 - 行程详情支持点击已有日程直接编辑，日期选择限制在行程范围内。
@@ -112,16 +114,16 @@
 
 ### 同步架构预留
 
-- 页面通过 `recordRepository`、`placeRepository`、`wishlistRepository` 和 `ledgerRepository` 访问数据，不直接依赖缓存实现。
+- 页面通过 `recordRepository`、`placeRepository`、`wishlistRepository`、`ledgerRepository`、`tripRepository`、`departureRepository`、`wheelRepository`、`mediaRepository` 和 `formTemplateRepository` 访问数据，不直接依赖缓存实现。
 - 当前 Repository 使用本地适配器，后续可以增加远端适配器而不修改页面业务。
 - 记录、地点和想去项包含 `revision`、`syncStatus`、`deviceId`、`cloudId`、`syncedAt`、`deletedAt`。
 - 新增、编辑和删除会进入待同步状态；删除采用软删除并保留 tombstone。
 - Repository 提供待同步批次、确认同步和冲突快照接口，冲突不会自动覆盖本地版本。
 - 公开地点、公开评论和私有同步使用独立 DTO；公开 DTO 不包含精确地址、设备 ID、私密备注或本地照片路径。
 
-### 公开评论预留
+### 后端公开能力预留
 
-当前不连接后端，但本地地点与记录已经预留未来同步和公开评论字段：
+当前不连接后端，也没有公开发布入口。表单中的“分享内容预览”只在本机生成脱敏效果，不会上传。地点与记录模型仍保留未来同步和公开评论所需字段：
 
 - `placeId`, `placeName`, `placeAlias`
 - `cloudRecordId`, `publicReviewId`
@@ -129,15 +131,16 @@
 - `publishStatus`: `local` / `pending` / `published` / `rejected` / `hidden`
 - `visitMonth`, `publicNote`, `privateNote`
 
-地点独立保存在 `experience_places`，包含本地 `id`、可选 `cloudPlaceId`、名称、别名、城市、地址和经纬度。公开预览和脱敏导出不会包含精确地址、经纬度或内部同步 ID。
+地点独立保存在 `experience_places`，包含本地 `id`、可选 `cloudPlaceId`、名称、别名、城市、地址和经纬度。脱敏分享预览和脱敏导出不会包含精确地址、经纬度或内部同步 ID。
 
-公开预览默认不展示精确日期、会员等级、价格和私密备注。
+脱敏分享预览默认不展示精确日期、会员等级、价格和私密备注。`visibility` 与 `publishStatus` 当前仅作兼容和未来后端接口预留，用户界面不会伪装成已经发布。
 
 ### AA 账本
 
 AA 账本用于多人旅行支出分摊：
 
-- 新建账本，维护成员、目的地、日期和备注。
+- 新建账本，选择 CNY、USD、EUR、JPY、HKD 或 GBP 作为单一账本本位币，并维护成员、目的地、日期和备注。
+- 同一账本的支出、分摊和转账必须使用同一币种，不支持混合币种或隐式汇率换算。
 - 成员使用稳定 ID 保存，改名不会改变历史支出归属。
 - 有历史支出或转账的成员可以归档，不能静默删除；归档成员不再进入新支出的默认范围。
 - 在账本详情里新增支出。
@@ -159,9 +162,10 @@ AA 账本用于多人旅行支出分摊：
 - 支持导出结算图片、私人 PDF、匿名分享 PDF 和完整明细 JSON。
 - 分享版稳定匿名化成员名称并清除支出私密备注，四种分摊方式和整数分结果保持不变。
 - 转账金额不能超过当前待结算金额；全部平衡后显示“已结清”。
-- 金额内部统一按“分”存储，避免浮点计算误差。
+- 金额内部统一按最小计账单位的整数存储，避免浮点计算误差。
 - 本地账本和支出 id 使用时间戳加随机后缀，避免连续快速录入时同毫秒冲突。
-- 账本使用 `schemaVersion: 3`，旧姓名数组、历史支出和 v2 均分记录会在首次读取时自动迁移。
+- 账本使用 `schemaVersion: 4`，旧姓名数组、历史支出及 v1-v3 记录会在首次读取时无损迁移；缺少币种的旧账本默认使用 CNY，迁移保持幂等。
+- 账本明细 JSON 导出使用 v2 结构，包含单币种和“未应用汇率”的元数据。
 - 金额、成员引用、转账方向和日期在写入前统一校验，迁移失败不会覆盖原缓存。
 
 账本本地缓存 key：
@@ -218,19 +222,13 @@ miniprogram/
   pages/index/          首页体验档案
   pages/record/         酒店/餐厅记录新增、详情、编辑
   pages/place/          地点详情、多次到访、编辑和合并
-  pages/insights/       个人旅行年度洞察
-  pages/travel-map/     已到访与想去地点地图
-  pages/story/          单条体验照片故事
-  pages/yearbook/       年度回忆册与导出
   pages/trip/           行程列表、编辑、按天日程和预算中心
   pages/wishlist/       想去清单新增、详情和编辑
   pages/departure/      预订列表、行前清单和预订新增/详情/编辑
-  pages/help/           小程序内帮助与使用手册
-  pages/cleanup/        数据健康检查与安全整理
-  pages/data/           完整备份、恢复和隐私 PDF
   pages/ledger/index/   AA 账本列表
   pages/ledger/edit/    AA 账本新增/编辑
   pages/ledger/detail/  AA 账本详情、支出录入、结算
+  packages/tools/       洞察、地图、故事、回忆册、转盘、演示、帮助、清理和数据管理分包
   utils/hotelScore.js
   utils/hotelReviewStore.js
   utils/placeStore.js
@@ -248,6 +246,7 @@ miniprogram/
   utils/syncMetadata.js
   utils/syncDtos.js
   utils/repositories/   Repository 接口与本地适配器
+  utils/experienceWorkflowService.js  体验跨缓存事务式保存
   utils/pdfReport.js
   utils/tripLedgerStore.js
   utils/ledgerMigration.js
@@ -265,16 +264,18 @@ miniprogram/
 
 ```bash
 npm install
-npm test
+npm run verify
 ```
 
 ## 本地检查
 
-地点档案、照片、旅行洞察、AA 金额、迁移、结算与备份回归测试：
+完整语法、路由、用户手册一致性和业务回归检查：
 
 ```bash
-npm test
+npm run verify
 ```
+
+也可分别执行 `npm run check:syntax`、`npm run check:routes`、`npm run check:guide` 和 `npm test`。语法检查覆盖 JS 与页面 JSON；路由检查同时阻止页面绕过 Repository 直接引用本地 Store。修改小程序内帮助内容后，先运行 `npm run docs:generate` 同步生成 [完整图文用户手册](docs/USER_GUIDE.md)。
 
 该测试会 mock 小程序 `wx` 和 `Page`，覆盖：
 
@@ -283,6 +284,7 @@ npm test
 - 固定金额、比例和份数分摊
 - 100 笔随机支出的金额守恒
 - AA 匿名 JSON、PDF 封装和分摊明细一致性
+- AA 单账本单币种、旧数据默认 CNY、异币种明细拦截和列表分币种汇总
 - 金额输入解析
 - v1 账本无损迁移和迁移失败保护
 - 成员改名、归档、删除引用保护
@@ -299,8 +301,9 @@ npm test
 - 地图到访/想去合并、筛选、同坐标偏移和无坐标回退
 - 照片故事隐私字段、失效照片跳过、版式偏好保存
 - 年度回忆册草稿排除、月份聚合、照片上限和 AA 年度汇总
+- 年度 AA 按币种分别汇总，不生成跨币种虚假总额
 - 行程日期边界、日程冲突、复制清理和按天组织
-- 分类预算、固定汇率、AA 聚合与整数分金额守恒
+- 分类预算、固定汇率、同币种 AA 聚合、异币种隔离与整数金额守恒
 - 模板字段白名单和历史建议不覆盖
 - 想去项转体验、状态更新和地点关联
 - Repository 待同步批次、软删除、冲突快照和公开 DTO 脱敏
@@ -315,54 +318,17 @@ npm test
 - 返回刷新：年度回忆册保留年份选择并读取新增记录，地图空状态输出明确原因和待补充数量
 - 帮助中心：十章内容、口语关键词搜索、展开收起、章节定位和功能直达
 - 记录操作栏：新增/编辑保存操作位于滚动区外、固定底部并适配设备安全区
+- 体验评分语义：未触碰评分不进入均分，快速记录不能把默认滑块值保存成已评分
+- 跨缓存事务：体验、地点、想去项、行程和预订任一写入失败时全部回滚
 - 图标系统：组件注册、SVG 资源完整性、统一视口和核心页面语义图标覆盖
 
-常用语法检查：
+微信开发者工具命令行可打开项目并触发真实编译：
 
 ```bash
-node --check miniprogram/utils/hotelReviewStore.js
-node --check miniprogram/utils/placeStore.js
-node --check miniprogram/utils/tripLedgerStore.js
-node --check miniprogram/utils/ledgerMigration.js
-node --check miniprogram/utils/ledgerValidation.js
-node --check miniprogram/utils/appBackup.js
-node --check miniprogram/utils/privacyPolicy.js
-node --check miniprogram/utils/mediaStore.js
-node --check miniprogram/utils/travelInsights.js
-node --check miniprogram/utils/travelMap.js
-node --check miniprogram/utils/storyRenderer.js
-node --check miniprogram/utils/yearbookBuilder.js
-node --check miniprogram/utils/reportCanvas.js
-node --check miniprogram/utils/tripStore.js
-node --check miniprogram/utils/wheelEngine.js
-node --check miniprogram/utils/wheelStore.js
-node --check miniprogram/utils/formTemplateStore.js
-node --check miniprogram/utils/wishlistStore.js
-node --check miniprogram/utils/departureStore.js
-node --check miniprogram/utils/cleanupService.js
-node --check miniprogram/utils/ledgerExport.js
-node --check miniprogram/pages/index/index.js
-node --check miniprogram/pages/record/record.js
-node --check miniprogram/pages/place/detail.js
-node --check miniprogram/pages/insights/index.js
-node --check miniprogram/pages/travel-map/index.js
-node --check miniprogram/pages/story/index.js
-node --check miniprogram/pages/yearbook/index.js
-node --check miniprogram/pages/departure/index.js
-node --check miniprogram/pages/departure/edit.js
-node --check miniprogram/pages/help/index.js
-node --check miniprogram/pages/trip/index.js
-node --check miniprogram/pages/trip/edit.js
-node --check miniprogram/pages/trip/detail.js
-node --check miniprogram/pages/trip/budget.js
-node --check miniprogram/pages/wheel/index.js
-node --check miniprogram/pages/wishlist/edit.js
-node --check miniprogram/pages/cleanup/index.js
-node --check miniprogram/pages/data/index.js
-node --check miniprogram/pages/ledger/index/index.js
-node --check miniprogram/pages/ledger/edit/edit.js
-node --check miniprogram/pages/ledger/detail/detail.js
+/Applications/wechatwebdevtools.app/Contents/MacOS/cli open --project /Users/shi/WeChatProjects/miniprogram-1
 ```
+
+当前没有小程序运行时 npm 包，因此不需要执行“构建 npm”；直接编译并检查控制台、主包/分包加载和主要交互即可。对本项目强行执行 `build-npm` 会得到 `__NO_NODE_MODULES__`，这表示没有待构建的运行时依赖，并非业务代码编译失败。
 
 ## 项目瘦身
 

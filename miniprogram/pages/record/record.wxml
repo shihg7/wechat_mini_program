@@ -25,12 +25,6 @@
     </view>
   </view>
 
-  <view class="section" wx:if="{{!isReadonly}}">
-    <view class="field-label">录入模板</view>
-    <scroll-view class="template-scroll" scroll-x><view class="template-row"><view class="template-chip" wx:for="{{templates}}" wx:key="id" wx:if="{{item.type === recordType}}" data-id="{{item.id}}" bindtap="applyFormTemplate">{{item.name}}</view><view class="template-chip save-template" bindtap="saveCurrentTemplate">保存当前模板</view></view></scroll-view>
-    <view class="recent" wx:if="{{recentSuggestions}}"><view class="recent-title">历史建议</view><view class="recent-row"><view class="recent-chip" wx:if="{{recentSuggestions.city && !form.city}}" data-field="city" data-value="{{recentSuggestions.city}}" bindtap="useRecentSuggestion">城市 {{recentSuggestions.city}}</view><view class="recent-chip" wx:if="{{recentSuggestions.roomType && !form.roomType}}" data-field="roomType" data-value="{{recentSuggestions.roomType}}" bindtap="useRecentSuggestion">房型 {{recentSuggestions.roomType}}</view><view class="recent-chip" wx:if="{{recentSuggestions.cuisine && !form.cuisine}}" data-field="cuisine" data-value="{{recentSuggestions.cuisine}}" bindtap="useRecentSuggestion">菜系 {{recentSuggestions.cuisine}}</view></view></view>
-  </view>
-
   <view class="section">
     <view class="type-switch" wx:if="{{mode === 'create'}}">
       <view class="type-option {{recordType === 'hotel' ? 'type-active' : ''}}" data-type="hotel" bindtap="onTypeChange">酒店</view>
@@ -56,44 +50,6 @@
         data-field="restaurantName"
         bindinput="onFieldInput"
       />
-    </view>
-    <view class="grid">
-      <view class="field">
-        <view class="field-label">标准地点名</view>
-        <input
-          class="input"
-          disabled="{{isReadonly}}"
-          placeholder="未来用于合并同一家酒店/餐厅"
-          value="{{form.placeName}}"
-          data-field="placeName"
-          bindinput="onFieldInput"
-        />
-      </view>
-      <view class="field">
-        <view class="field-label">地点别名</view>
-        <input
-          class="input"
-          disabled="{{isReadonly}}"
-          placeholder="英文名/简称/商圈名"
-          value="{{form.placeAlias}}"
-          data-field="placeAlias"
-          bindinput="onFieldInput"
-        />
-      </view>
-    </view>
-    <view class="grid">
-      <view class="field">
-        <view class="field-label">地区/分店</view>
-        <input class="input" disabled="{{isReadonly}}" placeholder="浦东 / 银座店" value="{{form.area}}" data-field="area" bindinput="onFieldInput" />
-      </view>
-      <view class="field">
-        <view class="field-label">地图位置</view>
-        <button class="location-button" disabled="{{isReadonly}}" bindtap="chooseLocation">{{form.address ? "重新选择" : "从地图选择"}}</button>
-      </view>
-    </view>
-    <view class="field" wx:if="{{form.address}}">
-      <view class="field-label">地址</view>
-      <input class="input" disabled="{{isReadonly}}" value="{{form.address}}" data-field="address" bindinput="onFieldInput" />
     </view>
     <view class="grid">
       <view class="field">
@@ -184,28 +140,74 @@
         />
       </view>
     </view>
-  </view>
 
-  <view class="section score-overview" wx:if="{{!isQuick}}">
-    <view class="field-label">维度评分</view>
-    <view class="score-bar" wx:for="{{scoreBars}}" wx:key="key">
-      <view class="score-bar-row">
-        <view class="score-bar-label">{{item.title}}</view>
-        <view class="score-bar-value">{{item.score}}</view>
+    <view class="advanced-toggle" bindtap="togglePlaceDetails">
+      <view class="advanced-copy">
+        <view class="advanced-title">地点与分店信息</view>
+        <view class="advanced-subtitle">别名、分店和地图位置，可稍后补充</view>
       </view>
-      <view class="score-track">
-        <view class="score-fill" style="width: {{item.percent}}%; background: {{item.accent}};"></view>
+      <ui-icon name="{{showPlaceDetails ? 'arrow-up' : 'chevron-right'}}" size="{{25}}" tone="muted" />
+    </view>
+    <view class="advanced-content" wx:if="{{showPlaceDetails}}">
+      <view class="grid">
+        <view class="field">
+          <view class="field-label">地点标准名</view>
+          <input class="input" disabled="{{isReadonly}}" placeholder="默认使用酒店或餐厅名称" value="{{form.placeName}}" data-field="placeName" bindinput="onFieldInput" />
+        </view>
+        <view class="field">
+          <view class="field-label">地点别名</view>
+          <input class="input" disabled="{{isReadonly}}" placeholder="英文名或简称" value="{{form.placeAlias}}" data-field="placeAlias" bindinput="onFieldInput" />
+        </view>
+      </view>
+      <view class="grid">
+        <view class="field">
+          <view class="field-label">地区/分店</view>
+          <input class="input" disabled="{{isReadonly}}" placeholder="浦东 / 银座店" value="{{form.area}}" data-field="area" bindinput="onFieldInput" />
+        </view>
+        <view class="field">
+          <view class="field-label">地图位置</view>
+          <button class="location-button" disabled="{{isReadonly}}" bindtap="chooseLocation">{{form.address ? "重新选择" : "从地图选择"}}</button>
+        </view>
+      </view>
+      <view class="field">
+        <view class="field-label">地址</view>
+        <input class="input" disabled="{{isReadonly}}" placeholder="可手工填写，地图不是必选项" value="{{form.address}}" data-field="address" bindinput="onFieldInput" />
       </view>
     </view>
   </view>
 
-  <view class="section" wx:if="{{!isQuick}}" wx:for="{{categories}}" wx:key="key">
+  <view class="section" wx:if="{{!isReadonly && !isQuick}}">
+    <view class="field-label">快捷填写</view>
+    <scroll-view class="template-scroll" scroll-x><view class="template-row"><view class="template-chip" wx:for="{{templates}}" wx:key="id" wx:if="{{item.type === recordType}}" data-id="{{item.id}}" bindtap="applyFormTemplate">{{item.name}}</view><view class="template-chip save-template" bindtap="saveCurrentTemplate">保存当前模板</view></view></scroll-view>
+    <view class="recent" wx:if="{{recentSuggestions}}"><view class="recent-title">历史建议</view><view class="recent-row"><view class="recent-chip" wx:if="{{recentSuggestions.city && !form.city}}" data-field="city" data-value="{{recentSuggestions.city}}" bindtap="useRecentSuggestion">城市 {{recentSuggestions.city}}</view><view class="recent-chip" wx:if="{{recentSuggestions.roomType && !form.roomType}}" data-field="roomType" data-value="{{recentSuggestions.roomType}}" bindtap="useRecentSuggestion">房型 {{recentSuggestions.roomType}}</view><view class="recent-chip" wx:if="{{recentSuggestions.cuisine && !form.cuisine}}" data-field="cuisine" data-value="{{recentSuggestions.cuisine}}" bindtap="useRecentSuggestion">菜系 {{recentSuggestions.cuisine}}</view></view></view>
+  </view>
+
+  <view class="section unrated-empty" wx:if="{{!isQuick && isReadonly && !form.isRated}}">
+    <view class="unrated-title">这次体验还没有评分</view>
+    <view class="unrated-desc">编辑记录并调整任一评分项后，才会计入个人均分和地点趋势。</view>
+  </view>
+
+  <view class="section score-overview" wx:if="{{!isQuick && (!isReadonly || form.isRated)}}">
+    <view class="field-label">维度评分</view>
+    <view class="score-intro" wx:if="{{!isReadonly && !form.ratingTouched}}">滑杆默认停在 8 分作为填写起点；调整任一项后才会计入评分统计。</view>
+    <view class="score-bar" wx:for="{{scoreBars}}" wx:key="key">
+      <view class="score-bar-row">
+        <view class="score-bar-label">{{item.title}}</view>
+        <view class="score-bar-value">{{form.ratingTouched ? item.score : "--"}}</view>
+      </view>
+      <view class="score-track">
+        <view class="score-fill" style="width: {{form.ratingTouched ? item.percent : 0}}%; background: {{item.accent}};"></view>
+      </view>
+    </view>
+  </view>
+
+  <view class="section" wx:if="{{!isQuick && (!isReadonly || form.isRated)}}" wx:for="{{categories}}" wx:key="key">
     <view class="category-head">
       <view>
         <view class="category-title">{{item.title}}</view>
         <view class="category-subtitle">{{item.subtitle}}</view>
       </view>
-      <view class="category-score">{{form.categoryScores[item.key]}}</view>
+      <view class="category-score">{{form.ratingTouched ? form.categoryScores[item.key] : "--"}}</view>
     </view>
 
     <view class="metric" wx:for="{{item.metrics}}" wx:for-item="metric" wx:key="key">
@@ -244,7 +246,7 @@
     </view>
   </view>
 
-  <view class="section photo-section">
+  <view class="section photo-section" wx:if="{{!isQuick}}">
     <view class="photo-head">
       <view>
         <view class="field-label photo-title">体验照片</view>
@@ -276,7 +278,7 @@
     </view>
   </view>
 
-  <view class="section">
+  <view class="section" wx:if="{{!isQuick}}">
     <view class="field-label">自定义标签</view>
     <view class="custom-tag-editor" wx:if="{{!isReadonly}}">
       <input
@@ -313,22 +315,25 @@
     />
   </view>
 
-  <view class="section">
-    <view class="field-label">公开测评设置</view>
-    <view class="visibility-tabs">
-      <view class="visibility-tab {{form.visibility === 'private' ? 'visibility-active' : ''}}" data-visibility="private" bindtap="onVisibilityChange">私密</view>
-      <view class="visibility-tab {{form.visibility === 'unlisted' ? 'visibility-active' : ''}}" data-visibility="unlisted" bindtap="onVisibilityChange">链接可见</view>
-      <view class="visibility-tab {{form.visibility === 'public' ? 'visibility-active' : ''}}" data-visibility="public" bindtap="onVisibilityChange">公开</view>
+  <view class="section" wx:if="{{!isQuick}}">
+    <view class="advanced-toggle share-toggle" bindtap="toggleShareSection">
+      <view class="advanced-copy">
+        <view class="advanced-title">分享内容预览</view>
+        <view class="advanced-subtitle">仅保存在本机，当前不会发布到网络</view>
+      </view>
+      <ui-icon name="{{showShareSection ? 'arrow-up' : 'chevron-right'}}" size="{{25}}" tone="muted" />
     </view>
+    <block wx:if="{{showShareSection}}">
     <textarea
       class="textarea public-textarea"
       disabled="{{isReadonly}}"
-      placeholder="公开摘要，只写愿意给别人看的内容；精确日期、会员等级、价格默认不应写在这里"
+      placeholder="写一段适合分享的摘要；精确日期、会员等级和价格不会进入预览"
       value="{{form.publicNote}}"
       maxlength="180"
       data-field="publicNote"
       bindinput="onFieldInput"
     />
+    <view class="local-only-notice"><ui-icon name="shield" size="{{23}}" tone="green" /><text>本版本没有公开发布能力，这里只是脱敏分享效果预览。</text></view>
     <view class="public-preview">
       <view class="preview-head">
         <view class="preview-title">{{publicPreview.title}}</view>
@@ -338,7 +343,8 @@
       <view class="preview-note">{{publicPreview.summary}}</view>
       <view class="preview-tags">{{publicPreview.tags}}</view>
     </view>
-    <view class="privacy-hint">公开预览不会展示精确日期、会员等级、价格和私密备注；这些字段未来只进入私有同步。</view>
+    <view class="privacy-hint">分享预览不会展示精确日期、会员等级、价格和私密备注。</view>
+    </block>
   </view>
 
   <view class="actions detail-actions" wx:if="{{mode === 'detail'}}">
@@ -355,13 +361,21 @@
     <button class="fixed-cancel icon-center" wx:if="{{mode === 'edit'}}" bindtap="cancelEdit" aria-label="取消编辑">
       <ui-icon name="x" size="{{29}}" />
     </button>
-    <button class="fixed-button fixed-draft icon-action" data-status="draft" bindtap="saveRecord">
+    <button class="fixed-button fixed-draft icon-action" wx:if="{{!isQuick}}" data-status="draft" bindtap="saveRecord">
       <ui-icon name="file" size="{{26}}" />
       <text>{{mode === "edit" ? "存为草稿" : "保存草稿"}}</text>
     </button>
-    <button class="fixed-button fixed-primary icon-action" data-status="completed" bindtap="saveRecord">
+    <button class="fixed-button fixed-draft icon-action" wx:if="{{isQuick}}" bindtap="expandQuickRecord">
+      <ui-icon name="sliders" size="{{26}}" tone="blue" />
+      <text>继续完整评分</text>
+    </button>
+    <button class="fixed-button fixed-primary icon-action" wx:if="{{isQuick}}" data-status="draft" bindtap="saveRecord">
+      <ui-icon name="file" size="{{26}}" tone="white" />
+      <text>保存快速记录</text>
+    </button>
+    <button class="fixed-button fixed-primary icon-action" wx:else data-status="completed" bindtap="saveRecord">
       <ui-icon name="check" size="{{27}}" tone="white" />
-      <text>{{mode === "edit" ? "保存修改" : "保存记录"}}</text>
+      <text>{{mode === "edit" ? "保存修改" : (form.ratingTouched ? "保存记录" : "保存未评分")}}</text>
     </button>
   </view>
 </view>

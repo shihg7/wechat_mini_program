@@ -1,9 +1,9 @@
-const { getRecordById } = require("../../utils/repositories/recordRepository");
-const { LAYOUTS, buildStoryModel, loadStoryPreferences, renderStory, saveStoryPreferences } = require("../../utils/storyRenderer");
-const { withAvailability } = require("../../utils/mediaStore");
+const { getRecordById } = require("../../../utils/repositories/recordRepository");
+const { LAYOUTS, buildStoryModel, loadStoryPreferences, renderStory, saveStoryPreferences } = require("../../../utils/storyRenderer");
+const { withAvailability } = require("../../../utils/repositories/mediaRepository");
 
 Page({
-  data: { record: null, missing: false, layouts: LAYOUTS, optionItems: [{ key: "showCity", label: "城市" }, { key: "showMonth", label: "月份" }, { key: "showScore", label: "总分" }, { key: "showCategories", label: "分类评分" }, { key: "showTags", label: "标签" }, { key: "showSummary", label: "公开摘要" }], preferences: null, photoOptions: [], model: null, exporting: false },
+  data: { record: null, missing: false, layouts: LAYOUTS, optionItems: [{ key: "showCity", label: "城市" }, { key: "showMonth", label: "月份" }, { key: "showScore", label: "总分" }, { key: "showCategories", label: "分类评分" }, { key: "showTags", label: "标签" }, { key: "showSummary", label: "分享摘要" }], preferences: null, photoOptions: [], model: null, exporting: false },
   onLoad(options) {
     const record = getRecordById(options && options.id);
     if (!record) { this.setData({ missing: true }); wx.showToast({ title: "体验不存在", icon: "none" }); return; }

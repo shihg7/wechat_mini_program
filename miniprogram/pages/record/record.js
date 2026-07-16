@@ -9,12 +9,10 @@ const {
   getVerdict
 } = require("../../utils/hotelScore");
 const {
-  addRecord,
   deleteRecord,
   duplicateRecord,
   getRecordById,
-  getRecords,
-  updateRecord
+  getRecords
 } = require("../../utils/repositories/recordRepository");
 const {
   MAX_PHOTOS,
@@ -22,18 +20,16 @@ const {
   getPhotoCategories,
   removeSavedPhotos,
   withAvailability
-} = require("../../utils/mediaStore");
+} = require("../../utils/repositories/mediaRepository");
 const {
-  createPlace,
-  deleteEmptyPlace,
   ensurePlacesForRecords,
   findPlaceSuggestions,
   getPlaceById
 } = require("../../utils/repositories/placeRepository");
-const { getWishlistItem, markWishlistVisited } = require("../../utils/repositories/wishlistRepository");
-const tripStore = require("../../utils/tripStore");
-const departureStore = require("../../utils/departureStore");
-const { applyTemplate, buildRecentSuggestions, getTemplates, saveTemplate } = require("../../utils/formTemplateStore");
+const { getWishlistItem } = require("../../utils/repositories/wishlistRepository");
+const departureRepository = require("../../utils/repositories/departureRepository");
+const { applyTemplate, buildRecentSuggestions, getTemplates, saveTemplate } = require("../../utils/repositories/formTemplateRepository");
+const { saveExperienceRecord } = require("../../utils/experienceWorkflowService");
 const demoMode = require("../../utils/demoMode");
 
 function buildInitialForm(recordType = "hotel") {
@@ -75,11 +71,12 @@ function buildInitialForm(recordType = "hotel") {
     customTags: [],
     photos: [],
     coverPhotoId: "",
-    status: "completed",
+    status: "draft",
     categoryScores: getCategoryScores(scores, recordType),
     overallScore,
-    isRated: true,
-    verdict: getVerdict(overallScore, recordType)
+    isRated: false,
+    ratingTouched: false,
+    verdict: "尚未评分"
   };
 }
 
@@ -107,7 +104,7 @@ function buildPublicPreview(form) {
     title: form.placeName || getRecordTitle(form),
     typeLabel: typeConfig.label,
     visitMonth: form.visitMonth || (form.stayDate ? form.stayDate.slice(0, 7) : "未填写月份"),
-    summary: form.publicNote || form.verdict || "暂无公开摘要",
+    summary: form.publicNote || form.verdict || "暂无分享摘要",
     tags: tags.slice(0, 8).join("、") || "暂无标签"
   };
 }
@@ -159,7 +156,9 @@ Page({
     sourceBookingId: "",
     templates: [],
     recentSuggestions: null,
-    demoActive: false
+    demoActive: false,
+    showPlaceDetails: false,
+    showShareSection: false
   },
 
   pendingPhotoDeletes: [],
@@ -182,11 +181,6 @@ Page({
 
   setRecordType(recordType, isQuick = false) {
     const form = buildInitialForm(recordType);
-    if (isQuick) {
-      form.status = "draft";
-      form.isRated = false;
-      form.verdict = "尚未评分";
-    }
     this.setData({
       recordType,
       typeConfig: getTypeConfig(recordType),
@@ -202,7 +196,9 @@ Page({
       publicPreview: buildPublicPreview(form),
       placeSuggestions: [],
       placeChoiceConfirmed: false,
-      photoCategories: getPhotoCategories(recordType)
+      photoCategories: getPhotoCategories(recordType),
+      showPlaceDetails: false,
+      showShareSection: false
     });
     this.disableLeaveAlert();
   },
@@ -246,7 +242,9 @@ Page({
       originalForm: JSON.stringify(form),
       customTagInput: "",
       scoreBars: buildScoreBars(form),
-      publicPreview: buildPublicPreview(form)
+      publicPreview: buildPublicPreview(form),
+      showPlaceDetails: !!(form.area || form.address || form.placeAlias),
+      showShareSection: !!form.publicNote
     });
     this.pendingPhotoDeletes = [];
     this.newPhotoPaths = [];
@@ -426,7 +424,7 @@ Page({
   },
 
   applyBooking(bookingId) {
-    const booking = departureStore.getBookingById(bookingId);
+    const booking = departureRepository.getBookingById(bookingId);
     if (!booking || ["hotel", "restaurant"].indexOf(booking.type) < 0) return;
     const nameField = booking.type === "restaurant" ? "restaurantName" : "hotelName";
     const updates = {
@@ -550,6 +548,8 @@ Page({
       "form.scores": scores,
       "form.categoryScores": getCategoryScores(scores, recordType),
       "form.overallScore": overallScore,
+      "form.ratingTouched": true,
+      "form.isRated": true,
       "form.verdict": getVerdict(overallScore, recordType),
       "scoreBars": buildScoreBars({
         ...this.data.form,
@@ -579,11 +579,19 @@ Page({
     });
   },
 
-  onVisibilityChange(event) {
-    if (this.data.isReadonly) return;
+  togglePlaceDetails() {
+    this.setData({ showPlaceDetails: !this.data.showPlaceDetails });
+  },
+
+  toggleShareSection() {
+    this.setData({ showShareSection: !this.data.showShareSection });
+  },
+
+  expandQuickRecord() {
     this.setData({
-      "form.visibility": event.currentTarget.dataset.visibility || "private"
-    }, () => this.markDirty());
+      isQuick: false,
+      pageText: getPageText(this.data.mode, this.data.recordType, this.data.form, false)
+    });
   },
 
   onCustomTagInput(event) {
@@ -719,6 +727,11 @@ Page({
   saveRecord(event) {
     if (this.data.mode === "detail") return;
     const targetStatus = event && event.currentTarget && event.currentTarget.dataset.status;
+    if (this.data.isQuick && targetStatus === "completed") {
+      this.expandQuickRecord();
+      wx.showToast({ title: "先完成评分再保存", icon: "none" });
+      return;
+    }
     const title = getRecordTitle(this.data.form);
     if (!title || title.indexOf("未命名") === 0) {
       wx.showToast({
@@ -731,54 +744,42 @@ Page({
       wx.showToast({ title: "先确认是否关联已有地点", icon: "none" });
       return;
     }
+    const nextStatus = targetStatus || this.data.form.status || "draft";
     const nextForm = {
       ...this.data.form,
       placeName: this.data.form.placeName || title,
       privateNote: this.data.form.note,
       visitMonth: this.data.form.visitMonth || (this.data.form.stayDate ? this.data.form.stayDate.slice(0, 7) : ""),
-      status: targetStatus || this.data.form.status || "completed",
-      isRated: (targetStatus || this.data.form.status) === "draft" ? false : true
+      status: nextStatus,
+      isRated: nextStatus !== "draft" && !!this.data.form.ratingTouched
     };
 
-    let createdPlaceId = "";
-    if (!nextForm.placeId) {
-      try {
-        const place = createPlace(this.getPlaceInput());
-        nextForm.placeId = place.id;
-        nextForm.placeName = place.name;
-        createdPlaceId = place.id;
-      } catch (error) {
-        wx.showToast({ title: error.message || "地点创建失败", icon: "none" });
-        return;
-      }
+    let savedRecord;
+    try {
+      savedRecord = saveExperienceRecord({
+        mode: this.data.mode,
+        recordId: this.data.recordId,
+        recordInput: nextForm,
+        placeInput: this.getPlaceInput()
+      });
+    } catch (error) {
+      wx.showToast({ title: error.message || "记录保存失败", icon: "none" });
+      return;
     }
 
     if (this.data.mode === "edit") {
-      let updated;
-      try {
-        updated = updateRecord(this.data.recordId, nextForm);
-      } catch (error) {
-        if (createdPlaceId) {
-          try { deleteEmptyPlace(createdPlaceId); } catch (cleanupError) { console.error("cleanup place failed", cleanupError); }
-        }
-        wx.showToast({ title: error.message || "记录保存失败", icon: "none" });
-        return;
-      }
       const form = {
-        ...updated,
-        photos: withAvailability(updated.photos, updated.recordType),
-        categoryScores: getCategoryScores(updated.scores, updated.recordType)
+        ...savedRecord,
+        photos: withAvailability(savedRecord.photos, savedRecord.recordType),
+        categoryScores: getCategoryScores(savedRecord.scores, savedRecord.recordType)
       };
       this.commitPhotoChanges();
-      if (updated.wishlistId && updated.status !== "draft") markWishlistVisited(updated.wishlistId, updated.placeId);
-      if (updated.tripId && updated.itineraryItemId && updated.status !== "draft") tripStore.updateItineraryItem(updated.tripId, updated.itineraryItemId, { recordId: updated.id, bookingStatus: "visited" });
-      if (updated.bookingId && updated.status !== "draft") departureStore.markBookingCompleted(updated.bookingId, updated.id);
       this.setData({
         mode: "detail",
         isReadonly: true,
         hasUnsavedChanges: false,
         form,
-        pageText: getPageText("detail", updated.recordType, form),
+        pageText: getPageText("detail", savedRecord.recordType, form),
         originalForm: JSON.stringify(form),
         scoreBars: buildScoreBars(form),
         publicPreview: buildPublicPreview(form)
@@ -790,21 +791,7 @@ Page({
       });
       return;
     }
-
-    let createdRecord;
-    try {
-      createdRecord = addRecord(nextForm);
-    } catch (error) {
-      if (createdPlaceId) {
-        try { deleteEmptyPlace(createdPlaceId); } catch (cleanupError) { console.error("cleanup place failed", cleanupError); }
-      }
-      wx.showToast({ title: error.message || "记录保存失败", icon: "none" });
-      return;
-    }
     this.commitPhotoChanges();
-    if (createdRecord.wishlistId && createdRecord.status !== "draft") markWishlistVisited(createdRecord.wishlistId, createdRecord.placeId);
-    if (createdRecord.tripId && createdRecord.itineraryItemId && createdRecord.status !== "draft") tripStore.updateItineraryItem(createdRecord.tripId, createdRecord.itineraryItemId, { recordId: createdRecord.id, bookingStatus: "visited" });
-    if (createdRecord.bookingId && createdRecord.status !== "draft") departureStore.markBookingCompleted(createdRecord.bookingId, createdRecord.id);
     this.disableLeaveAlert();
     wx.showToast({
       title: nextForm.status === "draft" ? "草稿已保存" : "已保存",
@@ -856,7 +843,7 @@ Page({
   },
 
   goStory() {
-    wx.navigateTo({ url: `/pages/story/index?id=${this.data.recordId}` });
+    wx.navigateTo({ url: `/packages/tools/story/index?id=${this.data.recordId}` });
   },
 
   onUnload() {

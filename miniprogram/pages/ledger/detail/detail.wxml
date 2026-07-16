@@ -1,16 +1,18 @@
 <scroll-view class="page" scroll-y wx:if="{{ledger}}">
-  <demo-guide active="{{demoActive}}" step-label="任务 3 / 4 · AA 分账" title="核对精确结算结果" hint="重点看待转账方案，确认三个人的应付金额精确到分。" />
+  <demo-guide active="{{demoActive}}" step-label="任务 3 / 4 · AA 分账" title="核对精确结算结果" hint="重点看待转账方案，并按账本币种核对每个人的应付金额。" />
   <view class="hero">
     <view class="hero-main">
       <view class="eyebrow">SPLIT LEDGER</view>
       <view class="title">{{ledger.title}}</view>
-      <view class="summary icon-label"><ui-icon name="pin" size="{{24}}" tone="white" /><text>{{ledger.city || "未填写城市"}} · {{memberCount}} 位当前成员 · {{summary.expenseCount}} 笔</text></view>
+      <view class="summary icon-label"><ui-icon name="pin" size="{{24}}" tone="white" /><text>{{ledger.city || "未填写城市"}} · {{memberCount}} 位当前成员 · {{summary.expenseCount}} 笔 · {{baseCurrency}}</text></view>
     </view>
     <view class="total-card">
       <view class="total-value">{{summary.totalText}}</view>
       <view class="total-label">总支出</view>
     </view>
   </view>
+
+  <view class="currency-notice icon-label"><ui-icon name="shield" size="{{24}}" tone="blue" /><text>{{baseCurrency}} 单币种账本 · 所有金额按原值记录，不支持混合币种或自动换算</text></view>
 
   <view class="settled-banner {{isSettled ? 'done' : 'pending'}}">
     <view class="settled-copy icon-label">
@@ -50,7 +52,7 @@
   </view>
 
   <view class="section export-panel" wx:if="{{showExportPanel}}">
-    <view class="section-head"><view><view class="section-title icon-label"><ui-icon name="download" size="{{28}}" tone="blue" /><text>导出结算</text></view><view class="section-subtitle">分享版会稳定匿名化成员和支出备注</view></view><view class="close-link" bindtap="toggleExportPanel">收起</view></view>
+    <view class="section-head"><view><view class="section-title icon-label"><ui-icon name="download" size="{{28}}" tone="blue" /><text>导出结算</text></view><view class="section-subtitle">导出统一标注单币种 {{baseCurrency}}、不含换算；分享版会匿名化隐私内容</view></view><view class="close-link" bindtap="toggleExportPanel">收起</view></view>
     <view class="export-grid"><button class="export-button icon-action" loading="{{exporting}}" data-format="image" data-mode="redacted" bindtap="exportLedger"><ui-icon name="image" size="{{24}}" tone="blue" /><text>结算图片</text></button><button class="export-button icon-action" loading="{{exporting}}" data-format="pdf" data-mode="private" bindtap="exportLedger"><ui-icon name="file" size="{{24}}" /><text>私人 PDF</text></button><button class="export-button icon-action" loading="{{exporting}}" data-format="pdf" data-mode="redacted" bindtap="exportLedger"><ui-icon name="shield" size="{{24}}" tone="green" /><text>分享 PDF</text></button><button class="export-button icon-action" loading="{{exporting}}" data-format="json" data-mode="private" bindtap="exportLedger"><ui-icon name="database" size="{{24}}" tone="accent" /><text>明细 JSON</text></button></view>
   </view>
 
@@ -71,7 +73,7 @@
     <view class="section-head">
       <view>
         <view class="section-title icon-label"><ui-icon name="{{editingExpenseId ? 'edit' : 'receipt'}}" size="{{28}}" tone="blue" /><text>{{editingExpenseId ? "编辑支出" : "记一笔支出"}}</text></view>
-        <view class="section-subtitle">{{editingExpenseId ? "历史归档成员会完整保留" : "新支出默认只包含当前成员"}}</view>
+        <view class="section-subtitle">{{editingExpenseId ? "历史归档成员会完整保留" : "新支出默认只包含当前成员"}} · 按 {{baseCurrency}} 原值录入</view>
       </view>
       <view class="close-link" bindtap="closeExpenseForm">收起</view>
     </view>
@@ -83,7 +85,7 @@
 
     <view class="amount-row">
       <view class="field amount-field">
-        <view class="field-label">金额</view>
+        <view class="field-label">金额（{{baseCurrency}}）</view>
         <input class="input amount-input" type="digit" placeholder="1200.00" value="{{expenseForm.amount}}" data-field="amount" bindinput="onExpenseInput" />
       </view>
       <view class="field payer-field">
@@ -133,14 +135,14 @@
     </view>
 
     <view class="allocation-panel" wx:if="{{expenseForm.splitMode !== 'equal'}}">
-      <view class="allocation-hint" wx:if="{{expenseForm.splitMode === 'amount'}}">各成员金额合计需要等于本笔支出</view>
+      <view class="allocation-hint" wx:if="{{expenseForm.splitMode === 'amount'}}">各成员 {{baseCurrency}} 金额合计需要等于本笔支出</view>
       <view class="allocation-hint" wx:elif="{{expenseForm.splitMode === 'ratio'}}">填写百分比，合计需要等于 100%</view>
       <view class="allocation-hint" wx:else>填写正整数份数，例如 2、1、1</view>
       <view class="allocation-row" wx:for="{{expenseForm.allocationRows}}" wx:key="id">
         <view class="allocation-name">{{item.name}}{{item.status === "archived" ? " · 已归档" : ""}}</view>
         <view class="allocation-input-wrap">
           <input class="allocation-input" type="digit" value="{{item.value}}" data-id="{{item.id}}" bindinput="onAllocationInput" />
-          <text class="allocation-unit">{{expenseForm.splitMode === "amount" ? "元" : expenseForm.splitMode === "ratio" ? "%" : "份"}}</text>
+          <text class="allocation-unit">{{expenseForm.splitMode === "amount" ? baseCurrency : expenseForm.splitMode === "ratio" ? "%" : "份"}}</text>
         </view>
       </view>
     </view>
@@ -179,7 +181,8 @@
 
     <view class="transfer-form" wx:if="{{pendingTransfer}}">
       <view class="transfer-form-title">确认 {{pendingTransfer.fromName}} → {{pendingTransfer.toName}}</view>
-      <view class="transfer-form-desc">可输入部分到账金额，剩余金额会继续保留在推荐方案中。</view>
+      <view class="transfer-form-desc">可输入部分到账金额，剩余金额会继续保留在推荐方案中；金额统一为 {{baseCurrency}}，不做换算。</view>
+      <view class="transfer-currency-label">到账金额（{{baseCurrency}}）</view>
       <input class="input transfer-input" type="digit" value="{{pendingTransfer.amount}}" bindinput="onTransferAmountInput" />
       <view class="form-actions">
         <button class="button primary icon-action" bindtap="confirmTransfer"><ui-icon name="check" size="{{26}}" tone="white" /><text>确认到账</text></button>

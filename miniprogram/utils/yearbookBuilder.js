@@ -1,6 +1,7 @@
 const { buildTravelInsights, getAvailableYears } = require("./travelInsights");
 const { fileExists } = require("./mediaStore");
 const { canvasToJpg, drawImageCover, drawWrappedText, loadImage, prepareCanvas, setText, writePdfFromJpgs } = require("./reportCanvas");
+const { formatCents } = require("./tripLedgerStore");
 
 const YEARBOOK_PREFS_KEY = "experience_yearbook_preferences";
 
@@ -20,7 +21,7 @@ function saveYearbookPreferences(year, preferences) {
 }
 
 function defaultPhotoIds(records) {
-  const sorted = records.slice().sort((a, b) => Number(b.overallScore || 0) - Number(a.overallScore || 0));
+  const sorted = records.slice().sort((a, b) => Number(!!b.isRated) - Number(!!a.isRated) || Number(b.overallScore || 0) - Number(a.overallScore || 0));
   const byMonth = {};
   const ids = [];
   sorted.forEach((record) => {
@@ -40,9 +41,18 @@ function buildYearbook(records, ledgers, year, preferences = {}) {
   const monthMap = {};
   completed.forEach((record) => { const month = recordDate(record).slice(0, 7) || `${year}-00`; if (!monthMap[month]) monthMap[month] = []; monthMap[month].push(record); });
   const months = Object.keys(monthMap).sort().map((month) => ({ month, label: month.endsWith("-00") ? "日期未填写" : `${Number(month.slice(5))} 月`, count: monthMap[month].length, records: monthMap[month].map((record) => ({ id: record.id, name: record.displayName, city: record.city, score: record.isRated ? record.overallScore : null })) }));
-  const yearExpenses = (ledgers || []).reduce((items, ledger) => items.concat((ledger.expenses || []).filter((expense) => String(expense.paidAt || "").slice(0, 4) === year).map((expense) => ({ ...expense, ledgerId: ledger.id }))), []);
-  const aaTotalCents = yearExpenses.reduce((sum, expense) => sum + Number(expense.amountCents || 0), 0);
-  return { year, title: preferences.title || `${year} 旅行回忆册`, insights: buildTravelInsights(records, year), months, photos, photoIds, includeAa: !!preferences.includeAa, aaSummary: { expenseCount: yearExpenses.length, totalCents: aaTotalCents, totalText: `¥${Math.floor(aaTotalCents / 100)}.${String(aaTotalCents % 100).padStart(2, "0")}` } };
+  const yearExpenses = (ledgers || []).reduce((items, ledger) => {
+    const baseCurrency = String(ledger.baseCurrency || "CNY").toUpperCase();
+    const expenses = (ledger.expenses || []).filter((expense) => String(expense.paidAt || "").slice(0, 4) === year).map((expense) => ({ ...expense, ledgerId: ledger.id, baseCurrency }));
+    return items.concat(expenses);
+  }, []);
+  const totalsByCurrency = yearExpenses.reduce((totals, expense) => {
+    totals[expense.baseCurrency] = Number(totals[expense.baseCurrency] || 0) + Number(expense.amountCents || 0);
+    return totals;
+  }, {});
+  const currencyTotals = Object.keys(totalsByCurrency).sort().map((baseCurrency) => ({ baseCurrency, totalCents: totalsByCurrency[baseCurrency], totalText: formatCents(totalsByCurrency[baseCurrency], baseCurrency) }));
+  const totalText = currencyTotals.length ? currencyTotals.map((item) => item.totalText).join(" + ") : formatCents(0, "CNY");
+  return { year, title: preferences.title || `${year} 旅行回忆册`, insights: buildTravelInsights(records, year), months, photos, photoIds, includeAa: !!preferences.includeAa, aaSummary: { expenseCount: yearExpenses.length, currencyTotals, hasMixedCurrencies: currencyTotals.length > 1, totalCents: currencyTotals.length === 1 ? currencyTotals[0].totalCents : null, totalText } };
 }
 
 async function drawYearbookLong(page, model) {

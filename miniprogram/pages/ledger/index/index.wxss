@@ -14,6 +14,10 @@
 .hero-label, .hero-meta { color: rgba(255,255,255,.68); font-size: 21rpx; }
 .hero-label { display:flex; align-items:center; gap:8rpx; }
 .hero-total { margin: 5rpx 0; font-size: 42rpx; font-weight: 800; line-height: 54rpx; }
+.hero-currency-totals { display:grid; gap:4rpx; margin:8rpx 0; }
+.hero-currency-row { display:flex; align-items:baseline; gap:10rpx; min-width:0; }
+.hero-currency-code { flex:0 0 62rpx; color:rgba(255,255,255,.68); font-size:20rpx; font-weight:700; }
+.hero-currency-amount { min-width:0; word-break:break-all; font-size:31rpx; font-weight:800; line-height:40rpx; }
 .summary-group { flex-shrink: 0; gap: 28rpx; padding-left: 26rpx; border-left: 1rpx solid rgba(255,255,255,.18); }
 .summary-item { text-align: center; }
 .summary-value { font-size: 36rpx; font-weight: 800; }

@@ -35,7 +35,7 @@ const { buildYearbook, loadYearbookPreferences, saveYearbookPreferences } = requ
 const { buildTravelMapData, filterMapPoints, toMarkers } = require("../miniprogram/utils/travelMap");
 
 function experience(id, name, date, score, placeId, photos = []) {
-  return { id, displayName: name, hotelName: name, recordType: "hotel", typeLabel: "酒店", city: "上海", stayDate: date, visitMonth: date.slice(0, 7), createdAt: `${date}T00:00:00Z`, status: "completed", isRated: true, overallScore: score, placeId, scores: buildScores("hotel", score), selectedTags: { lounge: ["景观好"], breakfast: [], pool: [] }, customTags: ["纪念日"], publicNote: "公开摘要", privateNote: "绝密", address: "精确地址", memberLevel: "钻石", photos };
+  return { id, displayName: name, hotelName: name, recordType: "hotel", typeLabel: "酒店", city: "上海", stayDate: date, visitMonth: date.slice(0, 7), createdAt: `${date}T00:00:00Z`, status: "completed", isRated: true, overallScore: score, placeId, scores: buildScores("hotel", score), selectedTags: { lounge: ["景观好"], breakfast: [], pool: [] }, customTags: ["纪念日"], publicNote: "分享摘要", privateNote: "绝密", address: "精确地址", memberLevel: "钻石", photos };
 }
 
 const recordA = experience("r1", "外滩酒店", "2026-01-10", 9, "p1", [{ id: "a", filePath: "/photos/a.jpg", category: "房间", caption: "江景" }, { id: "lost", filePath: "/photos/lost.jpg", category: "环境" }]);
@@ -54,6 +54,14 @@ assert.strictEqual(yearbook.insights.total, 2);
 assert.strictEqual(yearbook.photos.length, 2);
 assert.strictEqual(yearbook.months.length, 2);
 assert.strictEqual(yearbook.aaSummary.totalCents, 12345);
+const mixedCurrencyYearbook = buildYearbook([recordA], [
+  { baseCurrency: "CNY", expenses: [{ paidAt: "2026-02-01", amountCents: 12345 }] },
+  { baseCurrency: "USD", expenses: [{ paidAt: "2026-03-01", amountCents: 6789 }] }
+], "2026", { includeAa: true });
+assert.strictEqual(mixedCurrencyYearbook.aaSummary.totalCents, null, "mixed currencies do not expose a misleading combined total");
+assert.strictEqual(mixedCurrencyYearbook.aaSummary.currencyTotals.length, 2);
+assert(mixedCurrencyYearbook.aaSummary.totalText.includes("¥123.45"));
+assert(mixedCurrencyYearbook.aaSummary.totalText.includes("US$67.89"));
 saveYearbookPreferences("2026", { title: "我的 2026", photoIds: ["a"] });
 assert.strictEqual(loadYearbookPreferences("2026").title, "我的 2026");
 
@@ -71,7 +79,7 @@ assert.strictEqual(filterMapPoints(mapData.located, "restaurant").length, 1);
 assert.strictEqual(toMarkers(mapData.located).length, 2);
 
 memory.hotel_review_records = [recordA, experience("old", "旧年酒店", "2025-05-01", 8, "p-old")];
-const yearbookPage = loadPage("../miniprogram/pages/yearbook/index.js");
+const yearbookPage = loadPage("../miniprogram/packages/tools/yearbook/index.js");
 yearbookPage.onShow();
 const oldYearIndex = yearbookPage.data.years.indexOf("2025");
 yearbookPage.onYearChange({ detail: { value: oldYearIndex } });
@@ -81,14 +89,14 @@ yearbookPage.onShow();
 assert.strictEqual(yearbookPage.data.year, "2025", "returning to the page preserves the selected year");
 assert.strictEqual(yearbookPage.data.records.length, 3, "returning to the page reloads newly added records");
 
-const missingStoryPage = loadPage("../miniprogram/pages/story/index.js");
+const missingStoryPage = loadPage("../miniprogram/packages/tools/story/index.js");
 missingStoryPage.onLoad({ id: "missing-record" });
 assert.strictEqual(missingStoryPage.data.missing, true);
 assert(ui.toasts.includes("体验不存在"));
 missingStoryPage.goBack();
 assert.strictEqual(ui.backCount, 1);
 
-const travelMapPage = loadPage("../miniprogram/pages/travel-map/index.js");
+const travelMapPage = loadPage("../miniprogram/packages/tools/travel-map/index.js");
 travelMapPage.onShow();
 assert.strictEqual(travelMapPage.data.showEmptyState, true);
 assert.strictEqual(travelMapPage.data.emptyTitle, "地图还是空的");

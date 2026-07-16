@@ -1,5 +1,5 @@
-const demoData = require("../../utils/demoData");
-const demoMode = require("../../utils/demoMode");
+const demoData = require("../../../utils/demoData");
+const demoMode = require("../../../utils/demoMode");
 
 const STEP_DEFINITIONS = [
   { id: "record", number: "01", title: "查看一条完整体验", description: "认识评分、标签、照片与地点关联", action: "查看酒店记录" },
@@ -14,7 +14,7 @@ function getStepRoute(stepId) {
     record: targetId ? `/pages/record/record?id=${targetId}&demo=record` : "",
     trip: targetId ? `/pages/trip/detail?id=${targetId}&demo=trip` : "",
     ledger: targetId ? `/pages/ledger/detail/detail?id=${targetId}&demo=ledger` : "",
-    wheel: targetId ? `/pages/wheel/index?id=${targetId}&demo=wheel` : ""
+    wheel: targetId ? `/packages/tools/wheel/index?id=${targetId}&demo=wheel` : ""
   };
   return routes[stepId] || "";
 }

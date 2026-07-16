@@ -1,6 +1,9 @@
 const MEMBER_STATUSES = ["active", "archived"];
 const TRANSFER_STATUSES = ["confirmed", "void"];
 const SPLIT_MODES = ["equal", "amount", "ratio", "shares"];
+const SUPPORTED_CURRENCIES = ["CNY", "USD", "EUR", "JPY", "HKD", "GBP"];
+const DEFAULT_BASE_CURRENCY = "CNY";
+const SCHEMA_VERSION = 4;
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 function isValidDate(value) {
@@ -15,10 +18,20 @@ function validatePositiveCents(value, field) {
   return "";
 }
 
+function entryCurrencies(entry) {
+  if (!entry || typeof entry !== "object") return [];
+  return [entry.currency, entry.currencyCode, entry.baseCurrency]
+    .map((value) => value == null ? "" : String(value).trim().toUpperCase())
+    .filter((value, index, values) => value && values.indexOf(value) === index);
+}
+
 function validateLedger(ledger) {
   const errors = [];
   if (!ledger || typeof ledger !== "object") return ["账本数据无效"];
-  if (ledger.schemaVersion !== 3) errors.push("schemaVersion 必须为 3");
+  if (ledger.schemaVersion !== SCHEMA_VERSION) errors.push(`schemaVersion 必须为 ${SCHEMA_VERSION}`);
+  if (!SUPPORTED_CURRENCIES.includes(ledger.baseCurrency)) {
+    errors.push(`baseCurrency 必须是支持的币种（${SUPPORTED_CURRENCIES.join("/")}）`);
+  }
   if (!Array.isArray(ledger.members) || !ledger.members.length) errors.push("至少需要一个成员");
   if (!isValidDate(ledger.startDate)) errors.push("开始日期无效");
   if (!isValidDate(ledger.endDate)) errors.push("结束日期无效");
@@ -45,6 +58,9 @@ function validateLedger(ledger) {
 
   (ledger.expenses || []).forEach((expense, index) => {
     const label = `支出 ${index + 1}`;
+    if (entryCurrencies(expense).some((currency) => currency !== ledger.baseCurrency)) {
+      errors.push(`${label}币种必须与账本币种一致，不支持混合币种或自动换算`);
+    }
     const amountError = validatePositiveCents(expense.amountCents, `${label}金额`);
     if (amountError) errors.push(amountError);
     if (!memberIds.has(expense.payerId)) errors.push(`${label}付款人引用无效`);
@@ -74,6 +90,9 @@ function validateLedger(ledger) {
 
   (ledger.transfers || []).forEach((transfer, index) => {
     const label = `转账 ${index + 1}`;
+    if (entryCurrencies(transfer).some((currency) => currency !== ledger.baseCurrency)) {
+      errors.push(`${label}币种必须与账本币种一致，不支持混合币种或自动换算`);
+    }
     const amountError = validatePositiveCents(transfer.amountCents, `${label}金额`);
     if (amountError) errors.push(amountError);
     if (!memberIds.has(transfer.fromMemberId)) errors.push(`${label}付款成员引用无效`);
@@ -97,8 +116,11 @@ function assertValidLedger(ledger) {
 }
 
 module.exports = {
+  DEFAULT_BASE_CURRENCY,
   MEMBER_STATUSES,
+  SCHEMA_VERSION,
   SPLIT_MODES,
+  SUPPORTED_CURRENCIES,
   TRANSFER_STATUSES,
   assertValidLedger,
   isValidDate,

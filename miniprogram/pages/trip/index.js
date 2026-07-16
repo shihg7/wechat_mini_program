@@ -1,4 +1,4 @@
-const tripStore = require("../../utils/tripStore");
+const tripStore = require("../../utils/repositories/tripRepository");
 const GROUPS = [{ key: "active", label: "进行中" }, { key: "upcoming", label: "即将开始" }, { key: "ended", label: "已结束" }, { key: "archived", label: "已归档" }];
 
 Page({

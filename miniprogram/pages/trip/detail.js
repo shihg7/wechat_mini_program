@@ -1,4 +1,4 @@
-const tripStore = require("../../utils/tripStore");
+const tripStore = require("../../utils/repositories/tripRepository");
 const demoMode = require("../../utils/demoMode");
 const TYPES = [{ key: "hotel", label: "酒店" }, { key: "restaurant", label: "餐厅" }, { key: "transport", label: "交通" }, { key: "attraction", label: "景点" }, { key: "custom", label: "其他" }];
 Page({

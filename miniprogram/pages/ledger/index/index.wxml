@@ -9,9 +9,12 @@
 
   <view class="hero">
     <view class="hero-main">
-      <view class="hero-label"><ui-icon name="wallet" size="{{24}}" tone="white" /><text>累计支出</text></view>
-      <view class="hero-total">{{totalSpentText}}</view>
-      <view class="hero-meta">共 {{totalCount}} 个账本</view>
+      <view class="hero-label"><ui-icon name="wallet" size="{{24}}" tone="white" /><text>按账本币种累计</text></view>
+      <view class="hero-currency-totals" wx:if="{{currencyTotals.length}}">
+        <view class="hero-currency-row" wx:for="{{currencyTotals}}" wx:key="baseCurrency"><text class="hero-currency-code">{{item.baseCurrency}}</text><text class="hero-currency-amount">{{item.totalText}}</text></view>
+      </view>
+      <view class="hero-total" wx:else>尚无账目</view>
+      <view class="hero-meta">不同币种分别统计，不换算 · 共 {{totalCount}} 个账本</view>
     </view>
     <view class="summary-group">
       <view class="summary-item"><view class="summary-value">{{activeCount}}</view><view class="summary-label">待结算</view></view>
@@ -35,6 +38,7 @@
     <view class="ledger-total">{{item.totalText}}</view>
     <view class="ledger-meta">
       <view class="meta-item"><ui-icon name="pin" size="{{23}}" tone="muted" /><text>{{item.city || "未填写城市"}}</text></view>
+      <view class="meta-item"><ui-icon name="wallet" size="{{23}}" tone="muted" /><text>{{item.baseCurrency}} 单币种</text></view>
       <view class="meta-item"><ui-icon name="users" size="{{23}}" tone="muted" /><text>{{item.memberCount}} 人</text></view>
       <view class="meta-item"><ui-icon name="receipt" size="{{23}}" tone="muted" /><text>{{item.expenseCount}} 笔</text></view>
     </view>

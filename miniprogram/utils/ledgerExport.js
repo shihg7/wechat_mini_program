@@ -1,4 +1,4 @@
-const { calculateLedgerSummary, calculateSettlements } = require("./repositories/ledgerRepository");
+const { calculateLedgerSummary, calculateSettlements, formatCents, normalizeLedger } = require("./repositories/ledgerRepository");
 const { buildPdf } = require("./pdfReport");
 const { createPrivacyCopy, PRIVATE_MODE, REDACTED_MODE } = require("./privacyPolicy");
 
@@ -6,6 +6,18 @@ const WIDTH = 595;
 const HEIGHT = 842;
 const SCALE = 2;
 const MARGIN = 36;
+const EXPORT_SCHEMA_VERSION = 2;
+const SINGLE_CURRENCY_MODE = "single";
+
+function currencyMetadata(ledger) {
+  const baseCurrency = String(ledger.baseCurrency || "CNY").toUpperCase();
+  return {
+    mode: SINGLE_CURRENCY_MODE,
+    baseCurrency,
+    exchangeRateConversion: false,
+    note: `本账本仅使用 ${baseCurrency}，金额按原值记录，未进行汇率换算`
+  };
+}
 
 function canvasFor(page) {
   return new Promise((resolve, reject) => {
@@ -53,7 +65,7 @@ function drawLedgerPage(ctx, ledger, expenses, pageNumber, totalPages, privacyMo
   if (firstPage) {
     setText(ctx, 13, "#4d596c");
     ctx.fillText(`总支出 ${summary.totalText}`, MARGIN, y);
-    ctx.fillText(`${summary.expenseCount} 笔支出 · ${(ledger.members || []).length} 位成员`, MARGIN + 210, y);
+    ctx.fillText(`${summary.expenseCount} 笔 · ${(ledger.members || []).length} 位 · ${ledger.baseCurrency} 单币种`, MARGIN + 210, y);
     y += 30;
     setText(ctx, 14, "#172033", "700"); ctx.fillText("成员净额", MARGIN, y); y += 25;
     summary.members.slice(0, 8).forEach((member) => {
@@ -76,7 +88,7 @@ function drawLedgerPage(ctx, ledger, expenses, pageNumber, totalPages, privacyMo
   expenses.forEach((expense) => {
     setText(ctx, 11.5, "#172033", "700");
     ctx.fillText(shorten(expense.title || "未命名支出", 22), MARGIN, y);
-    ctx.fillText(expense.amountText, WIDTH - MARGIN - 72, y);
+    ctx.fillText(formatCents(expense.amountCents, ledger.baseCurrency), WIDTH - MARGIN - 72, y);
     y += 18;
     setText(ctx, 10, "#667085");
     const payer = names[expense.payerId] || expense.payer || "未知";
@@ -85,7 +97,7 @@ function drawLedgerPage(ctx, ledger, expenses, pageNumber, totalPages, privacyMo
     ctx.strokeStyle = "#edf0f4"; ctx.beginPath(); ctx.moveTo(MARGIN, y); ctx.lineTo(WIDTH - MARGIN, y); ctx.stroke(); y += 10;
   });
   setText(ctx, 9.5, "#8a94a6");
-  ctx.fillText("金额均按整数分计算，导出结果与账本结算一致", MARGIN, HEIGHT - 26);
+  ctx.fillText(`单币种 ${ledger.baseCurrency} · 金额按原值导出 · 不含汇率换算`, MARGIN, HEIGHT - 26);
 }
 
 function toJpg(page, canvas) {
@@ -93,7 +105,7 @@ function toJpg(page, canvas) {
 }
 
 function protectedLedger(ledger, mode) {
-  return createPrivacyCopy({ ledgers: [ledger] }, mode).ledgers[0];
+  return createPrivacyCopy({ ledgers: [normalizeLedger(ledger)] }, mode).ledgers[0];
 }
 
 async function renderLedgerPages(page, ledger, privacyMode) {
@@ -127,10 +139,19 @@ async function exportLedgerPdf(options) {
 
 function exportLedgerJson(ledger, privacyMode = PRIVATE_MODE) {
   const safeLedger = protectedLedger(ledger, privacyMode);
-  const payload = { schemaVersion: 1, type: "aa-ledger-export", privacyMode, exportedAt: new Date().toISOString(), ledger: safeLedger, summary: calculateLedgerSummary(safeLedger), settlements: calculateSettlements(safeLedger) };
+  const payload = {
+    schemaVersion: EXPORT_SCHEMA_VERSION,
+    type: "aa-ledger-export",
+    privacyMode,
+    exportedAt: new Date().toISOString(),
+    currency: currencyMetadata(safeLedger),
+    ledger: safeLedger,
+    summary: calculateLedgerSummary(safeLedger),
+    settlements: calculateSettlements(safeLedger)
+  };
   const filePath = `${wx.env.USER_DATA_PATH}/aa-ledger-${privacyMode === REDACTED_MODE ? "share" : "private"}.json`;
   wx.getFileSystemManager().writeFileSync(filePath, JSON.stringify(payload, null, 2), "utf8");
   return filePath;
 }
 
-module.exports = { PRIVATE_MODE, REDACTED_MODE, exportLedgerImage, exportLedgerJson, exportLedgerPdf };
+module.exports = { EXPORT_SCHEMA_VERSION, PRIVATE_MODE, REDACTED_MODE, SINGLE_CURRENCY_MODE, exportLedgerImage, exportLedgerJson, exportLedgerPdf };

@@ -49,6 +49,17 @@ page {
   line-height: 36rpx;
 }
 
+.currency-notice {
+  margin-top: 12rpx;
+  padding: 16rpx 20rpx;
+  border-left: 5rpx solid #2864d9;
+  border-radius: 6rpx;
+  background: #eaf1ff;
+  color: #33445f;
+  font-size: 22rpx;
+  line-height: 34rpx;
+}
+
 .total-card {
   width: 178rpx;
   min-width: 178rpx;
@@ -532,8 +543,16 @@ page {
   line-height: 32rpx;
 }
 
-.transfer-input {
+.transfer-currency-label {
   margin-top: 14rpx;
+  color: #4d596c;
+  font-size: 22rpx;
+  font-weight: 700;
+  line-height: 32rpx;
+}
+
+.transfer-input {
+  margin-top: 8rpx;
   font-size: 32rpx;
   font-weight: 800;
 }

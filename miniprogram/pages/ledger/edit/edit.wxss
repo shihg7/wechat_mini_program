@@ -68,6 +68,13 @@ page {
   line-height: 34rpx;
 }
 
+.field-hint {
+  margin-top: 10rpx;
+  color: #7a8494;
+  font-size: 21rpx;
+  line-height: 32rpx;
+}
+
 .input,
 .textarea {
   width: 100%;

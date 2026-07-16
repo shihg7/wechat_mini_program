@@ -1,4 +1,6 @@
 {
   "navigationBarTitleText": "预订详情",
-  "usingComponents": {}
+  "usingComponents": {
+    "ui-icon": "/components/ui-icon/index"
+  }
 }

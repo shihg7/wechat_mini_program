@@ -1,7 +1,7 @@
-const { getRecords } = require("../../utils/repositories/recordRepository");
-const { getLedgers } = require("../../utils/repositories/ledgerRepository");
-const { buildYearbook, drawYearbookLong, getAvailableYears, loadYearbookPreferences, renderYearbookPdf, saveYearbookPreferences } = require("../../utils/yearbookBuilder");
-const { fileExists } = require("../../utils/mediaStore");
+const { getRecords } = require("../../../utils/repositories/recordRepository");
+const { getLedgers } = require("../../../utils/repositories/ledgerRepository");
+const { buildYearbook, drawYearbookLong, getAvailableYears, loadYearbookPreferences, renderYearbookPdf, saveYearbookPreferences } = require("../../../utils/yearbookBuilder");
+const { fileExists } = require("../../../utils/repositories/mediaRepository");
 
 Page({
   data: { records: [], ledgers: [], years: [], yearLabels: [], yearIndex: 0, year: "", preferences: null, model: null, photoOptions: [], exporting: false },

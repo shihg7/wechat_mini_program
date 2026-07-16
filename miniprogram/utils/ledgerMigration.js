@@ -1,7 +1,9 @@
 const { createStableId } = require("./id");
-const { assertValidLedger } = require("./ledgerValidation");
+const { DEFAULT_BASE_CURRENCY, SCHEMA_VERSION, assertValidLedger } = require("./ledgerValidation");
 
-const SCHEMA_VERSION = 3;
+function normalizeBaseCurrency(value) {
+  return String(value || DEFAULT_BASE_CURRENCY).trim().toUpperCase();
+}
 
 function equalAllocations(amountCents, participantIds) {
   const ids = participantIds || [];
@@ -87,6 +89,7 @@ function migrateLedger(input, ledgerIndex = 0) {
     ...input,
     id: ledgerId,
     schemaVersion: SCHEMA_VERSION,
+    baseCurrency: normalizeBaseCurrency(input.baseCurrency),
     members,
     expenses,
     transfers

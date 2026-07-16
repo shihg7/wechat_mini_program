@@ -61,7 +61,10 @@ function normalizeRecord(input = {}) {
   const privateNote = String(input.privateNote || input.note || "").trim();
   const publicNote = String(input.publicNote || "").trim();
   const stayDate = String(input.stayDate || "").trim();
-  const isRated = input.isRated == null ? status !== "draft" : !!input.isRated;
+  const ratingTouched = input.ratingTouched == null
+    ? (input.isRated == null ? status !== "draft" : !!input.isRated)
+    : !!input.ratingTouched;
+  const isRated = status !== "draft" && (input.isRated == null ? ratingTouched : !!input.isRated);
   const photos = Array.isArray(input.photos)
     ? input.photos.filter((photo) => photo && photo.filePath).slice(0, 9).map((photo) => normalizePhoto(photo, recordType))
     : [];
@@ -97,6 +100,7 @@ function normalizeRecord(input = {}) {
     priceRange: String(input.priceRange || "").trim(),
     overallScore,
     isRated,
+    ratingTouched,
     scoreLabel: isRated ? String(overallScore) : "未评分",
     verdict: isRated ? (input.verdict || getVerdict(overallScore, recordType)) : "尚未评分",
     scores: clone(scores),
@@ -248,7 +252,7 @@ function getSummary(records = getRecords()) {
     hotelTotal: records.filter((record) => record.recordType !== "restaurant").length,
     restaurantTotal: records.filter((record) => record.recordType === "restaurant").length,
     draftTotal: records.filter((record) => record.status === "draft").length,
-    publicTotal: records.filter((record) => record.visibility === "public").length,
+    publicTotal: records.filter((record) => !!record.publicNote).length,
     cityTotal: getUniqueCities(records).length,
     averageScore: scoredRecords.length ? roundScore(totalScore / scoredRecords.length) : 0,
     bestHotelName: scoredRecords.length ? bestRecord.displayName : "",
@@ -321,12 +325,13 @@ function searchAndSortRecords(records, filters = {}) {
   }
 
   const score = (record) => Number(record.overallScore || 0);
+  const unrated = (record) => record.status === "draft" || !record.isRated ? 1 : 0;
   const date = (record) => String(record.stayDate || "");
   const created = (record) => String(record.createdAt || "");
   result.sort((a, b) => {
     if (sortMode === "stay_desc") return date(b).localeCompare(date(a)) || created(b).localeCompare(created(a));
-    if (sortMode === "score_desc") return score(b) - score(a) || created(b).localeCompare(created(a));
-    if (sortMode === "score_asc") return score(a) - score(b) || created(b).localeCompare(created(a));
+    if (sortMode === "score_desc") return unrated(a) - unrated(b) || score(b) - score(a) || created(b).localeCompare(created(a));
+    if (sortMode === "score_asc") return unrated(a) - unrated(b) || score(a) - score(b) || created(b).localeCompare(created(a));
     return created(b).localeCompare(created(a));
   });
 

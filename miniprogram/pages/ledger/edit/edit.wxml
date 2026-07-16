@@ -14,6 +14,13 @@
       <view class="field-label">城市/目的地</view>
       <input class="input" placeholder="东京" value="{{form.city}}" data-field="city" bindinput="onFieldInput" />
     </view>
+    <view class="field">
+      <view class="field-label">账本币种</view>
+      <picker mode="selector" range="{{currencyOptions}}" range-key="label" value="{{currencyIndex}}" bindchange="onCurrencyChange">
+        <view class="input picker-value">{{selectedCurrencyLabel}}</view>
+      </picker>
+      <view class="field-hint">整个账本只使用一种币种；更换币种只改金额标签，不会自动换算。</view>
+    </view>
     <view class="grid">
       <view class="field">
         <view class="field-label">开始日期</view>

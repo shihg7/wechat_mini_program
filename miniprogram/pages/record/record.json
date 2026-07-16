@@ -1,6 +1,7 @@
 {
   "usingComponents": {
-    "demo-guide": "/components/demo-guide/index"
+    "demo-guide": "/components/demo-guide/index",
+    "ui-icon": "/components/ui-icon/index"
   },
   "navigationBarTitleText": "酒店记录"
 }

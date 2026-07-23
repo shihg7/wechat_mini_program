@@ -82,10 +82,6 @@ Page({
   openFeature(event) {
     const url = event.currentTarget.dataset.url;
     if (!url) return;
-    if (event.currentTarget.dataset.tab) {
-      wx.switchTab({ url });
-      return;
-    }
     wx.navigateTo({ url });
   }
 });

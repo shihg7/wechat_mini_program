@@ -1,0 +1,76 @@
+<view class="records-page">
+  <view class="topbar">
+    <view class="topbar-copy">
+      <view class="eyebrow">QUICK RECORDS</view>
+      <view class="title">评分记录</view>
+    </view>
+    <button class="add-button icon-action" bindtap="createRecord">
+      <ui-icon name="plus" size="{{27}}" tone="white" />
+      <text>新增</text>
+    </button>
+  </view>
+
+  <view class="tools-band">
+    <view class="search-box">
+      <ui-icon name="search" size="{{25}}" tone="muted" />
+      <input
+        class="search-input"
+        value="{{query}}"
+        placeholder="搜索名称、城市或备注"
+        confirm-type="search"
+        bindinput="onSearchInput"
+      />
+      <button class="search-clear icon-center" wx:if="{{query}}" catchtap="clearSearch" aria-label="清空搜索">
+        <ui-icon name="x" size="{{22}}" tone="muted" />
+      </button>
+    </view>
+
+    <view class="filters">
+      <view class="filter {{typeFilter === 'all' ? 'active' : ''}}" data-type="all" bindtap="onFilterTap">全部</view>
+      <view class="filter {{typeFilter === 'hotel' ? 'active' : ''}}" data-type="hotel" bindtap="onFilterTap">
+        <ui-icon name="hotel" size="{{22}}" tone="{{typeFilter === 'hotel' ? 'white' : 'muted'}}" />
+        <text>酒店</text>
+      </view>
+      <view class="filter {{typeFilter === 'restaurant' ? 'active' : ''}}" data-type="restaurant" bindtap="onFilterTap">
+        <ui-icon name="utensils" size="{{22}}" tone="{{typeFilter === 'restaurant' ? 'white' : 'muted'}}" />
+        <text>餐厅</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="result-head">
+    <view class="result-title">{{query || typeFilter !== "all" ? "筛选结果" : "全部记录"}}</view>
+    <view class="result-count">{{visibleTotal}} / {{total}}</view>
+  </view>
+
+  <view class="empty-state" wx:if="{{!records.length}}">
+    <view class="empty-icon"><ui-icon name="{{query || typeFilter !== 'all' ? 'search' : 'clipboard'}}" size="{{42}}" tone="blue" /></view>
+    <view class="empty-title">{{query || typeFilter !== "all" ? "没有匹配的记录" : "还没有评分记录"}}</view>
+    <button class="empty-button icon-action" wx:if="{{!query && typeFilter === 'all'}}" bindtap="createRecord">
+      <ui-icon name="plus" size="{{25}}" tone="white" />
+      <text>新增记录</text>
+    </button>
+  </view>
+
+  <view
+    class="record-card type-{{item.type}}"
+    wx:for="{{records}}"
+    wx:key="id"
+    data-id="{{item.id}}"
+    bindtap="openRecord"
+  >
+    <view class="record-icon">
+      <ui-icon name="{{item.iconName}}" size="{{30}}" tone="{{item.type === 'restaurant' ? 'amber' : 'blue'}}" />
+    </view>
+    <view class="record-copy">
+      <view class="record-title">{{item.name}}</view>
+      <view class="record-meta">{{item.typeLabel}} · {{item.locationLabel}} · {{item.visitDate}}</view>
+      <view class="record-note" wx:if="{{item.note}}">{{item.note}}</view>
+    </view>
+    <view class="record-score {{item.hasScore ? 'scored' : ''}}">
+      <view class="record-score-value">{{item.scoreLabel}}</view>
+      <view class="record-score-unit">/ 10</view>
+    </view>
+    <ui-icon name="chevron-right" size="{{24}}" tone="muted" />
+  </view>
+</view>

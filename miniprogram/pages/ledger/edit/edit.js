@@ -1,4 +1,4 @@
-const ledgerStore = require("../../../utils/repositories/ledgerRepository");
+const ledgerStore = require("../../../utils/tripLedgerStore");
 const CURRENCY_OPTIONS = ledgerStore.CURRENCY_OPTIONS;
 
 function currencyIndex(baseCurrency) {

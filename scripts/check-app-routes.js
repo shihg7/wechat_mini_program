@@ -43,11 +43,11 @@ sourceFiles.forEach((filePath) => {
   }
 });
 
-const directStorePattern = /require\(["'](?:\.\.\/)+utils\/(hotelReviewStore|placeStore|wishlistStore|tripLedgerStore|tripStore|departureStore|wheelStore|mediaStore|formTemplateStore)["']\)/;
+const directStoragePattern = /\bwx\.(?:getStorageSync|setStorageSync|removeStorageSync|clearStorageSync)\s*\(/;
 const pageScripts = new Set(pages.map((page) => path.join(miniprogramRoot, `${page}.js`)));
 sourceFiles.filter((filePath) => pageScripts.has(filePath)).forEach((filePath) => {
   const source = fs.readFileSync(filePath, "utf8");
-  assert(!directStorePattern.test(source), `page bypasses repository boundary: ${path.relative(root, filePath)}`);
+  assert(!directStoragePattern.test(source), `page bypasses domain store: ${path.relative(root, filePath)}`);
 });
 
 console.log(`Mini Program route checks passed (${pages.length} pages)`);

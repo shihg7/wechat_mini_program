@@ -15,14 +15,24 @@ function collectFiles(directory, extension, result = []) {
   return result;
 }
 
+function assertIcon(iconName) {
+  const iconPath = path.join(iconRoot, `${iconName}.svg`);
+  assert(fs.existsSync(iconPath), `missing icon asset: ${iconName}`);
+  const svg = fs.readFileSync(iconPath, "utf8");
+  assert(svg.includes('viewBox="0 0 24 24"'), `${iconName} must use the shared 24px viewBox`);
+  assert(svg.includes('stroke="#172033"'), `${iconName} must use the shared base stroke`);
+}
+
 const appConfig = JSON.parse(fs.readFileSync(path.join(miniprogramRoot, "app.json"), "utf8"));
-assert(!appConfig.usingComponents || !appConfig.usingComponents["ui-icon"], "ui-icon should be registered per page so lazy loading remains effective");
+assert(!appConfig.usingComponents || !appConfig.usingComponents["ui-icon"], "ui-icon should remain page-local");
+assert.strictEqual(appConfig.tabBar, undefined, "offline toolbox should not use a tab bar");
+
 const appStyles = fs.readFileSync(path.join(miniprogramRoot, "app.wxss"), "utf8");
 assert(appStyles.includes(".square-icon-button"), "global square icon-button guard should exist");
-assert(appStyles.includes("flex: 0 0 72rpx !important"), "square icon buttons should not stretch in flex layouts");
+assert(appStyles.includes("flex: 0 0 72rpx !important"), "square icon buttons should not stretch");
 
 ["index.js", "index.json", "index.wxml", "index.wxss"].forEach((fileName) => {
-  assert(fs.existsSync(path.join(miniprogramRoot, "components", "ui-icon", fileName)), "missing ui-icon " + fileName);
+  assert(fs.existsSync(path.join(miniprogramRoot, "components", "ui-icon", fileName)), `missing ui-icon ${fileName}`);
 });
 
 const referencedIcons = new Set();
@@ -30,57 +40,52 @@ collectFiles(miniprogramRoot, ".wxml").forEach((filePath) => {
   const source = fs.readFileSync(filePath, "utf8");
   if (source.includes("<ui-icon")) {
     const pageConfig = JSON.parse(fs.readFileSync(filePath.replace(/\.wxml$/, ".json"), "utf8"));
-    assert.strictEqual(pageConfig.usingComponents && pageConfig.usingComponents["ui-icon"], "/components/ui-icon/index", path.relative(miniprogramRoot, filePath) + " must register ui-icon locally");
+    assert.strictEqual(
+      pageConfig.usingComponents && pageConfig.usingComponents["ui-icon"],
+      "/components/ui-icon/index",
+      `${path.relative(miniprogramRoot, filePath)} must register ui-icon locally`
+    );
   }
   const iconPattern = /<ui-icon\b[^>]*\bname="([a-z0-9-]+)"/g;
   let match;
   while ((match = iconPattern.exec(source))) referencedIcons.add(match[1]);
 });
 
-assert(referencedIcons.size >= 20, "core pages should use a meaningful semantic icon set");
-referencedIcons.forEach((iconName) => {
-  const iconPath = path.join(iconRoot, iconName + ".svg");
-  assert(fs.existsSync(iconPath), "missing icon asset: " + iconName);
-  const svg = fs.readFileSync(iconPath, "utf8");
-  assert(svg.includes('viewBox="0 0 24 24"'), iconName + " must use the shared 24px viewBox");
-  assert(svg.includes('stroke="#172033"'), iconName + " must use the shared base stroke");
+assert(referencedIcons.size >= 15, "core pages should use a meaningful semantic icon set");
+referencedIcons.forEach(assertIcon);
+
+const homeScript = fs.readFileSync(path.join(miniprogramRoot, "pages/index/index.js"), "utf8");
+["receipt", "calendar", "clipboard", "wheel", "edit", "book", "database"].forEach((iconName) => {
+  assert(homeScript.includes(`icon: "${iconName}"`), `home should declare the ${iconName} icon`);
+  assertIcon(iconName);
 });
 
 const pageExpectations = {
-  "pages/index/index.wxml": ["hotel", "utensils", "chart", "database", "search"],
-  "pages/trip/index.wxml": ["route", "calendar", "wallet"],
+  "pages/record/index.wxml": ["search", "plus", "hotel", "utensils"],
+  "pages/record/record.wxml": ["hotel", "utensils", "calendar", "check"],
+  "pages/trip/index.wxml": ["route", "calendar", "clock"],
+  "pages/checklist/index.wxml": ["clipboard", "edit", "more"],
   "pages/ledger/index/index.wxml": ["receipt", "users", "check"],
-  "packages/tools/data/index.wxml": ["shield", "download", "upload"],
-  "packages/tools/cleanup/index.wxml": ["sparkles", "copy", "image"],
+  "packages/tools/data/index.wxml": ["shield", "download", "upload", "trash"],
   "packages/tools/wheel/index.wxml": ["wheel", "sliders", "refresh"],
-  "pages/departure/index.wxml": ["plane", "clipboard", "clock"],
-  "pages/departure/edit.wxml": ["calendar", "route", "wallet", "users"],
-  "packages/tools/help/index.wxml": ["plus", "play", "search", "alert", "shield"]
+  "packages/tools/help/index.wxml": ["search", "alert", "shield"]
 };
 
 Object.entries(pageExpectations).forEach(([relativePath, names]) => {
   const source = fs.readFileSync(path.join(miniprogramRoot, relativePath), "utf8");
-  names.forEach((name) => assert(source.includes('name="' + name + '"'), relativePath + " should include " + name));
+  names.forEach((name) => {
+    assert(source.includes(`name="${name}"`), `${relativePath} should include ${name}`);
+  });
 });
 
-const homeSource = fs.readFileSync(path.join(miniprogramRoot, "pages/index/index.wxml"), "utf8");
-const tripSource = fs.readFileSync(path.join(miniprogramRoot, "pages/trip/index.wxml"), "utf8");
-const ledgerSource = fs.readFileSync(path.join(miniprogramRoot, "pages/ledger/index/index.wxml"), "utf8");
+const recordEditor = fs.readFileSync(path.join(miniprogramRoot, "pages/record/record.wxml"), "utf8");
+const tripEditor = fs.readFileSync(path.join(miniprogramRoot, "pages/trip/edit.wxml"), "utf8");
 const wheelSource = fs.readFileSync(path.join(miniprogramRoot, "packages/tools/wheel/index.wxml"), "utf8");
-const ledgerDetailSource = fs.readFileSync(path.join(miniprogramRoot, "pages/ledger/detail/detail.wxml"), "utf8");
-const tripDetailSource = fs.readFileSync(path.join(miniprogramRoot, "pages/trip/detail.wxml"), "utf8");
-assert(!homeSource.includes('aria-label="快速新增">+</button>'));
-assert(!tripSource.includes(">＋ 新建</button>"));
-assert(!ledgerSource.includes("管理 ···"));
-assert(homeSource.includes('class="top-add-button icon-action"'), "home create action should include an explicit label");
-assert(homeSource.includes("hasRecentContent"), "home should hide the recent section when it has no useful content");
-assert(!homeSource.includes("没有待完成草稿"), "home should not spend space on an empty draft card");
-assert((homeSource.match(/wx:if="\{\{toolsExpanded\}\}"/g) || []).length >= 4, "secondary tools should use progressive disclosure");
-assert(ledgerSource.includes("square-icon-button"), "ledger create action should stay square");
-assert(wheelSource.includes('class="pointer {{spinning'), "wheel pointer should remain visible above the canvas");
-assert(ledgerDetailSource.includes('data-tab="expenses"') && ledgerDetailSource.includes('data-tab="settlement"') && ledgerDetailSource.includes('data-tab="members"'), "ledger detail should separate its three core tasks");
-assert(tripDetailSource.includes('catchtap="showItemActions"'), "trip item actions should be grouped into one menu");
-assert(!tripDetailSource.includes('class="plan-tools"'), "trip items should not show every low-frequency action at once");
-assert(tripDetailSource.includes("trip-more-action"), "trip header should keep its more action compact");
+assert(recordEditor.includes('class="fixed-save-bar"'), "quick rating save action should stay fixed");
+assert(tripEditor.includes('class="save-bar"'), "trip save action should stay fixed");
+assert(
+  fs.readFileSync(path.join(miniprogramRoot, "packages/tools/wheel/index.js"), "utf8").includes("drawFixedPointer(ctx, radius)"),
+  "wheel should draw a fixed high-contrast pointer after the rotating sectors"
+);
 
-console.log("ui icon integration tests passed (" + referencedIcons.size + " icons referenced)");
+console.log(`ui icon integration tests passed (${referencedIcons.size} static icons referenced)`);

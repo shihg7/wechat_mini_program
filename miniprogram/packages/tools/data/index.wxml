@@ -1,98 +1,97 @@
 <view class="page">
   <view class="topbar">
     <view>
-      <view class="eyebrow">DATA &amp; PRIVACY</view>
-      <view class="title">数据管理</view>
+      <view class="eyebrow">LOCAL DATA</view>
+      <view class="title">数据设置</view>
     </view>
-    <view class="shield"><ui-icon name="shield" size="{{25}}" tone="green" /><text>隐私优先</text></view>
+    <view class="local-badge">
+      <ui-icon name="shield" size="{{25}}" tone="green" />
+      <text>仅存本机</text>
+    </view>
   </view>
 
-  <view class="summary-band">
-    <view class="summary-item">
-      <text class="summary-value">{{localSummary.recordCount}}</text>
-      <text class="summary-label">体验记录</text>
+  <view class="storage-band">
+    <view class="storage-main">
+      <text class="storage-label">当前本地占用</text>
+      <text class="storage-value">{{localSummary.storageText}}</text>
     </view>
-    <view class="summary-divider"></view>
-    <view class="summary-item">
-      <text class="summary-value">{{localSummary.ledgerCount}}</text>
-      <text class="summary-label">旅行账本</text>
+    <view class="storage-side">
+      <text>上次备份</text>
+      <text class="storage-date">{{localSummary.lastBackupText}}</text>
     </view>
-    <view class="summary-divider"></view>
-    <view class="summary-item"><text class="summary-value">{{localSummary.placeCount}}</text><text class="summary-label">地点档案</text></view>
-    <view class="summary-divider"></view>
-    <view class="summary-item">
-      <text class="summary-value">{{localSummary.wishlistCount}}</text>
-      <text class="summary-label">想去清单</text>
-    </view>
+  </view>
+
+  <view class="summary-grid">
+    <view class="summary-item"><text class="summary-value">{{localSummary.recordCount}}</text><text class="summary-label">快评</text></view>
+    <view class="summary-item"><text class="summary-value">{{localSummary.tripCount}}</text><text class="summary-label">行程</text></view>
+    <view class="summary-item"><text class="summary-value">{{localSummary.checklistCount}}</text><text class="summary-label">清单</text></view>
+    <view class="summary-item"><text class="summary-value">{{localSummary.ledgerCount}}</text><text class="summary-label">账本</text></view>
+    <view class="summary-item"><text class="summary-value">{{localSummary.wheelCount}}</text><text class="summary-label">转盘</text></view>
   </view>
 
   <view class="section">
     <view class="section-head">
-      <view class="section-icon section-icon-blue"><ui-icon name="database" size="{{34}}" tone="blue" /></view>
+      <view class="section-icon icon-blue"><ui-icon name="download" size="{{32}}" tone="blue" /></view>
       <view class="section-copy">
-        <view class="section-title">完整备份</view>
-        <view class="section-subtitle">体验、行程、预订、行前清单、转盘、模板、偏好与账本一起保存为 schemaVersion 9</view>
+        <view class="section-title">导出完整备份</view>
+        <view class="section-subtitle">生成一个 JSON 文件，包含五个工具的全部本地数据。</view>
       </view>
     </view>
-    <button class="button primary" loading="{{exportingBackup}}" bindtap="exportBackup"><ui-icon name="download" size="{{29}}" tone="white" /><text>导出完整备份</text></button>
-    <view class="section-subtitle media-warning">照片文件保存在当前设备，JSON 只包含照片路径和说明，跨设备恢复不包含图片本身。</view>
+    <button class="button primary" loading="{{exporting}}" bindtap="exportBackup">
+      <ui-icon name="download" size="{{28}}" tone="white" />
+      <text>导出并发送备份</text>
+    </button>
   </view>
 
   <view class="section">
     <view class="section-head">
-      <view class="section-icon section-icon-green"><ui-icon name="upload" size="{{34}}" tone="green" /></view>
-      <view class="section-copy"><view class="section-title">恢复数据</view><view class="section-subtitle">支持 v9 完整备份，并兼容 v1-v8</view></view>
+      <view class="section-icon icon-green"><ui-icon name="upload" size="{{32}}" tone="green" /></view>
+      <view class="section-copy">
+        <view class="section-title">从备份恢复</view>
+        <view class="section-subtitle">只接受由当前工具箱生成的 v1 JSON 备份。</view>
+      </view>
     </view>
-    <button class="button secondary" bindtap="chooseBackup"><ui-icon name="file" size="{{29}}" /><text>选择 JSON 文件</text></button>
+    <button class="button secondary" bindtap="chooseBackup">
+      <ui-icon name="file" size="{{28}}" />
+      <text>选择 JSON 文件</text>
+    </button>
 
     <view class="preview" wx:if="{{preview}}">
-      <view class="file-name-row"><ui-icon name="file" size="{{29}}" tone="blue" /><view class="file-name">{{selectedFileName}}</view></view>
-      <view class="preview-meta">版本 v{{preview.schemaVersion}} · {{preview.ledgersLabel}}</view>
+      <view class="file-row">
+        <ui-icon name="file" size="{{28}}" tone="blue" />
+        <text class="file-name">{{selectedFileName}}</text>
+      </view>
+      <view class="preview-time">导出于 {{preview.exportedAtText}}</view>
       <view class="preview-grid">
-        <view><text class="metric">{{preview.recordCount}}</text><text class="metric-label">记录</text></view>
-        <view><text class="metric">{{preview.placeCount}}</text><text class="metric-label">地点</text></view>
-        <view><text class="metric">{{preview.wishlistCount}}</text><text class="metric-label">想去</text></view>
-        <view><text class="metric">{{preview.ledgerCount}}</text><text class="metric-label">账本</text></view>
-        <view><text class="metric">{{preview.expenseCount}}</text><text class="metric-label">支出</text></view>
-        <view><text class="metric">{{preview.wheelCount}}</text><text class="metric-label">转盘</text></view>
-        <view><text class="metric">{{preview.bookingCount}}</text><text class="metric-label">预订</text></view>
+        <view><text class="metric">{{preview.recordCount}}</text><text class="metric-label">快评</text></view>
+        <view><text class="metric">{{preview.tripCount}}</text><text class="metric-label">行程</text></view>
         <view><text class="metric">{{preview.checklistCount}}</text><text class="metric-label">清单</text></view>
+        <view><text class="metric">{{preview.ledgerCount}}</text><text class="metric-label">账本</text></view>
+        <view><text class="metric">{{preview.wheelCount}}</text><text class="metric-label">转盘</text></view>
       </view>
-      <view class="preview-time">导出时间：{{preview.exportedAtText}}</view>
       <view class="action-row">
-        <button class="button merge" loading="{{importing}}" data-mode="merge" bindtap="confirmImport"><ui-icon name="upload" size="{{27}}" tone="blue" /><text>合并导入</text></button>
-        <button class="button danger" loading="{{importing}}" data-mode="replace" bindtap="confirmImport"><ui-icon name="refresh" size="{{27}}" tone="accent" /><text>覆盖本地</text></button>
+        <button class="button merge" loading="{{importing}}" data-mode="merge" bindtap="confirmImport">合并导入</button>
+        <button class="button danger" loading="{{importing}}" data-mode="replace" bindtap="confirmImport">覆盖本地</button>
       </view>
     </view>
   </view>
 
-  <view class="section">
+  <view class="section danger-section">
     <view class="section-head">
-      <view class="section-icon section-icon-accent"><ui-icon name="shield" size="{{34}}" tone="accent" /></view>
-      <view class="section-copy"><view class="section-title">PDF 隐私版本</view><view class="section-subtitle">按分享对象选择信息范围</view></view>
-    </view>
-    <view class="privacy-option">
-      <view class="privacy-icon"><ui-icon name="file" size="{{29}}" /></view>
-      <view class="privacy-copy">
-        <view class="option-title">私人版</view>
-        <view class="option-desc">保留完整字段，仅供自己归档</view>
+      <view class="section-icon icon-danger"><ui-icon name="trash" size="{{32}}" tone="accent" /></view>
+      <view class="section-copy">
+        <view class="section-title">清空本地数据</view>
+        <view class="section-subtitle">一次删除五个工具的全部内容，不影响已发送到外部的备份文件。</view>
       </view>
-      <button class="small-button dark" loading="{{exportingPdf}}" data-mode="private" bindtap="exportPdf"><ui-icon name="download" size="{{25}}" tone="white" /><text>导出</text></button>
     </view>
-    <view class="privacy-option divider">
-      <view class="privacy-icon privacy-icon-blue"><ui-icon name="shield" size="{{29}}" tone="blue" /></view>
-      <view class="privacy-copy">
-        <view class="option-title">脱敏版</view>
-        <view class="option-desc">隐藏精确日期、价格、等级、私密备注与成员姓名</view>
-      </view>
-      <button class="small-button blue" loading="{{exportingPdf}}" data-mode="redacted" bindtap="exportPdf"><ui-icon name="download" size="{{25}}" tone="white" /><text>导出</text></button>
-    </view>
+    <button class="button danger" loading="{{clearing}}" bindtap="confirmClear">
+      <ui-icon name="trash" size="{{28}}" tone="accent" />
+      <text>清空全部数据</text>
+    </button>
   </view>
 
-  <view class="section dev-section" wx:if="{{isDevelopment}}">
-    <view class="section-head"><view class="section-icon section-icon-amber"><ui-icon name="sparkles" size="{{34}}" tone="amber" /></view><view class="section-copy"><view class="section-title">开发测试数据</view><view class="section-subtitle">生成固定场景用于界面验收；清理不会影响真实数据。</view></view></view>
-    <view class="action-row"><button class="button primary" bindtap="generateDemoData"><ui-icon name="sparkles" size="{{27}}" tone="white" /><text>{{demoActive ? '重新生成示例' : '生成示例数据'}}</text></button><button class="button danger" wx:if="{{demoActive}}" bindtap="clearDemoData"><ui-icon name="trash" size="{{27}}" tone="accent" /><text>清除示例</text></button></view>
+  <view class="privacy-note">
+    <ui-icon name="shield" size="{{28}}" tone="green" />
+    <text>本应用没有账号、云同步或后台服务。删除小程序或清理微信数据前，请先导出备份。</text>
   </view>
-
-  <canvas type="2d" id="pdfCanvas" class="pdf-canvas"></canvas>
 </view>

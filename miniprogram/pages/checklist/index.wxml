@@ -1,0 +1,107 @@
+<view class="page">
+  <view class="topbar">
+    <view class="heading">
+      <view class="eyebrow">CHECKLISTS</view>
+      <view class="title">多清单</view>
+    </view>
+    <button class="create-button icon-center square-icon-button" bindtap="chooseTemplate" aria-label="新建清单">
+      <ui-icon name="plus" size="{{31}}" tone="white" />
+    </button>
+  </view>
+
+  <block wx:if="{{checklist}}">
+    <view class="list-switch">
+      <picker class="list-picker" mode="selector" range="{{checklistTitles}}" value="{{checklistIndex}}" bindchange="onChecklistChange" aria-label="切换清单">
+        <view class="switch-label">当前清单</view>
+        <view class="switch-title">
+          <text>{{checklist.title}}</text>
+          <ui-icon name="chevron-right" size="{{23}}" tone="white" />
+        </view>
+      </picker>
+      <view class="list-actions">
+        <button class="strip-action icon-center" bindtap="renameChecklist" aria-label="重命名清单">
+          <ui-icon name="edit" size="{{24}}" tone="white" />
+        </button>
+        <button class="strip-action icon-center" bindtap="deleteChecklist" aria-label="删除清单">
+          <ui-icon name="trash" size="{{24}}" tone="white" />
+        </button>
+      </view>
+    </view>
+
+    <view class="summary">
+      <view class="summary-copy">
+        <view class="summary-title">{{progress.completed}} / {{progress.total}} 已完成</view>
+        <view class="template-label">{{checklist.templateLabel}}</view>
+      </view>
+      <view class="percent">{{progress.percent}}%</view>
+      <view class="progress-track" role="progressbar" aria-label="清单完成进度 {{progress.percent}}%">
+        <view class="progress-value" style="width: {{progress.percent}}%;"></view>
+      </view>
+    </view>
+
+    <view class="empty-list" wx:if="{{!checklist.items.length}}">
+      <view class="empty-icon icon-center"><ui-icon name="clipboard" size="{{40}}" tone="blue" /></view>
+      <view class="empty-title">清单还是空的</view>
+      <view class="empty-copy">从下方添加第一项</view>
+    </view>
+
+    <view class="items" wx:else>
+      <view class="item-row {{item.done ? 'is-done' : ''}}" wx:for="{{checklist.items}}" wx:key="id">
+        <button
+          class="check-button icon-center"
+          data-id="{{item.id}}"
+          bindtap="toggleItem"
+          role="checkbox"
+          aria-checked="{{item.done}}"
+          aria-label="{{item.done ? '标记为未完成：' : '标记为已完成：'}}{{item.text}}"
+        >
+          <ui-icon name="{{item.done ? 'check' : 'circle'}}" size="{{30}}" tone="{{item.done ? 'green' : 'muted'}}" />
+        </button>
+        <view class="item-main" data-id="{{item.id}}" bindtap="editItem" role="button" aria-label="编辑清单项：{{item.text}}">
+          <view class="item-text">{{item.text}}</view>
+          <view class="item-state">{{item.done ? "已完成" : "待完成"}}</view>
+        </view>
+        <button class="more-button icon-center" data-id="{{item.id}}" catchtap="showItemActions" aria-label="更多项目操作：{{item.text}}">
+          <ui-icon name="more" size="{{27}}" tone="muted" />
+        </button>
+      </view>
+    </view>
+
+    <button class="clear-button icon-action" wx:if="{{progress.completed}}" bindtap="clearCompleted">
+      <ui-icon name="trash" size="{{23}}" tone="accent" />
+      <text>清除已完成（{{progress.completed}}）</text>
+    </button>
+
+    <view class="add-bar">
+      <view class="add-control">
+        <input
+          class="add-input"
+          maxlength="100"
+          value="{{newItemText}}"
+          placeholder="添加清单项"
+          confirm-type="done"
+          bindinput="onNewItemInput"
+          bindconfirm="addItem"
+          aria-label="新清单项"
+        />
+        <button class="add-button icon-center" bindtap="addItem" aria-label="添加清单项">
+          <ui-icon name="plus" size="{{29}}" tone="white" />
+        </button>
+      </view>
+    </view>
+  </block>
+
+  <view class="empty-all" wx:else>
+    <view class="empty-mark icon-center"><ui-icon name="clipboard" size="{{46}}" tone="blue" /></view>
+    <view class="empty-all-title">还没有清单</view>
+    <view class="empty-all-copy">选一个起点</view>
+    <button class="empty-primary icon-action" bindtap="createBlank">
+      <ui-icon name="plus" size="{{27}}" tone="white" />
+      <text>空白清单</text>
+    </button>
+    <button class="empty-secondary icon-action" bindtap="createTravel">
+      <ui-icon name="plane" size="{{27}}" tone="blue" />
+      <text>旅行打包清单</text>
+    </button>
+  </view>
+</view>

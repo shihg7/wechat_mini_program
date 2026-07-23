@@ -53,35 +53,10 @@ function anonymizeLedgers(ledgers) {
   }));
 }
 
-function redactRecords(records) {
-  return (records || []).map((record) => ({
-    ...record,
-    stayDate: record.visitMonth || String(record.stayDate || "").slice(0, 7),
-    memberLevel: "",
-    priceRange: "",
-    note: "",
-    privateNote: "",
-    cloudRecordId: "",
-    publicReviewId: "",
-    placeId: "",
-    address: "",
-    latitude: null,
-    longitude: null
-  }));
-}
-
 function createPrivacyCopy(input = {}, mode = PRIVATE_MODE) {
-  const copied = clone({
-    records: input.records || [],
-    places: input.places || [],
-    ledgers: input.ledgers || []
-  });
+  const copied = { ledgers: clone(input.ledgers || []) };
   if (mode !== REDACTED_MODE) return copied;
-  return {
-    records: redactRecords(copied.records),
-    places: copied.places.map((place) => ({ ...place, address: "", latitude: null, longitude: null, cloudPlaceId: "" })),
-    ledgers: anonymizeLedgers(copied.ledgers)
-  };
+  return { ledgers: anonymizeLedgers(copied.ledgers) };
 }
 
 module.exports = {

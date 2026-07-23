@@ -9,14 +9,11 @@ global.wx = {
 function setPath(target, path, value) { const parts = path.split("."); let cursor = target; parts.slice(0, -1).forEach((part) => { if (!cursor[part]) cursor[part] = {}; cursor = cursor[part]; }); cursor[parts[parts.length - 1]] = value; }
 function loadPage(modulePath) { let definition; global.Page = (config) => { definition = config; }; delete require.cache[require.resolve(modulePath)]; require(modulePath); const page = {}; Object.keys(definition).forEach((key) => { page[key] = key === "data" ? JSON.parse(JSON.stringify(definition.data)) : definition[key]; }); page.setData = function setData(patch, callback) { Object.keys(patch).forEach((path) => setPath(this.data, path, patch[path])); if (callback) callback(); }; return page; }
 
-const store = require("../miniprogram/utils/wheelStore");
+const store = require("../miniprogram/packages/tools/utils/wheelStore");
 const engine = require("../miniprogram/packages/tools/utils/wheelEngine");
 const page = loadPage("../miniprogram/packages/tools/wheel/index.js");
 const demoWheel = store.createWheel({ title: "演示转盘", options: [] });
-memory.experience_demo_mode_state = { active: true, startedAt: "2026-07-13T00:00:00.000Z", completedStepIds: [] };
-page.onLoad({ id: demoWheel.id, demo: "wheel" });
-assert.strictEqual(page.data.demoActive, true);
-assert.deepStrictEqual(memory.experience_demo_mode_state.completedStepIds, ["wheel"]);
+page.onLoad({ id: demoWheel.id });
 assert(page.data.wheel);
 const drawCalls = [];
 page.canvasWidth = 320; page.canvasHeight = 320;

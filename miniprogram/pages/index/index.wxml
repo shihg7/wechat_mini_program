@@ -1,252 +1,37 @@
 <view class="page">
   <view class="topbar">
-    <view>
-      <view class="eyebrow">酒店 · 餐厅 · 行程</view>
-      <view class="title">旅行档案</view>
-    </view>
+    <view class="title">工具箱</view>
     <view class="top-actions">
-      <button class="top-help-button icon-action" bindtap="goHelp" aria-label="打开帮助与使用手册">
-        <ui-icon name="book" size="{{26}}" tone="blue" />
-        <text>手册</text>
+      <button
+        class="top-action"
+        wx:for="{{headerActions}}"
+        wx:key="id"
+        data-url="{{item.url}}"
+        bindtap="openRoute"
+        aria-label="{{item.label}}"
+      >
+        <ui-icon name="{{item.icon}}" size="{{24}}" tone="muted" />
+        <text>{{item.label}}</text>
       </button>
-      <button class="top-add-button icon-action" bindtap="goQuickCreate" aria-label="快速记录酒店或餐厅">
-        <ui-icon name="plus" size="{{28}}" tone="white" />
-        <text>速记</text>
-      </button>
     </view>
   </view>
 
-  <view class="hero">
-    <view class="summary-item">
-      <view class="summary-value">{{summary.total}}</view>
-      <view class="summary-label">体验</view>
-    </view>
-    <view class="summary-divider"></view>
-    <view class="summary-item">
-      <view class="summary-value">{{summary.cityTotal}}</view>
-      <view class="summary-label">城市</view>
-    </view>
-    <view class="summary-divider"></view>
-    <view class="summary-item">
-      <view class="summary-value">{{summary.averageScore}}</view>
-      <view class="summary-label">平均评分</view>
-    </view>
-  </view>
-
-  <view class="demo-banner" wx:if="{{demoActive}}" bindtap="goDemo">
-    <view class="demo-badge">演示中</view>
-    <view class="demo-copy"><view class="demo-title">继续快速上手</view><view class="demo-desc">已完成 {{demoCompleted}} / {{demoTotal}} 个任务</view></view>
-    <ui-icon name="chevron-right" size="{{30}}" tone="amber" />
-  </view>
-
-  <view class="quick-actions">
-    <button class="button primary" data-type="hotel" bindtap="goCreate"><ui-icon name="hotel" size="{{28}}" tone="white" /><text>新增酒店</text></button>
-    <button class="button accent" data-type="restaurant" bindtap="goCreate"><ui-icon name="utensils" size="{{28}}" tone="white" /><text>新增餐厅</text></button>
-  </view>
-
-  <block wx:if="{{hasRecentContent}}">
-  <view class="content-heading"><view><view class="content-title">继续记录</view><view class="content-subtitle">接着处理最近体验、草稿和账本</view></view></view>
-  <view class="recent-grid">
-    <view class="snapshot" wx:if="{{recentRecord}}" data-id="{{recentRecord.id}}" bindtap="goDetail">
-      <image class="snapshot-cover" wx:if="{{recentRecord.coverPhotoPath}}" src="{{recentRecord.coverPhotoPath}}" mode="aspectFill" />
-      <view class="snapshot-label"><ui-icon name="book" size="{{24}}" tone="muted" /><text>最近体验</text></view>
-      <view class="snapshot-title">{{recentRecord.displayName}}</view>
-      <view class="snapshot-meta">{{recentRecord.city || "未填写城市"}} · {{recentRecord.isRated ? recentRecord.overallScore + " 分" : "未评分"}}</view>
-    </view>
-    <view class="snapshot" wx:if="{{recentDraft}}" data-id="{{recentDraft.id}}" bindtap="goDetail">
-      <view class="snapshot-label"><ui-icon name="file" size="{{24}}" tone="muted" /><text>待完成草稿</text></view>
-      <view class="snapshot-title">{{recentDraft.displayName}}</view>
-      <view class="snapshot-meta">继续补充这条记录</view>
-    </view>
-
-    <view class="snapshot wide" wx:if="{{recentLedger}}" data-id="{{recentLedger.id}}" bindtap="goLedgerDetail">
-      <view>
-        <view class="snapshot-label"><ui-icon name="receipt" size="{{24}}" tone="muted" /><text>最近账本</text></view>
-        <view class="snapshot-title">{{recentLedger.title || "未命名账本"}}</view>
-        <view class="snapshot-meta">{{recentLedger.memberCount}} 人 · {{recentLedger.expenseCount}} 笔支出</view>
+  <view class="tool-grid">
+    <button
+      class="tool-card tool-card-{{item.id}}"
+      wx:for="{{tools}}"
+      wx:key="id"
+      data-url="{{item.url}}"
+      bindtap="openRoute"
+      aria-label="打开{{item.label}}"
+    >
+      <view class="tool-icon tool-icon-{{item.tone}}">
+        <ui-icon name="{{item.icon}}" size="{{34}}" tone="{{item.tone}}" />
       </view>
-      <view class="snapshot-amount">{{recentLedger.totalText}}</view>
-    </view>
+      <view class="tool-card-footer">
+        <text class="tool-label">{{item.label}}</text>
+        <ui-icon name="chevron-right" size="{{24}}" tone="muted" />
+      </view>
+    </button>
   </view>
-  </block>
-
-  <view class="content-heading tools-heading"><view><view class="content-title">旅行工具</view><view class="content-subtitle">回顾、计划与数据安全</view></view></view>
-  <view class="utility-grid">
-    <view class="data-entry" bindtap="goDeparture">
-      <view class="utility-icon utility-blue"><ui-icon name="plane" size="{{34}}" tone="blue" /></view>
-      <view class="data-copy"><view class="data-title">出发中心</view><view class="data-desc">{{departureSummary.upcomingCount ? departureSummary.upcomingCount + " 项待出发" + (departureSummary.urgentCount ? " · " + departureSummary.urgentCount + " 项需留意" : "") : "预订、倒计时与行前清单"}}</view></view>
-      <ui-icon name="chevron-right" size="{{24}}" tone="muted" />
-    </view>
-    <view class="data-entry demo-entry" wx:if="{{toolsExpanded}}" bindtap="goDemo">
-      <view class="utility-icon utility-amber"><ui-icon name="play" size="{{34}}" tone="amber" /></view>
-      <view class="data-copy"><view class="data-title">{{demoActive ? '继续演示' : '新手演示'}}</view><view class="data-desc">3 分钟熟悉核心功能</view></view>
-      <ui-icon name="chevron-right" size="{{24}}" tone="muted" />
-    </view>
-    <view class="data-entry" wx:if="{{toolsExpanded}}" bindtap="goInsights">
-      <view class="utility-icon utility-blue"><ui-icon name="chart" size="{{34}}" tone="blue" /></view>
-      <view class="data-copy"><view class="data-title">旅行洞察</view><view class="data-desc">年度最佳、城市分布与复访变化</view></view>
-      <ui-icon name="chevron-right" size="{{24}}" tone="muted" />
-    </view>
-    <view class="data-entry" wx:if="{{toolsExpanded}}" bindtap="goYearbook">
-      <view class="utility-icon utility-accent"><ui-icon name="book" size="{{34}}" tone="accent" /></view>
-      <view class="data-copy"><view class="data-title">年度回忆册</view><view class="data-desc">照片时间线与 PDF</view></view>
-      <ui-icon name="chevron-right" size="{{24}}" tone="muted" />
-    </view>
-    <view class="data-entry" bindtap="goTravelMap">
-      <view class="utility-icon utility-green"><ui-icon name="map" size="{{34}}" tone="green" /></view>
-      <view class="data-copy"><view class="data-title">旅行地图</view><view class="data-desc">去过、想去与位置待补充</view></view>
-      <ui-icon name="chevron-right" size="{{24}}" tone="muted" />
-    </view>
-    <view class="data-entry" bindtap="goWheel">
-      <view class="utility-icon utility-accent"><ui-icon name="wheel" size="{{34}}" tone="accent" /></view>
-      <view class="data-copy"><view class="data-title">决策转盘</view><view class="data-desc">输入选项，转一转替你做决定</view></view>
-      <ui-icon name="chevron-right" size="{{24}}" tone="muted" />
-    </view>
-    <view class="data-entry" bindtap="goWishlistCreate">
-      <view class="utility-icon utility-amber"><ui-icon name="heart" size="{{34}}" tone="amber" /></view>
-      <view class="data-copy"><view class="data-title">想去清单</view><view class="data-desc">{{wishlist.length}} 个计划 · 预订和到访状态</view></view>
-      <ui-icon name="chevron-right" size="{{24}}" tone="muted" />
-    </view>
-    <view class="data-entry" wx:if="{{toolsExpanded}}" bindtap="goDataManagement">
-      <view class="utility-icon utility-blue"><ui-icon name="database" size="{{34}}" tone="blue" /></view>
-      <view class="data-copy"><view class="data-title">数据管理</view><view class="data-desc">备份、PDF 导出与数据恢复</view></view>
-      <ui-icon name="chevron-right" size="{{24}}" tone="muted" />
-    </view>
-    <view class="data-entry" wx:if="{{toolsExpanded}}" bindtap="goCleanup">
-      <view class="utility-icon utility-green"><ui-icon name="sparkles" size="{{34}}" tone="green" /></view>
-      <view class="data-copy"><view class="data-title">待整理中心</view><view class="data-desc">重复地点、缺失信息与照片健康</view></view>
-      <ui-icon name="chevron-right" size="{{24}}" tone="muted" />
-    </view>
-  </view>
-  <view class="tools-toggle icon-label" bindtap="toggleTools">
-    <text>{{toolsExpanded ? "收起工具" : "查看全部 9 个工具"}}</text>
-    <ui-icon wx:if="{{toolsExpanded}}" name="arrow-up" size="{{23}}" tone="blue" />
-    <ui-icon wx:else name="chevron-right" size="{{23}}" tone="blue" />
-  </view>
-
-  <view class="content-heading archive-heading"><view><view class="content-title">我的档案</view><view class="content-subtitle">查找每一次体验</view></view></view>
-  <scroll-view class="view-tabs-scroll" scroll-x enhanced show-scrollbar="{{false}}"><view class="view-tabs">
-    <view class="view-tab {{activeView === item.key ? 'view-active' : ''}}" wx:for="{{viewTabs}}" wx:key="key" data-view="{{item.key}}" bindtap="onViewChange">{{item.label}}</view>
-  </view></scroll-view>
-
-  <view class="tools">
-    <view class="search-box">
-      <ui-icon name="search" size="{{28}}" tone="muted" />
-      <input class="search-input" placeholder="搜索名称、城市、备注或标签" value="{{keyword}}" bindinput="onKeywordInput" />
-    </view>
-    <view class="tool-row">
-      <picker mode="selector" range="{{sortLabels}}" bindchange="onSortChange">
-        <view class="tool-button tool-button-icon"><ui-icon name="sliders" size="{{25}}" tone="muted" /><text>{{sortLabel}}</text></view>
-      </picker>
-      <view class="tool-button {{activeStatus === 'completed' ? 'tool-active' : ''}}" data-status="completed" bindtap="onStatusFilter">已完成</view>
-      <view class="tool-button {{activeStatus === 'draft' ? 'tool-active' : ''}}" data-status="draft" bindtap="onStatusFilter">草稿</view>
-    </view>
-  </view>
-
-  <view class="filter-tabs">
-    <view class="filter-tab {{activeType === 'all' ? 'filter-active' : ''}}" data-type="all" bindtap="onTypeFilter">全部</view>
-    <view class="filter-tab {{activeType === 'hotel' ? 'filter-active' : ''}}" data-type="hotel" bindtap="onTypeFilter">酒店</view>
-    <view class="filter-tab {{activeType === 'restaurant' ? 'filter-active' : ''}}" data-type="restaurant" bindtap="onTypeFilter">餐厅</view>
-  </view>
-
-  <view class="active-filter" wx:if="{{hasActiveFilters}}">
-    <view class="active-filter-text">当前：{{filterSummary}}</view>
-    <view class="clear-filter" bindtap="clearFilters">清除</view>
-  </view>
-
-  <view class="filtered-empty" wx:if="{{hasActiveFilters && (activeView === 'places' ? !placeCards.length : activeView === 'wishlist' ? !visibleWishlist.length : !visibleRecords.length)}}">
-    <view class="empty-icon"><ui-icon name="search" size="{{42}}" tone="blue" /></view>
-    <view class="empty-title">没有符合条件的{{activeView === "places" ? "地点" : activeView === "wishlist" ? "计划" : "体验"}}</view>
-    <view class="empty-desc">当前条件：{{filterSummary}}</view>
-    <button class="button secondary clear-button" bindtap="clearFilters">清除全部筛选</button>
-  </view>
-
-  <block wx:if="{{(activeView === 'places' ? placeCards.length : activeView === 'wishlist' ? visibleWishlist.length : visibleRecords.length) || !hasActiveFilters}}">
-    <block wx:if="{{activeView === 'records'}}">
-      <view class="section-head">
-        <view class="section-title">体验记录</view>
-        <view class="section-count">{{visibleRecords.length}} 条</view>
-      </view>
-      <view class="empty" wx:if="{{!visibleRecords.length}}">
-        <view class="empty-icon"><ui-icon name="book" size="{{42}}" tone="blue" /></view>
-        <view class="empty-title">还没有体验记录</view>
-        <view class="empty-desc">新增酒店或餐厅，把值得复盘的体验记下来。</view>
-        <button class="button primary empty-button" bindtap="goQuickCreate">新增体验</button>
-      </view>
-      <view class="record" wx:for="{{visibleRecords}}" wx:key="id" data-id="{{item.id}}" bindtap="goDetail">
-        <image class="record-cover" wx:if="{{item.coverPhotoPath}}" src="{{item.coverPhotoPath}}" mode="aspectFill" />
-        <view class="record-main">
-          <view>
-            <text class="record-type">{{item.typeLabel}}</text>
-            <text class="record-status {{item.status === 'draft' ? 'status-draft' : ''}}">{{item.statusLabel}}</text>
-          </view>
-          <view class="record-title">{{item.displayName}}</view>
-          <view class="record-meta">{{item.city || "未填写城市"}} · {{item.stayDate || "未填写日期"}}</view>
-          <view class="record-note">{{item.publicNote || item.verdict}}</view>
-        </view>
-        <view class="record-score">{{item.isRated ? item.overallScore : "--"}}</view>
-      </view>
-    </block>
-
-    <block wx:if="{{activeView === 'places'}}">
-      <view class="section-head"><view class="section-title">地点档案</view><view class="section-count">{{placeCards.length}} 个</view></view>
-      <view class="empty" wx:if="{{!placeCards.length}}"><view class="empty-icon"><ui-icon name="pin" size="{{42}}" tone="green" /></view><view class="empty-title">还没有地点档案</view><view class="empty-desc">保存体验后会自动建立独立地点，你可以手动合并重复地点。</view></view>
-      <view class="place-card" wx:for="{{placeCards}}" wx:key="id" data-id="{{item.id}}" bindtap="goPlace">
-        <image class="record-cover" wx:if="{{item.latestVisit.coverPhotoPath}}" src="{{item.latestVisit.coverPhotoPath}}" mode="aspectFill" />
-        <view class="place-main">
-          <view><text class="record-type">{{item.typeLabel}}</text><text class="duplicate-hint" wx:if="{{item.hasPossibleDuplicate}}">待整理</text></view>
-          <view class="record-title">{{item.name}}</view>
-          <view class="record-meta">{{item.city || "未填写城市"}}{{item.area ? " · " + item.area : ""}} · {{item.visitCount}} 次到访</view>
-          <view class="record-note">最近：{{item.latestVisit ? (item.latestVisit.stayDate || "未填写日期") : "暂无"}}{{item.ratedCount > 1 ? " · 较上次 " + (item.scoreDelta > 0 ? "+" : "") + item.scoreDelta : ""}}</view>
-        </view>
-        <view class="record-score">{{item.ratedCount ? item.averageScore : "--"}}</view>
-      </view>
-    </block>
-
-    <block wx:if="{{activeView === 'wishlist'}}">
-      <view class="section-head"><view class="section-title">想去清单</view><view class="section-count">{{visibleWishlist.length}} 个</view></view>
-      <view class="wish-filter"><view class="wish-filter-item {{wishlistStatus === 'wishlist' ? 'active' : ''}}" data-status="wishlist" bindtap="onWishlistStatus">想去</view><view class="wish-filter-item {{wishlistStatus === 'booked' ? 'active' : ''}}" data-status="booked" bindtap="onWishlistStatus">已预订</view><view class="wish-filter-item {{wishlistStatus === 'visited' ? 'active' : ''}}" data-status="visited" bindtap="onWishlistStatus">已到访</view></view>
-      <view class="empty" wx:if="{{!visibleWishlist.length}}"><view class="empty-icon"><ui-icon name="heart" size="{{42}}" tone="amber" /></view><view class="empty-title">还没有旅行计划</view><view class="empty-desc">先记下想住的酒店或想吃的餐厅，到访后可以直接转成体验。</view><button class="button primary empty-button" bindtap="goWishlistCreate"><ui-icon name="plus" size="{{28}}" tone="white" /><text>新增想去地点</text></button></view>
-      <view class="wish-card" wx:for="{{visibleWishlist}}" wx:key="id" data-id="{{item.id}}" bindtap="goWishlistDetail">
-        <view class="wish-main"><view><text class="record-type">{{item.typeLabel}}</text><text class="wish-status {{item.status}}">{{item.statusLabel}}</text></view><view class="record-title">{{item.name}}</view><view class="record-meta">{{item.city || "未填写城市"}}{{item.targetDate ? " · " + item.targetDate : ""}}</view><view class="record-note">{{item.note || item.budgetText || "还没有补充计划"}}</view></view>
-        <view class="wish-priority {{item.priority}}">{{item.priorityLabel}}</view>
-      </view>
-    </block>
-
-    <block wx:if="{{activeView === 'timeline'}}">
-      <view class="section-head"><view class="section-title">体验时间线</view><view class="section-count">{{timelineGroups.length}} 组</view></view>
-      <view class="empty" wx:if="{{!timelineGroups.length}}"><view class="empty-title">时间线还是空的</view><view class="empty-desc">有日期的体验会按月份整理在这里。</view></view>
-      <view class="timeline-group" wx:for="{{timelineGroups}}" wx:key="key" wx:for-item="group">
-        <view class="timeline-title">{{group.title}}</view>
-        <view class="record timeline-record" wx:for="{{group.records}}" wx:key="id" wx:for-item="item" data-id="{{item.id}}" bindtap="goDetail">
-          <view class="record-main"><view class="record-type">{{item.typeLabel}}</view><view class="record-title">{{item.displayName}}</view><view class="record-meta">{{item.city || "未填写城市"}} · {{item.statusLabel}}</view></view>
-          <view class="record-score">{{item.isRated ? item.overallScore : "--"}}</view>
-        </view>
-      </view>
-    </block>
-
-    <block wx:if="{{activeView === 'cities'}}">
-      <view class="section-head"><view class="section-title">城市档案</view><view class="section-count">{{cityStats.length}} 城市</view></view>
-      <view class="empty" wx:if="{{!cityStats.length}}"><view class="empty-title">还没有城市</view><view class="empty-desc">给体验填上城市后，这里会自动汇总。</view></view>
-      <view class="city-card {{selectedCity === item.city ? 'city-card-active' : ''}}" wx:for="{{cityStats}}" wx:key="city" data-city="{{item.city}}" bindtap="selectCity">
-        <view><view class="city-title">{{item.city}}</view><view class="city-meta">酒店 {{item.hotelTotal}} · 餐厅 {{item.restaurantTotal}} · 平均 {{item.averageScore}}</view><view class="city-best">最佳：{{item.bestRecordName || "暂无"}}</view></view>
-        <view class="city-count">{{item.total}}</view>
-      </view>
-      <view wx:if="{{selectedCity}}">
-        <view class="section-head city-detail-head"><view class="section-title">{{selectedCity}}</view><view class="section-count">{{cityRecords.length}} 条</view></view>
-        <view class="record" wx:for="{{cityRecords}}" wx:key="id" data-id="{{item.id}}" bindtap="goDetail">
-          <view class="record-main"><view class="record-type">{{item.typeLabel}}</view><view class="record-title">{{item.displayName}}</view><view class="record-meta">{{item.stayDate || "未填写日期"}} · {{item.statusLabel}}</view></view>
-          <view class="record-score">{{item.isRated ? item.overallScore : "--"}}</view>
-        </view>
-      </view>
-    </block>
-
-    <block wx:if="{{activeView === 'tags'}}">
-      <view class="section-head"><view class="section-title">体验标签</view><view class="section-count">{{tagStats.length}} 个</view></view>
-      <view class="empty" wx:if="{{!tagStats.length}}"><view class="empty-title">还没有标签</view><view class="empty-desc">记录中的系统标签和自定义标签会汇总在这里。</view></view>
-      <view class="tag-cloud">
-        <view class="tag-card {{activeTag === item.tag ? 'tag-card-active' : ''}}" wx:for="{{tagStats}}" wx:key="tag" data-tag="{{item.tag}}" bindtap="onTagFilter"><view class="tag-name">{{item.tag}}</view><view class="tag-stat">{{item.total}} 次 · 平均 {{item.averageScore}}</view></view>
-      </view>
-    </block>
-  </block>
 </view>

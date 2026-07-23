@@ -1,1 +1,6 @@
-{"navigationBarTitleText":"编辑行程"}
+{
+  "navigationBarTitleText": "编辑行程",
+  "usingComponents": {
+    "ui-icon": "/components/ui-icon/index"
+  }
+}

@@ -1,4 +1,4 @@
-const ledgerStore = require("../../../utils/repositories/ledgerRepository");
+const ledgerStore = require("../../../utils/tripLedgerStore");
 
 function memberCount(ledger) {
   return (ledger.members || []).filter((member) => {

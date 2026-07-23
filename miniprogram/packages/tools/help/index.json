@@ -2,6 +2,6 @@
   "usingComponents": {
     "ui-icon": "/components/ui-icon/index"
   },
-  "navigationBarTitleText": "帮助与使用手册",
+  "navigationBarTitleText": "工具箱使用帮助",
   "disableScroll": true
 }

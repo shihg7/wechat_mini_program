@@ -5,13 +5,21 @@ const { HELP_SECTIONS, USER_GUIDE_META } = require("../miniprogram/packages/tool
 
 const root = path.resolve(__dirname, "..");
 const outputPath = path.join(root, "docs/USER_GUIDE.md");
-const supportedBlocks = new Set(["paragraph", "bullets", "steps", "table", "image", "flow", "code", "questions"]);
+const supportedBlocks = new Set(["paragraph", "bullets", "steps", "table", "flow", "code", "questions"]);
 
 function assertText(value, label) {
   if (typeof value !== "string" || !value.trim()) throw new Error(`${label} 不能为空`);
 }
 
 function validateHelpSections() {
+  ["title", "version", "updatedAt", "footer"].forEach((field) => assertText(USER_GUIDE_META[field], `USER_GUIDE_META.${field}`));
+  if (!Array.isArray(USER_GUIDE_META.notes) || !USER_GUIDE_META.notes.length) {
+    throw new Error("USER_GUIDE_META.notes 不能为空");
+  }
+  if (!Array.isArray(USER_GUIDE_META.introduction) || !USER_GUIDE_META.introduction.length) {
+    throw new Error("USER_GUIDE_META.introduction 不能为空");
+  }
+
   const ids = new Set();
   HELP_SECTIONS.forEach((section, sectionIndex) => {
     const label = `HELP_SECTIONS[${sectionIndex}]`;
@@ -22,6 +30,12 @@ function validateHelpSections() {
     if (!Array.isArray(section.steps) || !section.steps.length) throw new Error(`${label}.steps 不能为空`);
     if (!Array.isArray(section.tips)) throw new Error(`${label}.tips 必须是数组`);
     if (section.url && !section.actionLabel) throw new Error(`${label}.url 缺少 actionLabel`);
+    if (section.url && !section.url.startsWith("/")) throw new Error(`${label}.url 必须是小程序绝对路径`);
+    if (Object.prototype.hasOwnProperty.call(section, "tab")) throw new Error(`${label}.tab 已不再支持`);
+    section.flow.forEach((item, flowIndex) => {
+      assertText(item.icon, `${label}.flow[${flowIndex}].icon`);
+      assertText(item.label, `${label}.flow[${flowIndex}].label`);
+    });
 
     const guideSections = section.guide && section.guide.sections;
     if (!Array.isArray(guideSections) || !guideSections.length) throw new Error(`${label}.guide.sections 不能为空`);
@@ -33,10 +47,6 @@ function validateHelpSections() {
       guideSection.blocks.forEach((block, blockIndex) => {
         if (!supportedBlocks.has(block.type)) {
           throw new Error(`${label}.guide.sections[${guideIndex}].blocks[${blockIndex}] 类型不受支持：${block.type}`);
-        }
-        if (block.type === "image") {
-          const imagePath = path.join(root, "docs", block.src || "");
-          if (!block.src || !fs.existsSync(imagePath)) throw new Error(`手册截图不存在：${block.src || "(empty)"}`);
         }
       });
     });
@@ -52,17 +62,6 @@ function renderTable(block) {
   const divider = `| ${block.headers.map(() => "---").join(" | ")} |`;
   const rows = block.rows.map((row) => `| ${row.map(tableCell).join(" | ")} |`);
   return [header, divider, ...rows].join("\n");
-}
-
-function renderImage(block) {
-  const width = block.width || 360;
-  return [
-    "<p align=\"center\">",
-    `  <img src=\"${block.src}\" width=\"${width}\" alt=\"${block.alt}\">`,
-    "</p>",
-    "",
-    `<p align=\"center\"><em>${block.caption}</em></p>`
-  ].join("\n");
 }
 
 function renderFlow(block) {
@@ -89,8 +88,6 @@ function renderBlock(block) {
       return block.items.map((item, index) => `${index + 1}. ${item}`).join("\n");
     case "table":
       return renderTable(block);
-    case "image":
-      return renderImage(block);
     case "flow":
       return renderFlow(block);
     case "code":
@@ -111,7 +108,7 @@ function renderCoreContent(section) {
     `**功能入口：** ${section.entry}`
   ];
   if (section.url) {
-    lines.push("", `**页面直达：** ${section.actionLabel}（\`${section.url}\`${section.tab ? "，底部导航页" : ""}）`);
+    lines.push("", `**页面直达：** ${section.actionLabel}（\`${section.url}\`）`);
   }
   lines.push("", "### 核心路径", "", section.flow.map((item) => `\`${item.label}\``).join(" → "), "");
 

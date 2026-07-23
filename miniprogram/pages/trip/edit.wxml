@@ -1,13 +1,79 @@
 <scroll-view class="page" scroll-y wx:if="{{!missing}}">
-  <view class="hero"><view class="eyebrow">TRIP PROFILE</view><view class="title">{{mode === 'edit' ? '编辑行程' : '新建行程'}}</view></view>
-  <view class="section">
-    <view class="field"><view class="label">行程名称</view><input class="input" placeholder="例如：东京周末" value="{{form.title}}" data-field="title" bindinput="input" /></view>
-    <view class="field"><view class="label">城市/目的地</view><input class="input" placeholder="多个城市用顿号分隔" value="{{form.citiesText}}" data-field="citiesText" bindinput="input" /></view>
-    <view class="grid"><view class="field"><view class="label">开始日期</view><picker mode="date" value="{{form.startDate}}" data-field="startDate" bindchange="date"><view class="input">{{form.startDate || '选择日期'}}</view></picker></view><view class="field"><view class="label">结束日期</view><picker mode="date" value="{{form.endDate}}" data-field="endDate" bindchange="date"><view class="input">{{form.endDate || '选择日期'}}</view></picker></view></view>
-    <view class="label">状态</view><view class="segments"><view class="segment {{form.status === item.key ? 'active' : ''}}" wx:for="{{statuses}}" wx:key="key" data-value="{{item.key}}" bindtap="status">{{item.label}}</view></view>
-    <view class="grid"><view class="field"><view class="label">本位币</view><input class="input" value="{{form.baseCurrency}}" data-field="baseCurrency" bindinput="input" /></view><view class="field"><view class="label">总预算</view><input class="input" type="digit" placeholder="0.00" value="{{form.budgetText}}" data-field="budgetText" bindinput="input" /></view></view>
-    <view class="field"><view class="label">备注</view><textarea class="textarea" value="{{form.note}}" data-field="note" bindinput="input" /></view>
+  <view class="header">
+    <view class="eyebrow">{{mode === "edit" ? "更新行程" : "创建行程"}}</view>
+    <view class="title">{{mode === "edit" ? "编辑行程" : "新建行程"}}</view>
   </view>
-  <button class="save" bindtap="save">保存行程</button>
+
+  <view class="form-band">
+    <view class="field">
+      <view class="label">行程名称</view>
+      <input
+        class="input"
+        maxlength="40"
+        placeholder="例如：东京周末"
+        value="{{form.title}}"
+        data-field="title"
+        bindinput="input"
+      />
+    </view>
+    <view class="field">
+      <view class="label">目的地</view>
+      <input
+        class="input"
+        maxlength="60"
+        placeholder="例如：东京"
+        value="{{form.destination}}"
+        data-field="destination"
+        bindinput="input"
+      />
+    </view>
+    <view class="date-grid">
+      <view class="field">
+        <view class="label">开始日期</view>
+        <picker mode="date" value="{{form.startDate}}" data-field="startDate" bindchange="date">
+          <view class="input picker-value icon-label">
+            <ui-icon name="calendar" size="{{23}}" tone="green" />
+            <text>{{form.startDate || "选择日期"}}</text>
+          </view>
+        </picker>
+      </view>
+      <view class="field">
+        <view class="label">结束日期</view>
+        <picker mode="date" value="{{form.endDate}}" data-field="endDate" bindchange="date">
+          <view class="input picker-value icon-label">
+            <ui-icon name="calendar" size="{{23}}" tone="amber" />
+            <text>{{form.endDate || "选择日期"}}</text>
+          </view>
+        </picker>
+      </view>
+    </view>
+    <view class="field">
+      <view class="label">备注</view>
+      <textarea
+        class="textarea"
+        maxlength="300"
+        placeholder="写下这段旅行的重要信息"
+        value="{{form.note}}"
+        data-field="note"
+        bindinput="input"
+      />
+    </view>
+  </view>
+  <view class="bottom-spacer"></view>
 </scroll-view>
-<view class="page" wx:if="{{missing}}"><view class="section"><view class="title">找不到这段行程</view><view class="label">它可能已经被删除或被备份恢复替换。</view><button class="save" bindtap="goBack">返回上一页</button></view></view>
+
+<view class="save-bar" wx:if="{{!missing}}">
+  <button class="save-button icon-action" loading="{{saving}}" disabled="{{saving}}" bindtap="save">
+    <ui-icon name="check" size="{{27}}" tone="white" />
+    <text>{{mode === "edit" ? "保存修改" : "创建行程"}}</text>
+  </button>
+</view>
+
+<view class="missing" wx:if="{{missing}}">
+  <view class="missing-icon"><ui-icon name="alert" size="{{42}}" tone="accent" /></view>
+  <view class="missing-title">找不到这段行程</view>
+  <button class="back-button icon-action" bindtap="goBack">
+    <ui-icon name="arrow-up" size="{{24}}" tone="white" />
+    <text>返回上一页</text>
+  </button>
+</view>

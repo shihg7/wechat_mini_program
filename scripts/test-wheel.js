@@ -3,7 +3,7 @@ const memory = {};
 global.wx = { getStorageSync(key) { return memory[key]; }, setStorageSync(key, value) { memory[key] = JSON.parse(JSON.stringify(value)); } };
 
 const engine = require("../miniprogram/packages/tools/utils/wheelEngine");
-const store = require("../miniprogram/utils/wheelStore");
+const store = require("../miniprogram/packages/tools/utils/wheelStore");
 
 assert.strictEqual(engine.normalizeAngle(-Math.PI / 2), Math.PI * 1.5);
 assert(Math.abs(engine.shortestAngleDelta(0.05, engine.TAU - 0.05) - 0.1) < 1e-9);

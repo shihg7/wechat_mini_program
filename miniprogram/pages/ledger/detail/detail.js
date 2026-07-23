@@ -1,7 +1,5 @@
-const ledgerStore = require("../../../utils/repositories/ledgerRepository");
+const ledgerStore = require("../../../utils/tripLedgerStore");
 const { PRIVATE_MODE, REDACTED_MODE, exportLedgerImage, exportLedgerJson, exportLedgerPdf } = require("../../../utils/ledgerExport");
-const demoMode = require("../../../utils/demoMode");
-const departureStore = require("../../../utils/repositories/departureRepository");
 
 const {
   DEFAULT_CATEGORIES,
@@ -216,15 +214,10 @@ Page({
     isSettled: true,
     showExportPanel: false,
     exporting: false,
-    ledgerTab: "expenses",
-    demoActive: false
+    ledgerTab: "expenses"
   },
 
   onLoad(options) {
-    const demoActive = !!(options && options.demo === "ledger" && demoMode.getState().active);
-    this.pendingBookingId = String(options && options.bookingId || "");
-    this.bookingPrefillApplied = false;
-    this.setData({ demoActive });
     if (options && options.id) {
       this.setData({ ledgerId: options.id });
       this.refreshLedger(options.id);
@@ -246,7 +239,6 @@ Page({
       setTimeout(() => wx.navigateBack(), 600);
       return;
     }
-    if (this.data.demoActive) demoMode.markStep("ledger");
     const members = getMembers(ledger);
     const activeMembers = getActiveMemberList(ledger, members);
     const summary = calculateLedgerSummary(ledger);
@@ -276,39 +268,7 @@ Page({
       expenseForm,
       memberOptions: buildMemberOptions(participantMembers, expenseForm.participantIds),
       participantSummary: `${expenseForm.participantIds.length}/${participantMembers.length} 人参与`
-    }, () => this.applyBookingExpensePrefill());
-  },
-
-  applyBookingExpensePrefill() {
-    if (this.bookingPrefillApplied || !this.pendingBookingId || !this.data.ledger) return;
-    const booking = departureStore.getBookingById(this.pendingBookingId);
-    this.bookingPrefillApplied = true;
-    if (!booking || booking.ledgerId && booking.ledgerId !== this.data.ledgerId) return;
-    if (booking.ledgerExpenseId && (this.data.ledger.expenses || []).some((item) => item.id === booking.ledgerExpenseId)) {
-      wx.showToast({ title: "这笔预订已记入账本", icon: "none" });
-      return;
-    }
-    const categoryIndex = Math.max(0, this.data.categories.indexOf(booking.category));
-    const form = {
-      ...buildExpenseForm(this.data.ledger, this.data.members, this.data.activeMembers, null),
-      title: booking.name,
-      amount: centsToInput(booking.amountCents),
-      categoryIndex,
-      categoryName: this.data.categories[categoryIndex] || "其他",
-      paidAt: booking.startDate,
-      note: booking.bookingReference ? `预订编号：${booking.bookingReference}` : booking.note
-    };
-    this.setData({
-      ledgerTab: "expenses",
-      expenseForm: form,
-      memberOptions: buildMemberOptions(form.participantMembers, form.participantIds),
-      participantSummary: `${form.participantIds.length}/${form.participantMembers.length} 人参与`,
-      editingExpenseId: "",
-      expenseFormSnapshot: JSON.stringify(form),
-      expenseFormDirty: false,
-      showExpenseForm: true
     });
-    if (wx.pageScrollTo) wx.pageScrollTo({ scrollTop: 260, duration: 180 });
   },
 
   editLedger() {
@@ -529,17 +489,12 @@ Page({
       note: form.note
     };
     const wasEditing = !!this.data.editingExpenseId;
-    let savedExpense;
     try {
-      if (wasEditing) savedExpense = updateExpense(this.data.ledgerId, this.data.editingExpenseId, payload);
-      else savedExpense = addExpense(this.data.ledgerId, payload);
+      if (wasEditing) updateExpense(this.data.ledgerId, this.data.editingExpenseId, payload);
+      else addExpense(this.data.ledgerId, payload);
     } catch (error) {
       wx.showToast({ title: error.message || "支出保存失败", icon: "none" });
       return;
-    }
-    if (!wasEditing && this.pendingBookingId && savedExpense) {
-      departureStore.updateBooking(this.pendingBookingId, { ledgerId: this.data.ledgerId, ledgerExpenseId: savedExpense.id });
-      this.pendingBookingId = "";
     }
     this.disableLeaveAlert();
     this.setData({ showExpenseForm: false, expenseFormDirty: false, editingExpenseId: "" });

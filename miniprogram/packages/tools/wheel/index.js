@@ -1,12 +1,11 @@
 const engine = require("../utils/wheelEngine");
-const store = require("../utils/repositories/wheelRepository");
-const demoMode = require("../../../utils/demoMode");
+const store = require("../utils/wheelStore");
 
 const COLORS = ["#176b68", "#e86343", "#e6af2e", "#3568ad", "#a63d52", "#5f8f4e", "#7257a5", "#26849a"];
 
 Page({
-  data: { wheels: [], wheelTitles: [], wheelIndex: 0, wheel: null, batchText: "", enabledCount: 0, spinning: false, winner: null, showEditor: true, historyExpanded: false, demoActive: false },
-  onLoad(options = {}) { const demoActive = options.demo === "wheel" && demoMode.getState().active; this.requestFrame = null; this.rotation = 0; this.velocity = 0; this.lastTouchAngle = 0; this.lastTouchTime = 0; this.lastSector = -1; this.setData({ demoActive }); this.loadWheels(options.id); },
+  data: { wheels: [], wheelTitles: [], wheelIndex: 0, wheel: null, batchText: "", enabledCount: 0, spinning: false, winner: null, showEditor: true, historyExpanded: false },
+  onLoad(options = {}) { this.requestFrame = null; this.rotation = 0; this.velocity = 0; this.lastTouchAngle = 0; this.lastTouchTime = 0; this.lastSector = -1; this.loadWheels(options.id); },
   onReady() { this.prepareCanvas(); },
   onUnload() { this.cancelAnimation(); },
 
@@ -16,7 +15,6 @@ Page({
     let wheelIndex = Math.max(0, wheels.findIndex((item) => item.id === String(preferredId || (this.data.wheel && this.data.wheel.id) || "")));
     if (wheelIndex < 0) wheelIndex = 0;
     const sourceWheel = wheels[wheelIndex];
-    if (this.data.demoActive && preferredId && sourceWheel.id === String(preferredId)) demoMode.markStep("wheel");
     const wheel = { ...sourceWheel, history: sourceWheel.history.map((item) => ({ ...item, displayTime: item.spunAt.replace("T", " ").slice(0, 16) })) };
     this.setData({ wheels, wheelTitles: wheels.map((item) => item.title), wheelIndex, wheel, enabledCount: wheel.options.filter((item) => item.enabled).length }, () => this.draw());
   },
@@ -24,7 +22,7 @@ Page({
   prepareCanvas() {
     wx.createSelectorQuery().in(this).select("#wheelCanvas").fields({ node: true, size: true }).exec((result) => {
       const info = result && result[0]; if (!info || !info.node) return;
-      const windowInfo = wx.getWindowInfo ? wx.getWindowInfo() : (wx.getSystemInfoSync ? wx.getSystemInfoSync() : {});
+      const windowInfo = wx.getWindowInfo ? wx.getWindowInfo() : { pixelRatio: 2 };
       const scale = windowInfo.pixelRatio || 2;
       this.canvas = info.node; this.ctx = this.canvas.getContext("2d"); this.canvasWidth = info.width; this.canvasHeight = info.height;
       this.canvas.width = info.width * scale; this.canvas.height = info.height * scale; this.ctx.scale(scale, scale); this.draw();
@@ -32,13 +30,37 @@ Page({
   },
 
   enabledOptions() { return this.data.wheel ? this.data.wheel.options.filter((item) => item.enabled) : []; },
+  drawFixedPointer(ctx, radius) {
+    ctx.save();
+    ctx.translate(0, -radius + 9);
+    ctx.beginPath();
+    ctx.moveTo(-18, -3);
+    ctx.lineTo(18, -3);
+    ctx.lineTo(0, 30);
+    ctx.closePath();
+    ctx.fillStyle = "#fff";
+    ctx.strokeStyle = "#172033";
+    ctx.lineWidth = 5;
+    ctx.lineJoin = "round";
+    ctx.shadowColor = "rgba(23,32,51,.28)";
+    ctx.shadowBlur = 6;
+    ctx.shadowOffsetY = 3;
+    ctx.fill();
+    ctx.shadowColor = "transparent";
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(0, 5, 4, 0, engine.TAU);
+    ctx.fillStyle = "#e86343";
+    ctx.fill();
+    ctx.restore();
+  },
   draw() {
     if (!this.ctx) return;
     const ctx = this.ctx; const width = this.canvasWidth; const height = this.canvasHeight; const cx = width / 2; const cy = height / 2; const radius = Math.min(width, height) / 2 - 8; const options = this.enabledOptions();
     ctx.clearRect(0, 0, width, height); ctx.save(); ctx.translate(cx, cy);
     ctx.beginPath(); ctx.arc(0, 0, radius + 5, 0, engine.TAU); ctx.fillStyle = "#172033"; ctx.shadowColor = "rgba(23,32,51,.24)"; ctx.shadowBlur = 16; ctx.shadowOffsetY = 8; ctx.fill(); ctx.shadowColor = "transparent"; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
     ctx.save(); ctx.rotate(this.rotation);
-    if (!options.length) { ctx.beginPath(); ctx.arc(0, 0, radius - 2, 0, engine.TAU); ctx.fillStyle = "#e5e9ee"; ctx.fill(); ctx.beginPath(); ctx.arc(0, 0, radius * 0.7, 0, engine.TAU); ctx.strokeStyle = "#cbd2db"; ctx.lineWidth = 1; ctx.setLineDash([5, 6]); ctx.stroke(); ctx.setLineDash([]); ctx.fillStyle = "#667085"; ctx.font = "600 14px sans-serif"; ctx.textAlign = "center"; ctx.fillText("等待你的选项", 0, 5); ctx.restore(); ctx.restore(); return; }
+    if (!options.length) { ctx.beginPath(); ctx.arc(0, 0, radius - 2, 0, engine.TAU); ctx.fillStyle = "#e5e9ee"; ctx.fill(); ctx.beginPath(); ctx.arc(0, 0, radius * 0.7, 0, engine.TAU); ctx.strokeStyle = "#cbd2db"; ctx.lineWidth = 1; ctx.setLineDash([5, 6]); ctx.stroke(); ctx.setLineDash([]); ctx.fillStyle = "#667085"; ctx.font = "600 14px sans-serif"; ctx.textAlign = "center"; ctx.fillText("等待你的选项", 0, 5); ctx.restore(); this.drawFixedPointer(ctx, radius); ctx.restore(); return; }
     const slice = engine.TAU / options.length; const maxChars = options.length > 24 ? 3 : options.length > 12 ? 5 : 9;
     options.forEach((option, index) => {
       const start = -Math.PI / 2 + index * slice; const end = start + slice;
@@ -46,7 +68,7 @@ Page({
       ctx.save(); ctx.rotate(start + slice / 2); ctx.translate(radius * 0.62, 0); if (start + slice / 2 > Math.PI / 2 && start + slice / 2 < Math.PI * 1.5) ctx.rotate(Math.PI); ctx.fillStyle = "#fff"; ctx.font = `${options.length > 24 ? 10 : options.length > 12 ? 11 : 13}px sans-serif`; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(engine.truncateLabel(option.text, maxChars), 0, 0); ctx.restore();
     });
     ctx.beginPath(); ctx.arc(0, 0, radius - 8, 0, engine.TAU); ctx.strokeStyle = "rgba(255,255,255,.28)"; ctx.lineWidth = 1; ctx.stroke();
-    ctx.beginPath(); ctx.arc(0, 0, Math.max(24, radius * 0.13), 0, engine.TAU); ctx.fillStyle = "#fff"; ctx.shadowColor = "rgba(23,32,51,.25)"; ctx.shadowBlur = 8; ctx.fill(); ctx.shadowColor = "transparent"; ctx.beginPath(); ctx.arc(0, 0, Math.max(18, radius * 0.09), 0, engine.TAU); ctx.fillStyle = "#172033"; ctx.fill(); ctx.fillStyle = "#fff"; ctx.font = "700 10px sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText("GO", 0, 0); ctx.restore(); ctx.restore();
+    ctx.beginPath(); ctx.arc(0, 0, Math.max(24, radius * 0.13), 0, engine.TAU); ctx.fillStyle = "#fff"; ctx.shadowColor = "rgba(23,32,51,.25)"; ctx.shadowBlur = 8; ctx.fill(); ctx.shadowColor = "transparent"; ctx.beginPath(); ctx.arc(0, 0, Math.max(18, radius * 0.09), 0, engine.TAU); ctx.fillStyle = "#172033"; ctx.fill(); ctx.fillStyle = "#fff"; ctx.font = "700 10px sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText("GO", 0, 0); ctx.restore(); this.drawFixedPointer(ctx, radius); ctx.restore();
   },
 
   frame(callback) { if (this.canvas && this.canvas.requestAnimationFrame) return this.canvas.requestAnimationFrame(callback); return setTimeout(() => callback(Date.now()), 16); },

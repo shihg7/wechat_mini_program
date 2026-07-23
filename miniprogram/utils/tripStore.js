@@ -1,83 +1,315 @@
 const { createId } = require("./id");
-const { formatCents } = require("./tripLedgerStore");
 
-const STORAGE_KEY = "experience_trips";
-const CATEGORIES = ["住宿", "餐饮", "交通", "门票", "购物", "其他"];
-const ITEM_TYPES = ["hotel", "restaurant", "transport", "attraction", "custom"];
+const STORAGE_KEY = "toolbox_trips";
+const MAX_RANGE_DAYS = 370;
+const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+const TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
 
-function clone(value) { return JSON.parse(JSON.stringify(value)); }
-function cents(value) { const text = String(value == null ? "" : value).trim(); if (!/^\d+(\.\d{0,2})?$/.test(text)) return 0; const parts = text.split("."); return Number(parts[0]) * 100 + Number((parts[1] || "").padEnd(2, "0")); }
-function money(value, currency = "CNY") { return formatCents(value, currency); }
-function dateRange(start, end) { const days = []; if (!start || !end || start > end) return days; const cursor = new Date(`${start}T00:00:00Z`); const last = new Date(`${end}T00:00:00Z`); while (cursor <= last && days.length < 370) { days.push(cursor.toISOString().slice(0, 10)); cursor.setUTCDate(cursor.getUTCDate() + 1); } return days; }
-
-function normalizeItem(input = {}) {
-  return { id: String(input.id || createId("plan")), type: ITEM_TYPES.indexOf(input.type) >= 0 ? input.type : "custom", title: String(input.title || "").trim(), date: String(input.date || ""), startTime: String(input.startTime || ""), endTime: String(input.endTime || ""), sortOrder: Number.isFinite(Number(input.sortOrder)) ? Number(input.sortOrder) : 0, city: String(input.city || "").trim(), placeId: String(input.placeId || ""), wishlistId: String(input.wishlistId || ""), recordId: String(input.recordId || ""), bookingId: String(input.bookingId || ""), bookingStatus: String(input.bookingStatus || "planned"), estimatedCents: Number(input.estimatedCents || 0), note: String(input.note || "").trim() };
+function clone(value) {
+  return JSON.parse(JSON.stringify(value));
 }
 
-function normalizeTrip(input = {}) {
-  const categoryBudgets = CATEGORIES.reduce((result, category) => { result[category] = Number((input.categoryBudgets || {})[category] || 0); return result; }, {});
-  return { id: String(input.id || createId("trip")), title: String(input.title || "").trim(), cities: Array.isArray(input.cities) ? input.cities.map(String).filter(Boolean) : String(input.cities || "").split(/[、,，]/).map((item) => item.trim()).filter(Boolean), startDate: String(input.startDate || ""), endDate: String(input.endDate || ""), participantIds: Array.isArray(input.participantIds) ? input.participantIds.map(String) : [], baseCurrency: String(input.baseCurrency || "CNY").toUpperCase(), budgetTotalCents: Number(input.budgetTotalCents || 0), categoryBudgets, itineraryItems: (input.itineraryItems || []).map(normalizeItem), linkedLedgerIds: Array.isArray(input.linkedLedgerIds) ? input.linkedLedgerIds.map(String) : [], personalExpenses: (input.personalExpenses || []).map((item) => ({ id: String(item.id || createId("personal")), title: String(item.title || "").trim(), category: CATEGORIES.indexOf(item.category) >= 0 ? item.category : "其他", date: String(item.date || ""), originalAmountCents: Number(item.originalAmountCents || item.amountCents || 0), currency: String(item.currency || input.baseCurrency || "CNY").toUpperCase(), rate: Number(item.rate || 1), amountCents: Number(item.amountCents || 0), bookingId: String(item.bookingId || ""), note: String(item.note || "").trim() })), note: String(input.note || "").trim(), status: ["upcoming", "active", "ended", "archived"].indexOf(input.status) >= 0 ? input.status : "upcoming", createdAt: input.createdAt || new Date().toISOString(), updatedAt: input.updatedAt || "" };
+function text(value) {
+  return String(value == null ? "" : value);
 }
 
-function validateTrip(trip) { if (!trip.title) throw new Error("行程名称不能为空"); if (!trip.startDate || !trip.endDate) throw new Error("请选择行程日期"); if (trip.startDate > trip.endDate) throw new Error("结束日期不能早于开始日期"); trip.itineraryItems.forEach((item) => { if (item.date && (item.date < trip.startDate || item.date > trip.endDate)) throw new Error("日程日期超出行程范围"); }); return trip; }
-function getTrips() { const raw = wx.getStorageSync(STORAGE_KEY); return (Array.isArray(raw) ? raw : []).map(normalizeTrip).sort((a, b) => String(b.updatedAt || b.createdAt).localeCompare(String(a.updatedAt || a.createdAt))); }
-function setTrips(items) { const normalized = items.map(normalizeTrip); wx.setStorageSync(STORAGE_KEY, normalized); return normalized; }
-function getTripById(id) { return getTrips().find((item) => item.id === String(id)) || null; }
-function addTrip(input) { const now = new Date().toISOString(); const trip = validateTrip(normalizeTrip({ ...input, id: createId("trip"), createdAt: now, updatedAt: now })); setTrips([trip].concat(getTrips())); return trip; }
-function updateTrip(id, patch) { let updated = null; const items = getTrips().map((trip) => { if (trip.id !== String(id)) return trip; updated = validateTrip(normalizeTrip({ ...trip, ...patch, id: trip.id, createdAt: trip.createdAt, updatedAt: new Date().toISOString() })); return updated; }); if (!updated) return null; setTrips(items); return updated; }
-function deleteTrip(id) { const trip = getTripById(id); if (!trip) return false; if (trip.itineraryItems.length || trip.personalExpenses.length || trip.linkedLedgerIds.length) throw new Error("请先清空日程、支出和关联账本"); setTrips(getTrips().filter((item) => item.id !== String(id))); return true; }
-function duplicateTrip(id) { const source = getTripById(id); if (!source) return null; return addTrip({ ...source, title: `${source.title} 副本`, status: "upcoming", itineraryItems: source.itineraryItems.map((item) => ({ ...item, id: createId("plan"), recordId: "", bookingId: "", bookingStatus: "planned" })), linkedLedgerIds: [], personalExpenses: [] }); }
-function addItineraryItem(id, input) { const trip = getTripById(id); if (!trip) return null; const sameDay = trip.itineraryItems.filter((item) => item.date === String(input.date || "")); const sortOrder = sameDay.reduce((max, item) => Math.max(max, Number(item.sortOrder || 0)), -1) + 1; return updateTrip(id, { itineraryItems: trip.itineraryItems.concat(normalizeItem({ ...input, sortOrder })) }); }
-function updateItineraryItem(id, itemId, patch) { const trip = getTripById(id); if (!trip) return null; return updateTrip(id, { itineraryItems: trip.itineraryItems.map((item) => item.id === String(itemId) ? normalizeItem({ ...item, ...patch, id: item.id }) : item) }); }
-function duplicateItineraryItem(id, itemId) { const trip = getTripById(id); if (!trip) return null; const source = trip.itineraryItems.find((item) => item.id === String(itemId)); if (!source) return null; return addItineraryItem(id, { ...source, id: createId("plan"), title: `${source.title} 副本`, recordId: "", bookingId: "", bookingStatus: "planned" }); }
-function moveItineraryItem(id, itemId, direction) { const trip = getTripById(id); if (!trip) return null; const target = trip.itineraryItems.find((item) => item.id === String(itemId)); if (!target) return null; const dayItems = trip.itineraryItems.filter((item) => item.date === target.date).sort((a, b) => Number(a.sortOrder || 0) - Number(b.sortOrder || 0) || a.startTime.localeCompare(b.startTime)); const index = dayItems.findIndex((item) => item.id === target.id); const nextIndex = direction === "up" ? index - 1 : index + 1; if (nextIndex < 0 || nextIndex >= dayItems.length) return trip; const other = dayItems[nextIndex]; return updateTrip(id, { itineraryItems: trip.itineraryItems.map((item) => item.id === target.id ? { ...item, sortOrder: Number(other.sortOrder || nextIndex) } : item.id === other.id ? { ...item, sortOrder: Number(target.sortOrder || index) } : item) }); }
-function removeItineraryItem(id, itemId) { const trip = getTripById(id); return trip ? updateTrip(id, { itineraryItems: trip.itineraryItems.filter((item) => item.id !== String(itemId)) }) : null; }
-function findConflicts(items) { const sorted = items.filter((item) => item.date && item.startTime).slice().sort((a, b) => `${a.date}${a.startTime}`.localeCompare(`${b.date}${b.startTime}`)); const conflicts = []; sorted.forEach((item, index) => { const next = sorted[index + 1]; if (next && item.date === next.date && (!item.endTime || item.endTime > next.startTime)) conflicts.push([item.id, next.id]); }); return conflicts; }
-function addPersonalExpense(id, input) { const trip = getTripById(id); if (!trip) return null; const originalAmountCents = input.originalAmountCents == null ? cents(input.amountText) : Number(input.originalAmountCents); const rate = input.rate == null || input.rate === "" ? 1 : Number(input.rate); if (!(originalAmountCents > 0) || !(rate > 0)) throw new Error("请输入有效金额和汇率"); const amountCents = Math.round(originalAmountCents * rate); return updateTrip(id, { personalExpenses: trip.personalExpenses.concat({ ...input, id: createId("personal"), originalAmountCents, rate, amountCents }) }); }
-function updatePersonalExpense(id, expenseId, patch) { const trip = getTripById(id); if (!trip) return null; const current = trip.personalExpenses.find((item) => item.id === String(expenseId)); if (!current) return null; const originalAmountCents = patch.originalAmountCents == null ? cents(patch.amountText == null ? current.originalAmountCents / 100 : patch.amountText) : Number(patch.originalAmountCents); const rate = patch.rate == null || patch.rate === "" ? Number(current.rate || 1) : Number(patch.rate); if (!(originalAmountCents > 0) || !(rate > 0)) throw new Error("请输入有效金额和汇率"); const updated = { ...current, ...patch, id: current.id, originalAmountCents, rate, amountCents: Math.round(originalAmountCents * rate) }; return updateTrip(id, { personalExpenses: trip.personalExpenses.map((item) => item.id === current.id ? updated : item) }); }
-function removePersonalExpense(id, expenseId) { const trip = getTripById(id); return trip ? updateTrip(id, { personalExpenses: trip.personalExpenses.filter((item) => item.id !== String(expenseId)) }) : null; }
-function calculateBudget(trip, ledgers = []) {
-  const normalized = normalizeTrip(trip);
-  const linkedIds = new Set(normalized.linkedLedgerIds);
-  const linkedLedgers = (ledgers || []).filter((ledger) => linkedIds.has(String(ledger.id)));
-  const compatibleLedgers = linkedLedgers.filter((ledger) => String(ledger.baseCurrency || "CNY").toUpperCase() === normalized.baseCurrency);
-  const incompatibleLedgers = linkedLedgers.filter((ledger) => String(ledger.baseCurrency || "CNY").toUpperCase() !== normalized.baseCurrency);
-  const ledgerExpenses = compatibleLedgers.reduce((items, ledger) => items.concat(ledger.expenses || []), []);
-  const personalCents = normalized.personalExpenses.reduce((sum, item) => sum + Number(item.amountCents || 0), 0);
-  const ledgerCents = ledgerExpenses.reduce((sum, item) => sum + Number(item.amountCents || 0), 0);
-  const rows = normalized.personalExpenses.concat(ledgerExpenses.map((expense) => ({ amountCents: Number(expense.amountCents || 0), category: expense.category || "其他", source: "ledger" })));
-  const byCategory = CATEGORIES.reduce((map, category) => { map[category] = 0; return map; }, {});
-  rows.forEach((item) => {
-    const category = CATEGORIES.indexOf(item.category) >= 0 ? item.category : "其他";
-    byCategory[category] += Number(item.amountCents || 0);
-  });
-  const spentCents = personalCents + ledgerCents;
-  const remainingCents = normalized.budgetTotalCents - spentCents;
+function isValidDate(value) {
+  const candidate = text(value);
+  if (!DATE_PATTERN.test(candidate)) return false;
+  const parsed = new Date(`${candidate}T00:00:00.000Z`);
+  return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === candidate;
+}
+
+function dateRange(startDate, endDate) {
+  const days = [];
+  if (!isValidDate(startDate) || !isValidDate(endDate) || startDate > endDate) return days;
+  const cursor = new Date(`${startDate}T00:00:00.000Z`);
+  const last = new Date(`${endDate}T00:00:00.000Z`);
+  while (cursor <= last && days.length < MAX_RANGE_DAYS) {
+    days.push(cursor.toISOString().slice(0, 10));
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
+  }
+  return days;
+}
+
+function normalizeOrder(value, fallback) {
+  const order = Number(value);
+  return Number.isInteger(order) && order >= 0 ? order : fallback;
+}
+
+function normalizeItem(input = {}, fallbackOrder = 0) {
   return {
-    baseCurrency: normalized.baseCurrency,
-    spentCents,
-    spentText: money(spentCents, normalized.baseCurrency),
-    personalCents,
-    personalText: money(personalCents, normalized.baseCurrency),
-    personalExpenseCount: normalized.personalExpenses.length,
-    ledgerCents,
-    ledgerText: money(ledgerCents, normalized.baseCurrency),
-    ledgerExpenseCount: ledgerExpenses.length,
-    incompatibleLedgerIds: incompatibleLedgers.map((ledger) => String(ledger.id)),
-    incompatibleLedgerCount: incompatibleLedgers.length,
-    remainingCents,
-    remainingText: money(Math.abs(remainingCents), normalized.baseCurrency),
-    percent: normalized.budgetTotalCents ? Math.round(spentCents / normalized.budgetTotalCents * 100) : 0,
-    overBudget: normalized.budgetTotalCents > 0 && spentCents > normalized.budgetTotalCents,
-    byCategory: CATEGORIES.map((category) => ({
-      category,
-      spentCents: byCategory[category],
-      spentText: money(byCategory[category], normalized.baseCurrency),
-      budgetCents: normalized.categoryBudgets[category],
-      budgetText: money(normalized.categoryBudgets[category], normalized.baseCurrency),
-      over: normalized.categoryBudgets[category] > 0 && byCategory[category] > normalized.categoryBudgets[category]
-    }))
+    id: text(input.id || createId("item")),
+    date: text(input.date),
+    time: text(input.time),
+    title: text(input.title).trim(),
+    location: text(input.location).trim(),
+    note: text(input.note).trim(),
+    order: normalizeOrder(input.order, fallbackOrder)
   };
 }
 
-module.exports = { CATEGORIES, ITEM_TYPES, STORAGE_KEY, addItineraryItem, addPersonalExpense, addTrip, calculateBudget, cents, dateRange, deleteTrip, duplicateItineraryItem, duplicateTrip, findConflicts, getTripById, getTrips, money, moveItineraryItem, normalizeTrip, removeItineraryItem, removePersonalExpense, setTrips, updateItineraryItem, updatePersonalExpense, updateTrip, validateTrip };
+function compareItems(a, b) {
+  return a.date.localeCompare(b.date)
+    || a.order - b.order
+    || a.time.localeCompare(b.time)
+    || a.id.localeCompare(b.id);
+}
+
+function normalizeItems(items) {
+  const usedIds = new Set();
+  const normalized = (Array.isArray(items) ? items : []).map((item, index) => {
+    const result = normalizeItem(item, index);
+    if (usedIds.has(result.id)) result.id = createId("item");
+    usedIds.add(result.id);
+    return result;
+  }).sort(compareItems);
+  const dayCounts = {};
+  return normalized.map((item) => {
+    const order = dayCounts[item.date] || 0;
+    dayCounts[item.date] = order + 1;
+    return { ...item, order };
+  });
+}
+
+function normalizeTrip(input = {}) {
+  const createdAt = text(input.createdAt || new Date().toISOString());
+  return {
+    id: text(input.id || createId("trip")),
+    title: text(input.title).trim(),
+    destination: text(input.destination).trim(),
+    startDate: text(input.startDate),
+    endDate: text(input.endDate),
+    note: text(input.note).trim(),
+    items: normalizeItems(input.items),
+    createdAt,
+    updatedAt: text(input.updatedAt || createdAt)
+  };
+}
+
+function validateTrip(input) {
+  const trip = normalizeTrip(input);
+  if (!trip.title) throw new Error("行程名称不能为空");
+  if (!isValidDate(trip.startDate) || !isValidDate(trip.endDate)) throw new Error("请选择有效的行程日期");
+  if (trip.startDate > trip.endDate) throw new Error("结束日期不能早于开始日期");
+  trip.items.forEach((item) => {
+    if (!item.title) throw new Error("日程名称不能为空");
+    if (!isValidDate(item.date)) throw new Error("请选择有效的日程日期");
+    if (item.date < trip.startDate || item.date > trip.endDate) throw new Error("日程日期超出行程范围");
+    if (item.time && !TIME_PATTERN.test(item.time)) throw new Error("日程时间格式无效");
+  });
+  return trip;
+}
+
+function sortTrips(trips) {
+  return trips.slice().sort((a, b) => {
+    return b.updatedAt.localeCompare(a.updatedAt)
+      || b.createdAt.localeCompare(a.createdAt)
+      || a.id.localeCompare(b.id);
+  });
+}
+
+function getTrips() {
+  const stored = wx.getStorageSync(STORAGE_KEY);
+  if (!Array.isArray(stored)) return [];
+  const trips = [];
+  stored.forEach((input) => {
+    try {
+      trips.push(validateTrip(input));
+    } catch (error) {
+      // Ignore malformed storage entries so one damaged trip cannot block the planner.
+    }
+  });
+  return sortTrips(trips);
+}
+
+function setTrips(items) {
+  const trips = sortTrips((Array.isArray(items) ? items : []).map(validateTrip));
+  wx.setStorageSync(STORAGE_KEY, trips);
+  return clone(trips);
+}
+
+function getTripById(id) {
+  const trip = getTrips().find((item) => item.id === text(id));
+  return trip || null;
+}
+
+function addTrip(input) {
+  const timestamp = new Date().toISOString();
+  const trip = validateTrip({
+    ...input,
+    id: createId("trip"),
+    createdAt: timestamp,
+    updatedAt: timestamp
+  });
+  setTrips([trip].concat(getTrips()));
+  return clone(trip);
+}
+
+function updateTrip(id, patch = {}) {
+  const tripId = text(id);
+  let updated = null;
+  const trips = getTrips().map((trip) => {
+    if (trip.id !== tripId) return trip;
+    updated = validateTrip({
+      ...trip,
+      ...patch,
+      id: trip.id,
+      createdAt: trip.createdAt,
+      updatedAt: new Date().toISOString()
+    });
+    return updated;
+  });
+  if (!updated) return null;
+  setTrips(trips);
+  return clone(updated);
+}
+
+function deleteTrip(id) {
+  const tripId = text(id);
+  const trips = getTrips();
+  if (!trips.some((trip) => trip.id === tripId)) return false;
+  setTrips(trips.filter((trip) => trip.id !== tripId));
+  return true;
+}
+
+function duplicateTrip(id) {
+  const source = getTripById(id);
+  if (!source) return null;
+  return addTrip({
+    title: `${source.title} 副本`,
+    destination: source.destination,
+    startDate: source.startDate,
+    endDate: source.endDate,
+    note: source.note,
+    items: source.items.map((item) => ({ ...item, id: createId("item") }))
+  });
+}
+
+function nextOrder(items, date) {
+  return items.filter((item) => item.date === date).length;
+}
+
+function addItem(id, input = {}) {
+  const trip = getTripById(id);
+  if (!trip) return null;
+  const item = normalizeItem({
+    ...input,
+    id: createId("item"),
+    order: nextOrder(trip.items, text(input.date))
+  });
+  return updateTrip(id, { items: trip.items.concat(item) });
+}
+
+function updateItem(id, itemId, patch = {}) {
+  const trip = getTripById(id);
+  if (!trip) return null;
+  const targetId = text(itemId);
+  const current = trip.items.find((item) => item.id === targetId);
+  if (!current) return null;
+  const nextDate = Object.prototype.hasOwnProperty.call(patch, "date") ? text(patch.date) : current.date;
+  const changedDay = nextDate !== current.date;
+  const updated = normalizeItem({
+    ...current,
+    ...patch,
+    id: current.id,
+    order: changedDay ? nextOrder(trip.items.filter((item) => item.id !== current.id), nextDate) : current.order
+  });
+  return updateTrip(id, {
+    items: trip.items.map((item) => item.id === current.id ? updated : item)
+  });
+}
+
+function deleteItem(id, itemId) {
+  const trip = getTripById(id);
+  if (!trip) return null;
+  const targetId = text(itemId);
+  if (!trip.items.some((item) => item.id === targetId)) return null;
+  return updateTrip(id, { items: trip.items.filter((item) => item.id !== targetId) });
+}
+
+function duplicateItem(id, itemId) {
+  const trip = getTripById(id);
+  if (!trip) return null;
+  const source = trip.items.find((item) => item.id === text(itemId));
+  if (!source) return null;
+  const shifted = trip.items.map((item) => {
+    if (item.date !== source.date || item.order <= source.order) return item;
+    return { ...item, order: item.order + 1 };
+  });
+  const copy = normalizeItem({
+    ...source,
+    id: createId("item"),
+    title: `${source.title} 副本`,
+    order: source.order + 1
+  });
+  return updateTrip(id, { items: shifted.concat(copy) });
+}
+
+function moveItem(id, itemId, direction) {
+  const trip = getTripById(id);
+  if (!trip) return null;
+  const target = trip.items.find((item) => item.id === text(itemId));
+  if (!target) return null;
+  const dayItems = trip.items.filter((item) => item.date === target.date).sort(compareItems);
+  const currentIndex = dayItems.findIndex((item) => item.id === target.id);
+  let targetIndex = currentIndex;
+  if (direction === "up") targetIndex -= 1;
+  if (direction === "down") targetIndex += 1;
+  if (Number.isInteger(direction)) targetIndex = direction;
+  targetIndex = Math.max(0, Math.min(dayItems.length - 1, targetIndex));
+  if (targetIndex === currentIndex) return clone(trip);
+  const reordered = dayItems.slice();
+  const moved = reordered.splice(currentIndex, 1)[0];
+  reordered.splice(targetIndex, 0, moved);
+  const orders = new Map(reordered.map((item, index) => [item.id, index]));
+  return updateTrip(id, {
+    items: trip.items.map((item) => item.date === target.date ? { ...item, order: orders.get(item.id) } : item)
+  });
+}
+
+function findConflicts(items) {
+  const groups = {};
+  (Array.isArray(items) ? items : []).forEach((item) => {
+    if (!item.date || !item.time) return;
+    const key = `${item.date} ${item.time}`;
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(item.id);
+  });
+  const conflicts = [];
+  Object.keys(groups).sort().forEach((key) => {
+    const ids = groups[key];
+    for (let index = 1; index < ids.length; index += 1) {
+      conflicts.push([ids[index - 1], ids[index]]);
+    }
+  });
+  return conflicts;
+}
+
+module.exports = {
+  STORAGE_KEY,
+  addItem,
+  addItineraryItem: addItem,
+  addTrip,
+  dateRange,
+  deleteItem,
+  removeItineraryItem: deleteItem,
+  deleteTrip,
+  duplicateItem,
+  duplicateItineraryItem: duplicateItem,
+  duplicateTrip,
+  findConflicts,
+  getTripById,
+  getTrips,
+  isValidDate,
+  moveItem,
+  moveItineraryItem: moveItem,
+  normalizeItem,
+  normalizeTrip,
+  reorderItem: moveItem,
+  setTrips,
+  updateItem,
+  updateItineraryItem: updateItem,
+  updateTrip,
+  validateTrip
+};

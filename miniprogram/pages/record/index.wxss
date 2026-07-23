@@ -1,0 +1,278 @@
+page {
+  background: #f2f5f7;
+  color: #172033;
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", Arial, sans-serif;
+}
+
+.records-page {
+  min-height: 100vh;
+  box-sizing: border-box;
+  padding: 28rpx 28rpx calc(env(safe-area-inset-bottom) + 48rpx);
+}
+
+.topbar,
+.add-button,
+.tools-band,
+.search-box,
+.filters,
+.filter,
+.result-head,
+.record-card,
+.icon-action,
+.icon-center {
+  display: flex;
+  align-items: center;
+}
+
+.topbar,
+.result-head {
+  justify-content: space-between;
+}
+
+.topbar-copy {
+  min-width: 0;
+}
+
+.eyebrow {
+  color: #667085;
+  font-size: 20rpx;
+  font-weight: 700;
+  line-height: 28rpx;
+}
+
+.title {
+  margin-top: 4rpx;
+  font-size: 42rpx;
+  font-weight: 850;
+  line-height: 54rpx;
+}
+
+.add-button {
+  justify-content: center;
+  gap: 8rpx;
+  flex: 0 0 138rpx;
+  width: 138rpx;
+  height: 70rpx;
+  margin: 0;
+  padding: 0 14rpx;
+  border-radius: 8rpx;
+  background: #172033;
+  color: #ffffff;
+  font-size: 23rpx;
+  font-weight: 800;
+  line-height: 70rpx;
+}
+
+.add-button::after,
+.search-clear::after,
+.empty-button::after {
+  border: 0;
+}
+
+.tools-band {
+  align-items: stretch;
+  flex-direction: column;
+  gap: 14rpx;
+  margin: 20rpx -28rpx 0;
+  padding: 22rpx 28rpx;
+  border-top: 1rpx solid #e2e7ec;
+  border-bottom: 1rpx solid #e2e7ec;
+  background: #ffffff;
+}
+
+.search-box {
+  position: relative;
+  gap: 11rpx;
+  height: 72rpx;
+  box-sizing: border-box;
+  padding: 0 14rpx 0 18rpx;
+  border: 1rpx solid #d9dee8;
+  border-radius: 8rpx;
+  background: #f8fafc;
+}
+
+.search-input {
+  flex: 1;
+  min-width: 0;
+  height: 70rpx;
+  font-size: 24rpx;
+}
+
+.search-clear {
+  justify-content: center;
+  flex: 0 0 44rpx;
+  width: 44rpx;
+  height: 44rpx;
+  margin: 0;
+  padding: 0;
+  border-radius: 8rpx;
+  background: #e9edf1;
+}
+
+.filters {
+  gap: 8rpx;
+  padding: 6rpx;
+  border-radius: 8rpx;
+  background: #eef2f5;
+}
+
+.filter {
+  justify-content: center;
+  gap: 7rpx;
+  flex: 1;
+  height: 58rpx;
+  border-radius: 7rpx;
+  color: #596579;
+  font-size: 22rpx;
+  font-weight: 800;
+}
+
+.filter.active {
+  background: #2864d9;
+  color: #ffffff;
+}
+
+.result-head {
+  margin-top: 22rpx;
+}
+
+.result-title {
+  font-size: 25rpx;
+  font-weight: 850;
+  line-height: 36rpx;
+}
+
+.result-count {
+  color: #667085;
+  font-size: 21rpx;
+  line-height: 30rpx;
+}
+
+.record-card {
+  gap: 14rpx;
+  min-height: 128rpx;
+  margin-top: 12rpx;
+  padding: 20rpx;
+  box-sizing: border-box;
+  border-left: 5rpx solid #2864d9;
+  border-radius: 8rpx;
+  background: #ffffff;
+}
+
+.record-card.type-restaurant {
+  border-left-color: #b36a13;
+}
+
+.record-icon,
+.empty-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  border-radius: 8rpx;
+}
+
+.record-icon {
+  width: 60rpx;
+  height: 60rpx;
+  background: #eef4ff;
+}
+
+.type-restaurant .record-icon {
+  background: #fff5e7;
+}
+
+.record-copy {
+  flex: 1;
+  min-width: 0;
+}
+
+.record-title {
+  overflow: hidden;
+  font-size: 27rpx;
+  font-weight: 850;
+  line-height: 38rpx;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.record-meta,
+.record-note {
+  overflow: hidden;
+  color: #667085;
+  font-size: 20rpx;
+  line-height: 30rpx;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.record-meta {
+  margin-top: 2rpx;
+}
+
+.record-note {
+  margin-top: 3rpx;
+  color: #49566a;
+}
+
+.record-score {
+  flex: 0 0 66rpx;
+  width: 66rpx;
+  color: #8a94a3;
+  text-align: center;
+}
+
+.record-score.scored {
+  color: #1f7a55;
+}
+
+.record-score-value {
+  font-size: 30rpx;
+  font-weight: 850;
+  line-height: 36rpx;
+}
+
+.record-score-unit {
+  font-size: 17rpx;
+  line-height: 23rpx;
+}
+
+.empty-state {
+  margin-top: 14rpx;
+  padding: 54rpx 30rpx;
+  border-radius: 8rpx;
+  background: #ffffff;
+  text-align: center;
+}
+
+.empty-icon {
+  width: 78rpx;
+  height: 78rpx;
+  margin: 0 auto;
+  background: #eaf1ff;
+}
+
+.empty-title {
+  margin-top: 17rpx;
+  font-size: 28rpx;
+  font-weight: 850;
+  line-height: 40rpx;
+}
+
+.empty-button {
+  justify-content: center;
+  gap: 8rpx;
+  width: 230rpx;
+  height: 70rpx;
+  margin: 22rpx auto 0;
+  padding: 0;
+  border-radius: 8rpx;
+  background: #2864d9;
+  color: #ffffff;
+  font-size: 23rpx;
+  font-weight: 800;
+}
+
+.icon-center {
+  justify-content: center;
+}

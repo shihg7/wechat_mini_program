@@ -1,7 +1,0 @@
-{
-  "usingComponents": {
-    "ui-icon": "/components/ui-icon/index"
-  },
-  "navigationBarTitleText": "想去清单",
-  "disableScroll": false
-}

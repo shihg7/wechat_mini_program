@@ -4,13 +4,14 @@ const path = require("path");
 
 const root = path.resolve(__dirname, "..");
 const miniprogramRoot = path.join(root, "miniprogram");
-const { HELP_SECTIONS } = require(path.join(miniprogramRoot, "packages/tools/help/helpContent"));
+const helpRoot = path.join(miniprogramRoot, "packages/tools/help");
+const { HELP_SECTIONS, USER_GUIDE_META } = require(path.join(helpRoot, "helpContent"));
 const navigations = [];
-const tabNavigations = [];
 
 global.wx = {
-  navigateTo(options) { navigations.push(options.url); },
-  switchTab(options) { tabNavigations.push(options.url); }
+  navigateTo(options) {
+    navigations.push(options.url);
+  }
 };
 
 function setPath(target, pathText, value) {
@@ -26,7 +27,7 @@ function setPath(target, pathText, value) {
 function loadHelpPage() {
   let definition;
   global.Page = (config) => { definition = config; };
-  const modulePath = path.join(miniprogramRoot, "packages/tools/help/index.js");
+  const modulePath = path.join(helpRoot, "index.js");
   delete require.cache[require.resolve(modulePath)];
   require(modulePath);
   const page = {};
@@ -44,48 +45,78 @@ function eventWithId(id) {
   return { currentTarget: { dataset: { id } } };
 }
 
+function allGuideBlocks() {
+  return HELP_SECTIONS.flatMap((section) => (
+    section.guide.sections.flatMap((guideSection) => guideSection.blocks)
+  ));
+}
+
 function testHelpSearchAndSections() {
   const page = loadHelpPage();
-  assert.strictEqual(page.data.sections.length, 10, "help center should cover all ten feature chapters");
-  assert.strictEqual(page.data.sections.length, HELP_SECTIONS.length, "page chapters should come from HELP_SECTIONS");
-  assert.strictEqual(page.data.visibleSections.length, 10);
+  const expectedIds = ["quick", "ledger", "trips", "checklists", "wheel", "records", "data", "faq"];
+  assert.deepStrictEqual(page.data.sections.map((section) => section.id), expectedIds);
+  assert.strictEqual(page.data.sections.length, HELP_SECTIONS.length);
   assert.strictEqual(page.data.visibleSections[0].id, "quick");
-  assert.strictEqual(page.data.visibleSections[0].expanded, true, "quick start should be open initially");
+  assert.strictEqual(page.data.visibleSections[0].expanded, true, "quick start should open initially");
 
-  page.onSearchInput({ detail: { value: "三人分账" } });
-  assert(page.data.visibleSections.some((section) => section.id === "ledger"), "AA search should find the ledger chapter");
-  assert(page.data.visibleSections.every((section) => section.expanded), "search results should open their matching chapters");
-
-  page.onSearchInput({ detail: { value: "照片二进制" } });
-  assert(page.data.visibleSections.some((section) => section.id === "data"), "photo backup search should find the data chapter");
+  const searches = [
+    ["三人分账", "ledger"],
+    ["时间冲突", "trips"],
+    ["旅行打包", "checklists"],
+    ["手拨", "wheel"],
+    ["一句备注", "records"],
+    ["覆盖", "data"]
+  ];
+  searches.forEach(([keyword, expectedId]) => {
+    page.onSearchInput({ detail: { value: keyword } });
+    assert(page.data.visibleSections.some((section) => section.id === expectedId), `${keyword} should find ${expectedId}`);
+    assert(page.data.visibleSections.every((section) => section.expanded), "search results should open automatically");
+  });
 
   page.onSearchInput({ detail: { value: "完全不存在的关键词" } });
   assert.strictEqual(page.data.visibleSections.length, 0);
   page.clearSearch();
-  assert.strictEqual(page.data.visibleSections.length, 10);
+  assert.strictEqual(page.data.visibleSections.length, expectedIds.length);
 }
 
-function testHelpContentSource() {
+function testHelpContentSourceAndRoutes() {
   const page = loadHelpPage();
-  const pageSource = fs.readFileSync(path.join(miniprogramRoot, "packages/tools/help/index.js"), "utf8");
-  assert(pageSource.includes('require("./helpContent")'), "help page should import the shared content source");
-  assert(!pageSource.includes("const HELP_SECTIONS = ["), "help page should not keep a second inline content source");
+  const pageSource = fs.readFileSync(path.join(helpRoot, "index.js"), "utf8");
+  const pageTemplate = fs.readFileSync(path.join(helpRoot, "index.wxml"), "utf8");
+  assert(pageSource.includes('require("./helpContent")'), "help page should use the shared content source");
+  assert(!pageSource.includes("const HELP_SECTIONS = ["), "help page should not duplicate content");
+  assert(!pageSource.includes("switchTab"), "help navigation must not depend on a tab bar");
+  assert(!pageTemplate.includes("data-tab"), "help buttons should all use normal page navigation");
   assert.deepStrictEqual(page.data.sections.map((section) => section.id), HELP_SECTIONS.map((section) => section.id));
   assert(page.data.sections.every((section) => !section.guide && !section.entry), "guide-only fields should stay out of page data");
 
   const expectedUrls = [
-    "/packages/tools/demo/index",
-    "/pages/record/record?type=hotel",
-    "/pages/wishlist/edit?type=hotel",
-    "/pages/departure/index",
-    "/pages/trip/index",
+    "/pages/index/index",
     "/pages/ledger/index/index",
+    "/pages/trip/index",
+    "/pages/checklist/index",
     "/packages/tools/wheel/index",
-    "/packages/tools/insights/index",
+    "/pages/record/index",
     "/packages/tools/data/index"
   ];
-  assert.deepStrictEqual(HELP_SECTIONS.filter((section) => section.url).map((section) => section.url), expectedUrls, "existing help URLs should remain unchanged");
-  assert(HELP_SECTIONS.every((section) => section.guide && section.guide.sections.length), "every help chapter should provide full guide content");
+  assert.deepStrictEqual(
+    HELP_SECTIONS.filter((section) => section.url).map((section) => section.url),
+    expectedUrls
+  );
+  assert(HELP_SECTIONS.every((section) => !Object.prototype.hasOwnProperty.call(section, "tab")));
+  assert(HELP_SECTIONS.every((section) => section.guide && section.guide.sections.length));
+  assert.strictEqual(allGuideBlocks().some((block) => block.type === "image"), false, "guide must not reference stale screenshots");
+  assert(allGuideBlocks().filter((block) => block.type === "flow").length >= 7, "guide should use maintainable Mermaid diagrams");
+
+  const serialized = JSON.stringify({ HELP_SECTIONS, USER_GUIDE_META });
+  [
+    "/pages/place/",
+    "/pages/wishlist/",
+    "/pages/departure/",
+    "/packages/tools/demo/",
+    "/packages/tools/insights/",
+    "images/user-guide/"
+  ].forEach((fragment) => assert(!serialized.includes(fragment), `retired help content found: ${fragment}`));
 }
 
 function testHelpNavigationAndExpansion() {
@@ -102,42 +133,49 @@ function testHelpNavigationAndExpansion() {
   page.toggleAll();
   assert(page.data.visibleSections.every((section) => !section.expanded), "collapse all should close every visible chapter");
 
-  page.openFeature({ currentTarget: { dataset: { url: "/packages/tools/data/index", tab: false } } });
-  page.openFeature({ currentTarget: { dataset: { url: "/pages/trip/index", tab: true } } });
-  assert.deepStrictEqual(navigations, ["/packages/tools/data/index"]);
-  assert.deepStrictEqual(tabNavigations, ["/pages/trip/index"]);
+  page.openFeature({ currentTarget: { dataset: { url: "/packages/tools/data/index" } } });
+  page.openFeature({ currentTarget: { dataset: { url: "/pages/trip/index" } } });
+  assert.deepStrictEqual(navigations, ["/packages/tools/data/index", "/pages/trip/index"]);
 }
 
-function testHelpRegistrationAndRecordActionLayout() {
+function testHelpRegistrationAndHomeActions() {
   const appConfig = JSON.parse(fs.readFileSync(path.join(miniprogramRoot, "app.json"), "utf8"));
   const toolsPackage = appConfig.subPackages.find((item) => item.root === "packages/tools");
   assert(toolsPackage && toolsPackage.pages.includes("help/index"), "help page should be registered in the tools subpackage");
 
   const homeWxml = fs.readFileSync(path.join(miniprogramRoot, "pages/index/index.wxml"), "utf8");
   const homeJs = fs.readFileSync(path.join(miniprogramRoot, "pages/index/index.js"), "utf8");
-  assert(homeWxml.includes('class="top-help-button icon-action"'), "home should expose a persistent help button");
-  assert(homeWxml.includes('bindtap="goHelp"'));
-  assert(homeJs.includes('goHelp() { wx.navigateTo({ url: "/packages/tools/help/index" }); }'));
+  assert(homeWxml.includes('wx:for="{{headerActions}}"'), "home should render persistent header actions");
+  assert(homeWxml.includes('bindtap="openRoute"'));
+  assert(homeJs.includes('url: "/packages/tools/help/index"'));
+  assert(homeJs.includes('url: "/packages/tools/data/index"'));
+  assert(!homeJs.includes("switchTab"), "home navigation must not depend on a tab bar");
+}
 
+function testQuickRecordFixedSaveBar() {
   const recordWxml = fs.readFileSync(path.join(miniprogramRoot, "pages/record/record.wxml"), "utf8");
   const recordWxss = fs.readFileSync(path.join(miniprogramRoot, "pages/record/record.wxss"), "utf8");
   const scrollEnd = recordWxml.indexOf("</scroll-view>");
-  const fixedActions = recordWxml.indexOf('class="fixed-actions"');
-  assert(scrollEnd >= 0 && fixedActions > scrollEnd, "record save actions must live outside the scrolling content");
-  assert(recordWxml.includes("page-with-action-bar"), "editing content should reserve room for the fixed bar");
-  assert(recordWxml.includes('data-status="completed"') && recordWxml.includes('data-status="draft"'));
-  assert(recordWxml.includes('wx:if="{{isQuick}}" bindtap="expandQuickRecord"'), "quick mode should offer full scoring instead of completing hidden defaults");
-  assert(recordWxml.includes("当前不会发布到网络"), "sharing controls must state that the local build does not publish");
-  assert(!recordWxml.includes("链接可见</view>"), "local-only builds must not present a fake unlisted publishing option");
-  assert(recordWxml.includes("可手工填写，地图不是必选项"), "address entry must remain available without map permission");
-  assert(recordWxss.includes(".fixed-actions {"));
+  const fixedActions = recordWxml.indexOf('class="fixed-save-bar"');
+  assert(scrollEnd >= 0 && fixedActions > scrollEnd, "quick rating save bar must stay outside scrolling content");
+  assert(recordWxml.includes("page-with-save-bar"), "form content should reserve room for the fixed save bar");
+  assert(recordWxml.includes('class="save-button icon-action"'));
+  assert(recordWxml.includes('bindtap="save"'));
+  assert(recordWxml.includes("保存记录") && recordWxml.includes("保存修改"));
+  assert(recordWxml.includes("评分（可选）"));
+  assert(recordWxml.includes("未评分"));
+  assert(!recordWxml.includes("selectedTags"));
+  assert(!recordWxml.includes("placeId"));
+  assert(!recordWxml.includes("保存草稿"));
+  assert(recordWxss.includes(".fixed-save-bar {"));
   assert(recordWxss.includes("position: fixed;"));
   assert(recordWxss.includes("bottom: 0;"));
-  assert(recordWxss.includes("env(safe-area-inset-bottom)"), "fixed actions should respect the device safe area");
+  assert(recordWxss.includes("env(safe-area-inset-bottom)"), "fixed save bar should respect the device safe area");
 }
 
 testHelpSearchAndSections();
-testHelpContentSource();
+testHelpContentSourceAndRoutes();
 testHelpNavigationAndExpansion();
-testHelpRegistrationAndRecordActionLayout();
-console.log("help center and fixed record action tests passed");
+testHelpRegistrationAndHomeActions();
+testQuickRecordFixedSaveBar();
+console.log("offline toolbox help and quick record action tests passed");

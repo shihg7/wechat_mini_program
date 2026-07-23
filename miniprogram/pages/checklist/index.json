@@ -1,0 +1,7 @@
+{
+  "usingComponents": {
+    "ui-icon": "/components/ui-icon/index"
+  },
+  "navigationBarTitleText": "多清单",
+  "disableScroll": false
+}

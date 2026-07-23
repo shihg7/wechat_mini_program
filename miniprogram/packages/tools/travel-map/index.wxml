@@ -1,8 +1,0 @@
-<view class="page">
-  <view class="top"><view><view class="eyebrow">PERSONAL TRAVEL MAP</view><view class="title">旅行地图</view></view><view class="count">{{visiblePoints.length}} 个地点</view></view>
-  <scroll-view class="filters" scroll-x><view class="filter {{activeFilter === item.key ? 'active' : ''}}" wx:for="{{filters}}" wx:key="key" data-value="{{item.key}}" bindtap="onFilter">{{item.label}}</view></scroll-view>
-  <map id="travelMap" class="map" latitude="{{latitude}}" longitude="{{longitude}}" scale="{{scale}}" markers="{{markers}}" bindmarkertap="onMarkerTap" show-location="{{false}}"></map>
-  <view class="selected" wx:if="{{showEmptyState}}"><view><view class="selected-title">{{emptyTitle}}</view><view class="selected-meta">{{emptyMeta}}</view></view></view>
-  <view class="selected" wx:elif="{{selected}}" bindtap="goSelected"><view><view class="selected-title">{{selected.name}}</view><view class="selected-meta">{{selected.typeLabel}} · {{selected.statusLabel}}{{selected.visitCount ? " · " + selected.visitCount + " 次" : ""}}</view></view><view class="selected-score">{{selected.averageScore || "--"}}</view></view>
-  <view class="section" wx:if="{{missing.length}}"><view class="section-head"><view><view class="section-title">位置待补充</view><view class="section-meta">补充地图位置后会显示在上方</view></view><view class="number">{{missing.length}}</view></view><view class="missing-row" wx:for="{{missing}}" wx:key="key" data-type="{{item.entityType}}" data-id="{{item.entityId}}" bindtap="goMissing"><view><view class="missing-name">{{item.name}}</view><view class="missing-meta">{{item.typeLabel}} · {{item.city || "城市未填写"}} · {{item.statusLabel}}</view></view><view class="link">补充</view></view></view>
-</view>

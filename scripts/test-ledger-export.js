@@ -14,9 +14,9 @@ global.wx = {
   }
 };
 
-const ledgerStore = require("../miniprogram/utils/repositories/ledgerRepository");
+const ledgerStore = require("../miniprogram/utils/tripLedgerStore");
 const { EXPORT_SCHEMA_VERSION, REDACTED_MODE, SINGLE_CURRENCY_MODE, exportLedgerJson } = require("../miniprogram/utils/ledgerExport");
-const { buildPdf } = require("../miniprogram/utils/pdfReport");
+const { buildPdf } = require("../miniprogram/utils/pdfBuilder");
 
 const ledger = ledgerStore.addLedger({ title: "隐私测试", members: ["Alice", "Bob", "Carol"], baseCurrency: "GBP" });
 ledgerStore.addExpense(ledger.id, {

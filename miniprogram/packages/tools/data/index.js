@@ -1,66 +1,61 @@
-const { applyBackup, exportFullBackup, preflightBackup } = require("../utils/appBackup");
-const { getRecords, getSummary } = require("../../../utils/repositories/recordRepository");
-const { getLedgers } = require("../../../utils/repositories/ledgerRepository");
-const { getPlaces } = require("../../../utils/repositories/placeRepository");
-const { getWishlist } = require("../../../utils/repositories/wishlistRepository");
-const { exportHotelReport } = require("../../../utils/pdfReport");
-const { PRIVATE_MODE, REDACTED_MODE } = require("../../../utils/privacyPolicy");
-const demoData = require("../../../utils/demoData");
-const { getWheels } = require("../utils/repositories/wheelRepository");
-const { getBookings, getChecklistItems } = require("../../../utils/repositories/departureRepository");
+const {
+  applyBackup,
+  exportFullBackup,
+  getLocalDataSummary,
+  preflightBackup,
+  resetAllData
+} = require("../utils/appBackup");
 
-function formatExportedAt(value) {
-  if (!value) return "未记录";
+function formatDateTime(value) {
+  if (!value) return "尚未备份";
   const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString("zh-CN", { hour12: false });
+  if (Number.isNaN(date.getTime())) return String(value);
+  const pad = (number) => String(number).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+function formatStorage(kilobytes) {
+  const value = Number(kilobytes || 0);
+  if (value < 1) return "< 1 KB";
+  if (value < 1024) return `${Math.round(value)} KB`;
+  return `${(value / 1024).toFixed(1)} MB`;
+}
+
+function summaryView(summary) {
+  return {
+    ...summary,
+    lastBackupText: formatDateTime(summary.lastBackupAt),
+    storageText: formatStorage(summary.currentSizeKb),
+    storageLimitText: summary.limitSizeKb ? formatStorage(summary.limitSizeKb) : ""
+  };
+}
+
+function totalAdded(result) {
+  return ["records", "trips", "checklists", "ledgers", "wheels"]
+    .reduce((sum, key) => sum + Number(result[`${key}Added`] || 0), 0);
+}
+
+function totalSkipped(result) {
+  return ["records", "trips", "checklists", "ledgers", "wheels"]
+    .reduce((sum, key) => sum + Number(result[`${key}Skipped`] || 0), 0);
 }
 
 Page({
   data: {
-    localSummary: { recordCount: 0, placeCount: 0, wishlistCount: 0, ledgerCount: 0, expenseCount: 0, wheelCount: 0, bookingCount: 0, checklistCount: 0 },
+    localSummary: summaryView({}),
     selectedFileName: "",
     preview: null,
     importing: false,
-    exportingBackup: false,
-    exportingPdf: false,
-    isDevelopment: false,
-    demoActive: false
-  },
-
-  onLoad() {
-    let isDevelopment = false;
-    try { isDevelopment = wx.getAccountInfoSync().miniProgram.envVersion === "develop"; } catch (error) { isDevelopment = false; }
-    this.setData({ isDevelopment });
+    exporting: false,
+    clearing: false
   },
 
   onShow() {
-    this.refreshLocalSummary();
+    this.refreshSummary();
   },
 
-  refreshLocalSummary() {
-    const records = getRecords();
-    const ledgers = getLedgers();
-    this.setData({
-      demoActive: demoData.getRegistry().tripIds.length > 0,
-      localSummary: {
-        recordCount: records.length,
-        placeCount: getPlaces().length,
-        wishlistCount: getWishlist().length,
-        ledgerCount: ledgers.length,
-        expenseCount: ledgers.reduce((sum, ledger) => sum + ledger.expenses.length, 0),
-        wheelCount: getWheels().length,
-        bookingCount: getBookings().length,
-        checklistCount: getChecklistItems().length
-      }
-    });
-  },
-
-  generateDemoData() {
-    wx.showModal({ title: "生成开发示例？", content: "会新增酒店、餐厅、三人账本和周末行程，不覆盖现有数据。", confirmText: "生成", success: (result) => { if (!result.confirm) return; demoData.seedDemoData(); this.refreshLocalSummary(); wx.showToast({ title: "示例数据已生成", icon: "success" }); } });
-  },
-
-  clearDemoData() {
-    wx.showModal({ title: "清除开发示例？", content: "只删除由示例数据中心创建的内容。", confirmText: "清除", confirmColor: "#a34b32", success: (result) => { if (!result.confirm) return; demoData.clearDemoData(); this.refreshLocalSummary(); wx.showToast({ title: "示例数据已清除", icon: "success" }); } });
+  refreshSummary() {
+    this.setData({ localSummary: summaryView(getLocalDataSummary()) });
   },
 
   chooseBackup() {
@@ -74,7 +69,7 @@ Page({
       extension: ["json"],
       success: (result) => this.previewFile(result.tempFiles && result.tempFiles[0]),
       fail: (error) => {
-        if (String(error && error.errMsg).indexOf("cancel") < 0) {
+        if (String(error && error.errMsg || "").indexOf("cancel") < 0) {
           wx.showToast({ title: "选择文件失败", icon: "none" });
         }
       }
@@ -86,46 +81,35 @@ Page({
     try {
       const content = wx.getFileSystemManager().readFileSync(file.path, "utf8");
       this.checkedBackup = preflightBackup(content);
-      const summary = this.checkedBackup.summary;
       this.setData({
-        selectedFileName: file.name || "备份文件.json",
+        selectedFileName: file.name || "工具箱备份.json",
         preview: {
-          schemaVersion: summary.schemaVersion,
-          recordCount: summary.recordCount,
-          placeCount: summary.placeCount,
-          ledgerCount: summary.ledgerCount,
-          expenseCount: summary.expenseCount,
-          wishlistCount: summary.wishlistCount,
-          wheelCount: summary.wheelCount,
-          bookingCount: summary.bookingCount,
-          checklistCount: summary.checklistCount,
-          ledgersLabel: `${summary.ledgersIncluded ? "包含账本" : "不含账本"} · ${summary.wishlistIncluded ? "包含想去清单" : "旧版无清单"}`,
-          exportedAtText: formatExportedAt(summary.exportedAt)
+          ...this.checkedBackup.summary,
+          exportedAtText: formatDateTime(this.checkedBackup.summary.exportedAt)
         }
       });
     } catch (error) {
       this.checkedBackup = null;
       this.setData({ selectedFileName: "", preview: null });
-      wx.showModal({ title: "无法预览备份", content: error.message || "文件格式不正确", showCancel: false });
+      wx.showModal({
+        title: "无法读取备份",
+        content: error.message || "文件格式不正确",
+        showCancel: false
+      });
     }
   },
 
   confirmImport(event) {
     if (!this.checkedBackup || this.data.importing) return;
-    const mode = event.currentTarget.dataset.mode;
-    const replace = mode === "replace";
+    const mode = event.currentTarget.dataset.mode === "replace" ? "replace" : "merge";
     const preview = this.data.preview;
-    const legacyNotes = [];
-    if (replace && preview.schemaVersion === 1) legacyNotes.push("旧版备份不含账本，现有账本会保留");
-    if (replace && preview.schemaVersion < 9) legacyNotes.push("旧版备份不含预订和行前清单，现有内容会保留");
-    const legacyNote = legacyNotes.length ? `${legacyNotes.join("；")}。` : "";
     wx.showModal({
-      title: replace ? "确认覆盖全部本地数据？" : "确认合并备份？",
-      content: replace
-        ? `将使用备份替换体验、地点、想去、行程、账本、转盘、预订、清单、模板和偏好。备份包含 ${preview.recordCount} 条记录、${preview.placeCount} 个地点${preview.schemaVersion >= 2 ? `、${preview.ledgerCount} 本账本` : ""}${preview.schemaVersion >= 5 ? `、${preview.wishlistCount} 个想去项` : ""}${preview.schemaVersion >= 8 ? `、${preview.wheelCount} 个转盘` : ""}${preview.schemaVersion >= 9 ? `、${preview.bookingCount} 项预订、${preview.checklistCount} 项清单` : ""}。${legacyNote}`
-        : "同 ID 的不同内容会安全改名，记录与账本支出的关联会同步保留。",
-      confirmText: replace ? "确认覆盖" : "确认合并",
-      confirmColor: replace ? "#a33d2d" : "#2864d9",
+      title: mode === "replace" ? "覆盖本地数据？" : "合并这份备份？",
+      content: mode === "replace"
+        ? `本机五类工具数据会替换为：${preview.recordCount} 条快评、${preview.tripCount} 个行程、${preview.checklistCount} 份清单、${preview.ledgerCount} 本账本和 ${preview.wheelCount} 个转盘。`
+        : "已有内容会保留；相同 ID 且内容不同的项目会生成新 ID，完全相同的项目会跳过。",
+      confirmText: mode === "replace" ? "确认覆盖" : "确认合并",
+      confirmColor: mode === "replace" ? "#a33d2d" : "#2864d9",
       success: (result) => {
         if (result.confirm) this.runImport(mode);
       }
@@ -136,59 +120,89 @@ Page({
     this.setData({ importing: true });
     try {
       const result = applyBackup(this.checkedBackup, mode);
-      this.refreshLocalSummary();
+      this.refreshSummary();
       wx.showModal({
-        title: "导入完成",
+        title: "恢复完成",
         content: mode === "merge"
-          ? `新增 ${result.recordsAdded} 条记录、${result.placesAdded} 个地点、${result.wishlistAdded} 个想去项、${result.ledgersAdded} 本账本、${result.wheelsAdded || 0} 个转盘、${result.bookingsAdded || 0} 项预订、${result.checklistAdded || 0} 项清单；跳过 ${result.recordsSkipped + result.placesSkipped + result.wishlistSkipped + result.ledgersSkipped + (result.wheelsSkipped || 0) + (result.bookingsSkipped || 0) + (result.checklistSkipped || 0)} 项重复内容。`
-          : `当前共有 ${result.recordCount} 条记录、${result.placeCount} 个地点、${result.wishlistCount} 个想去项、${result.ledgerCount} 本账本、${result.wheelCount} 个转盘、${result.bookingCount} 项预订。`,
+          ? `新增 ${totalAdded(result)} 项，跳过 ${totalSkipped(result)} 项重复内容。`
+          : "五类工具数据已按备份完整恢复。",
         showCancel: false
       });
     } catch (error) {
-      wx.showModal({ title: "导入未完成", content: error.message || "数据写入失败", showCancel: false });
+      wx.showModal({
+        title: "恢复未完成",
+        content: error.message || "本地写入失败，原数据已保留",
+        showCancel: false
+      });
     } finally {
       this.setData({ importing: false });
     }
   },
 
   exportBackup() {
-    if (this.data.exportingBackup) return;
-    this.setData({ exportingBackup: true });
+    if (this.data.exporting) return;
+    this.setData({ exporting: true });
     try {
       const result = exportFullBackup();
+      this.refreshSummary();
       if (wx.shareFileMessage) {
         wx.shareFileMessage({
           filePath: result.filePath,
-          fileName: "体验档案-完整备份-v9.json",
+          fileName: "工具箱-完整备份-v1.json",
           fail: (error) => {
-            if (String(error && error.errMsg).indexOf("cancel") < 0) wx.showToast({ title: "发送备份失败", icon: "none" });
+            if (String(error && error.errMsg || "").indexOf("cancel") < 0) {
+              wx.showToast({ title: "发送备份失败", icon: "none" });
+            }
           }
         });
       } else {
-        wx.showModal({ title: "备份已生成", content: "文件已保存在小程序数据目录。", showCancel: false });
+        wx.showModal({
+          title: "备份已生成",
+          content: "JSON 文件已保存在小程序本地目录。",
+          showCancel: false
+        });
       }
     } catch (error) {
-      wx.showModal({ title: "导出失败", content: error.message || "无法生成备份", showCancel: false });
+      wx.showModal({
+        title: "导出失败",
+        content: error.message || "无法生成备份文件",
+        showCancel: false
+      });
     } finally {
-      this.setData({ exportingBackup: false });
+      this.setData({ exporting: false });
     }
   },
 
-  exportPdf(event) {
-    if (this.data.exportingPdf) return;
-    const records = getRecords();
-    const ledgers = getLedgers();
-    if (!records.length && !ledgers.length) {
-      wx.showToast({ title: "暂无可导出的数据", icon: "none" });
-      return;
+  confirmClear() {
+    if (this.data.clearing) return;
+    wx.showModal({
+      title: "清空全部本地数据？",
+      content: "快评、行程、清单、AA 账本和转盘都会删除，且无法撤销。建议先导出备份。",
+      confirmText: "全部清空",
+      confirmColor: "#a33d2d",
+      success: (result) => {
+        if (!result.confirm) return;
+        this.clearAllData();
+      }
+    });
+  },
+
+  clearAllData() {
+    this.setData({ clearing: true });
+    try {
+      resetAllData();
+      this.checkedBackup = null;
+      this.setData({ selectedFileName: "", preview: null });
+      this.refreshSummary();
+      wx.showToast({ title: "本地数据已清空", icon: "success" });
+    } catch (error) {
+      wx.showModal({
+        title: "清空失败",
+        content: error.message || "请稍后重试",
+        showCancel: false
+      });
+    } finally {
+      this.setData({ clearing: false });
     }
-    const privacyMode = event.currentTarget.dataset.mode === REDACTED_MODE ? REDACTED_MODE : PRIVATE_MODE;
-    this.setData({ exportingPdf: true });
-    exportHotelReport({ page: this, records, ledgers, summary: getSummary(records), privacyMode })
-      .catch((error) => {
-        console.error("export data report failed", error);
-        wx.showModal({ title: "PDF 导出失败", content: error.message || "请稍后重试", showCancel: false });
-      })
-      .finally(() => this.setData({ exportingPdf: false }));
   }
 });

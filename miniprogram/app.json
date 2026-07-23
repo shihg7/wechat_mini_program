@@ -1,31 +1,22 @@
 {
   "pages": [
     "pages/index/index",
-    "pages/record/record",
-    "pages/place/detail",
-    "pages/wishlist/edit",
+    "pages/ledger/index/index",
+    "pages/ledger/edit/edit",
+    "pages/ledger/detail/detail",
     "pages/trip/index",
     "pages/trip/edit",
     "pages/trip/detail",
-    "pages/trip/budget",
-    "pages/departure/index",
-    "pages/departure/edit",
-    "pages/ledger/index/index",
-    "pages/ledger/edit/edit",
-    "pages/ledger/detail/detail"
+    "pages/checklist/index",
+    "pages/record/index",
+    "pages/record/record"
   ],
   "subPackages": [
     {
       "root": "packages/tools",
       "name": "tools",
       "pages": [
-        "insights/index",
-        "cleanup/index",
-        "story/index",
-        "yearbook/index",
-        "travel-map/index",
         "wheel/index",
-        "demo/index",
         "help/index",
         "data/index"
       ]
@@ -34,42 +25,8 @@
   "window": {
     "backgroundTextStyle": "light",
     "navigationBarBackgroundColor": "#ffffff",
-    "navigationBarTitleText": "体验档案",
+    "navigationBarTitleText": "工具箱",
     "navigationBarTextStyle": "black"
-  },
-  "permission": {
-    "scope.userLocation": {
-      "desc": "用于可选地保存酒店或餐厅的位置，拒绝后仍可手工填写"
-    }
-  },
-  "requiredPrivateInfos": [
-    "chooseLocation"
-  ],
-  "tabBar": {
-    "color": "#667085",
-    "selectedColor": "#172033",
-    "backgroundColor": "#ffffff",
-    "borderStyle": "black",
-    "list": [
-      {
-        "pagePath": "pages/index/index",
-        "text": "体验档案",
-        "iconPath": "assets/tab-record.png",
-        "selectedIconPath": "assets/tab-record-active.png"
-      },
-      {
-        "pagePath": "pages/trip/index",
-        "text": "行程",
-        "iconPath": "assets/tab-trip.png",
-        "selectedIconPath": "assets/tab-trip-active.png"
-      },
-      {
-        "pagePath": "pages/ledger/index/index",
-        "text": "AA账本",
-        "iconPath": "assets/tab-ledger.png",
-        "selectedIconPath": "assets/tab-ledger-active.png"
-      }
-    ]
   },
   "style": "v2",
   "darkmode": false,

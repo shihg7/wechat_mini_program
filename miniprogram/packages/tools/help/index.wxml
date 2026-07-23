@@ -1,16 +1,16 @@
 <scroll-view class="page" scroll-y enhanced show-scrollbar="{{false}}" scroll-into-view="{{scrollTarget}}" scroll-with-animation>
   <view class="hero">
-    <view class="eyebrow">HELP CENTER</view>
-    <view class="title">帮助与使用手册</view>
-    <view class="hero-copy">从第一条体验到行程、AA 分账和数据备份，按真实旅行流程快速找到答案。</view>
+    <view class="eyebrow">OFFLINE TOOLBOX</view>
+    <view class="title">工具箱使用帮助</view>
+    <view class="hero-copy">五个工具各自独立、完全离线。搜索问题，展开步骤，或直接进入对应工具。</view>
     <view class="hero-actions">
-      <button class="hero-button hero-primary icon-action" data-url="/pages/record/record?type=hotel" bindtap="openFeature">
-        <ui-icon name="plus" size="{{27}}" tone="white" />
-        <text>新增体验</text>
+      <button class="hero-button hero-primary icon-action" data-url="/pages/index/index" bindtap="openFeature">
+        <ui-icon name="sliders" size="{{27}}" tone="white" />
+        <text>五个工具</text>
       </button>
-      <button class="hero-button hero-secondary icon-action" data-url="/packages/tools/demo/index" bindtap="openFeature">
-        <ui-icon name="play" size="{{27}}" />
-        <text>新手演示</text>
+      <button class="hero-button hero-secondary icon-action" data-url="/packages/tools/data/index" bindtap="openFeature">
+        <ui-icon name="database" size="{{27}}" />
+        <text>数据设置</text>
       </button>
     </view>
   </view>
@@ -18,7 +18,7 @@
   <view class="search-panel">
     <view class="search-box">
       <ui-icon name="search" size="{{28}}" tone="muted" />
-      <input class="search-input" value="{{keyword}}" placeholder="搜索分账、照片、备份等问题" bindinput="onSearchInput" />
+      <input class="search-input" value="{{keyword}}" placeholder="搜索分账、行程、清单、备份" bindinput="onSearchInput" />
       <view class="search-clear" wx:if="{{keyword}}" bindtap="clearSearch" aria-label="清除搜索"><ui-icon name="x" size="{{24}}" tone="muted" /></view>
     </view>
     <view class="search-meta">
@@ -84,7 +84,7 @@
         <view class="tip-item" wx:for="{{item.tips}}" wx:key="*this">{{index + 1}}. {{item}}</view>
       </view>
 
-      <button class="feature-button icon-action" wx:if="{{item.url}}" data-url="{{item.url}}" data-tab="{{item.tab}}" bindtap="openFeature">
+      <button class="feature-button icon-action" wx:if="{{item.url}}" data-url="{{item.url}}" bindtap="openFeature">
         <text>{{item.actionLabel}}</text>
         <ui-icon name="chevron-right" size="{{25}}" tone="blue" />
       </button>
@@ -93,6 +93,6 @@
 
   <view class="footer-note">
     <ui-icon name="shield" size="{{28}}" tone="green" />
-    <view><view class="footer-title">当前为本地优先版本</view><view class="footer-copy">没有账号和云同步，重要数据请定期在“数据管理”中导出完整备份。</view></view>
+    <view><view class="footer-title">数据只在当前设备</view><view class="footer-copy">重要内容请定期从“数据设置”导出完整备份，清空前尤其要确认备份可用。</view></view>
   </view>
 </scroll-view>

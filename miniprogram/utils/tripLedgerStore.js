@@ -2,7 +2,7 @@ const { createId } = require("./id");
 const { SCHEMA_VERSION, migrateLedger, migrateLedgers } = require("./ledgerMigration");
 const { DEFAULT_BASE_CURRENCY, SUPPORTED_CURRENCIES, assertValidLedger } = require("./ledgerValidation");
 
-const STORAGE_KEY = "trip_split_ledgers";
+const STORAGE_KEY = "toolbox_ledgers";
 const DEFAULT_CATEGORIES = ["酒店", "餐饮", "交通", "门票", "购物", "其他"];
 const SPLIT_MODES = [
   { key: "equal", label: "人均" },
@@ -162,7 +162,6 @@ function normalizeExpense(input, ledger) {
     category: DEFAULT_CATEGORIES.indexOf(input.category) >= 0 ? input.category : "其他",
     note: String(input.note || "").trim(),
     paidAt: String(input.paidAt || "").trim(),
-    relatedRecordId: input.relatedRecordId ? String(input.relatedRecordId) : "",
     payerId: payer.id,
     participantIds: uniqueParticipantIds,
     splitMode,
@@ -175,6 +174,9 @@ function normalizeExpense(input, ledger) {
   delete expense.amountText;
   delete expense.participantsText;
   delete expense.noteText;
+  delete expense.relatedRecordId;
+  delete expense.bookingId;
+  delete expense.tripId;
   return expense;
 }
 
@@ -243,6 +245,9 @@ function normalizeInternalLedger(input = {}, existing = null) {
   delete ledger.currencyLabel;
   delete ledger.currencyName;
   delete ledger.currencySymbol;
+  delete ledger.tripId;
+  delete ledger.bookingId;
+  delete ledger.relatedRecordId;
   assertValidLedger(ledger);
   return ledger;
 }

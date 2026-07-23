@@ -1,382 +1,143 @@
 <view class="record-shell">
-<scroll-view class="page {{mode === 'create' || mode === 'edit' ? 'page-with-action-bar' : ''}}" scroll-y enhanced show-scrollbar="{{false}}">
-  <demo-guide active="{{demoActive}}" step-label="任务 1 / 4 · 体验记录" title="看懂一条完整测评" hint="先看总分与分项，再向下找到标签和备注。" />
-  <view class="hero">
-    <view>
-      <view class="eyebrow">{{pageText.eyebrow}}</view>
-      <view class="title">{{pageText.title}}</view>
-      <view class="summary">{{form.isRated ? form.overallScore : "未评分"}} · {{form.verdict}} · {{form.status === "draft" ? "草稿" : "已完成"}}</view>
-    </view>
-    <view class="score-card" wx:if="{{!isQuick}}">
-      <view class="score-value">{{form.isRated ? form.overallScore : "--"}}</view>
-      <view class="score-label">总分</view>
-    </view>
-    <view class="place-choice" wx:if="{{placeSuggestions.length && !isReadonly}}">
-      <view class="place-choice-title">可能是你去过的地点</view>
-      <view class="place-suggestion" wx:for="{{placeSuggestions}}" wx:key="id" data-id="{{item.id}}" bindtap="selectPlaceSuggestion">
-        <view><view class="suggestion-name">{{item.name}}</view><view class="suggestion-meta">{{item.city || "未填写城市"}} · {{item.address || "地址未填写"}}</view></view>
-        <view class="suggestion-action">关联</view>
+  <scroll-view
+    wx:if="{{!missing}}"
+    class="page {{mode === 'create' || mode === 'edit' ? 'page-with-save-bar' : ''}}"
+    scroll-y
+    enhanced
+    show-scrollbar="{{false}}"
+  >
+    <view class="record-header">
+      <view class="header-copy">
+        <view class="eyebrow">{{mode === "create" ? "NEW RATING" : mode === "edit" ? "EDIT RATING" : "QUICK RATING"}}</view>
+        <view class="title">{{mode === "create" ? "记录一次到访" : form.name}}</view>
+        <view class="header-meta">{{form.type === "restaurant" ? "餐厅" : "酒店"}} · {{form.visitDate}}</view>
       </view>
-      <button class="new-place-button" bindtap="createAsNewPlace">都不是，创建新地点</button>
-    </view>
-    <view class="linked-place" wx:if="{{form.placeId}}">
-      <view><view class="linked-label">已关联地点</view><view class="linked-name">{{form.placeName || (recordType === 'restaurant' ? form.restaurantName : form.hotelName)}}</view></view>
-      <view class="linked-action" wx:if="{{!isReadonly}}" bindtap="resetPlaceChoice">更换</view>
-    </view>
-  </view>
-
-  <view class="section">
-    <view class="type-switch" wx:if="{{mode === 'create'}}">
-      <view class="type-option {{recordType === 'hotel' ? 'type-active' : ''}}" data-type="hotel" bindtap="onTypeChange">酒店</view>
-      <view class="type-option {{recordType === 'restaurant' ? 'type-active' : ''}}" data-type="restaurant" bindtap="onTypeChange">米其林餐厅</view>
-    </view>
-    <view class="field">
-      <view class="field-label">{{typeConfig.primaryFieldLabel}}</view>
-      <input
-        wx:if="{{recordType === 'hotel'}}"
-        class="input"
-        disabled="{{isReadonly}}"
-        placeholder="{{typeConfig.titlePlaceholder}}"
-        value="{{form.hotelName}}"
-        data-field="hotelName"
-        bindinput="onFieldInput"
-      />
-      <input
-        wx:if="{{recordType === 'restaurant'}}"
-        class="input"
-        disabled="{{isReadonly}}"
-        placeholder="{{typeConfig.titlePlaceholder}}"
-        value="{{form.restaurantName}}"
-        data-field="restaurantName"
-        bindinput="onFieldInput"
-      />
-    </view>
-    <view class="grid">
-      <view class="field">
-        <view class="field-label">城市/地区</view>
-        <input
-          class="input"
-          disabled="{{isReadonly}}"
-          placeholder="上海"
-          value="{{form.city}}"
-          data-field="city"
-          bindinput="onFieldInput"
-        />
-      </view>
-      <view class="field">
-        <view class="field-label">{{typeConfig.dateLabel}}</view>
-        <picker mode="date" disabled="{{isReadonly}}" value="{{form.stayDate}}" bindchange="onDateChange">
-          <view class="input picker-value">{{form.stayDate || "选择日期"}}</view>
-        </picker>
-      </view>
-    </view>
-    <view class="grid">
-      <view class="field" wx:if="{{recordType === 'hotel'}}">
-        <view class="field-label">房型</view>
-        <input
-          class="input"
-          disabled="{{isReadonly}}"
-          placeholder="基础房/套房"
-          value="{{form.roomType}}"
-          data-field="roomType"
-          bindinput="onFieldInput"
-        />
-      </view>
-      <view class="field" wx:if="{{recordType === 'hotel'}}">
-        <view class="field-label">会员等级</view>
-        <input
-          class="input"
-          disabled="{{isReadonly}}"
-          placeholder="金卡/钻卡"
-          value="{{form.memberLevel}}"
-          data-field="memberLevel"
-          bindinput="onFieldInput"
-        />
-      </view>
-      <view class="field" wx:if="{{recordType === 'restaurant'}}">
-        <view class="field-label">菜系</view>
-        <input
-          class="input"
-          disabled="{{isReadonly}}"
-          placeholder="粤菜/法餐/日料"
-          value="{{form.cuisine}}"
-          data-field="cuisine"
-          bindinput="onFieldInput"
-        />
-      </view>
-      <view class="field" wx:if="{{recordType === 'restaurant'}}">
-        <view class="field-label">米其林等级</view>
-        <input
-          class="input"
-          disabled="{{isReadonly}}"
-          placeholder="一星/二星/三星/入选"
-          value="{{form.michelinLevel}}"
-          data-field="michelinLevel"
-          bindinput="onFieldInput"
-        />
-      </view>
-    </view>
-    <view class="grid" wx:if="{{recordType === 'restaurant'}}">
-      <view class="field">
-        <view class="field-label">餐段</view>
-        <input
-          class="input"
-          disabled="{{isReadonly}}"
-          placeholder="午餐/晚餐"
-          value="{{form.mealPeriod}}"
-          data-field="mealPeriod"
-          bindinput="onFieldInput"
-        />
-      </view>
-      <view class="field">
-        <view class="field-label">人均/套餐</view>
-        <input
-          class="input"
-          disabled="{{isReadonly}}"
-          placeholder="¥800/人"
-          value="{{form.priceRange}}"
-          data-field="priceRange"
-          bindinput="onFieldInput"
-        />
+      <view class="score-panel {{form.score !== null && form.score !== '' ? 'has-score' : ''}}">
+        <view class="score-value">{{form.score !== null && form.score !== "" ? form.score : "--"}}</view>
+        <view class="score-unit">/ 10</view>
       </view>
     </view>
 
-    <view class="advanced-toggle" bindtap="togglePlaceDetails">
-      <view class="advanced-copy">
-        <view class="advanced-title">地点与分店信息</view>
-        <view class="advanced-subtitle">别名、分店和地图位置，可稍后补充</view>
+    <view class="form-band">
+      <view class="section-heading">
+        <view class="section-title">基本信息</view>
+        <view class="required-note">名称必填</view>
       </view>
-      <ui-icon name="{{showPlaceDetails ? 'arrow-up' : 'chevron-right'}}" size="{{25}}" tone="muted" />
-    </view>
-    <view class="advanced-content" wx:if="{{showPlaceDetails}}">
-      <view class="grid">
-        <view class="field">
-          <view class="field-label">地点标准名</view>
-          <input class="input" disabled="{{isReadonly}}" placeholder="默认使用酒店或餐厅名称" value="{{form.placeName}}" data-field="placeName" bindinput="onFieldInput" />
+
+      <view class="segments" wx:if="{{!readonly}}">
+        <view class="segment {{form.type === 'hotel' ? 'active' : ''}}" data-type="hotel" bindtap="onTypeTap">
+          <ui-icon name="hotel" size="{{25}}" tone="{{form.type === 'hotel' ? 'white' : 'muted'}}" />
+          <text>酒店</text>
         </view>
-        <view class="field">
-          <view class="field-label">地点别名</view>
-          <input class="input" disabled="{{isReadonly}}" placeholder="英文名或简称" value="{{form.placeAlias}}" data-field="placeAlias" bindinput="onFieldInput" />
+        <view class="segment {{form.type === 'restaurant' ? 'active' : ''}}" data-type="restaurant" bindtap="onTypeTap">
+          <ui-icon name="utensils" size="{{25}}" tone="{{form.type === 'restaurant' ? 'white' : 'muted'}}" />
+          <text>餐厅</text>
         </view>
       </view>
-      <view class="grid">
-        <view class="field">
-          <view class="field-label">地区/分店</view>
-          <input class="input" disabled="{{isReadonly}}" placeholder="浦东 / 银座店" value="{{form.area}}" data-field="area" bindinput="onFieldInput" />
-        </view>
-        <view class="field">
-          <view class="field-label">地图位置</view>
-          <button class="location-button" disabled="{{isReadonly}}" bindtap="chooseLocation">{{form.address ? "重新选择" : "从地图选择"}}</button>
-        </view>
-      </view>
+
       <view class="field">
-        <view class="field-label">地址</view>
-        <input class="input" disabled="{{isReadonly}}" placeholder="可手工填写，地图不是必选项" value="{{form.address}}" data-field="address" bindinput="onFieldInput" />
+        <view class="label">名称</view>
+        <input
+          class="input"
+          disabled="{{readonly}}"
+          value="{{form.name}}"
+          placeholder="{{form.type === 'restaurant' ? '餐厅名称' : '酒店名称'}}"
+          maxlength="80"
+          data-field="name"
+          bindinput="onInput"
+        />
       </view>
-    </view>
-  </view>
 
-  <view class="section" wx:if="{{!isReadonly && !isQuick}}">
-    <view class="field-label">快捷填写</view>
-    <scroll-view class="template-scroll" scroll-x><view class="template-row"><view class="template-chip" wx:for="{{templates}}" wx:key="id" wx:if="{{item.type === recordType}}" data-id="{{item.id}}" bindtap="applyFormTemplate">{{item.name}}</view><view class="template-chip save-template" bindtap="saveCurrentTemplate">保存当前模板</view></view></scroll-view>
-    <view class="recent" wx:if="{{recentSuggestions}}"><view class="recent-title">历史建议</view><view class="recent-row"><view class="recent-chip" wx:if="{{recentSuggestions.city && !form.city}}" data-field="city" data-value="{{recentSuggestions.city}}" bindtap="useRecentSuggestion">城市 {{recentSuggestions.city}}</view><view class="recent-chip" wx:if="{{recentSuggestions.roomType && !form.roomType}}" data-field="roomType" data-value="{{recentSuggestions.roomType}}" bindtap="useRecentSuggestion">房型 {{recentSuggestions.roomType}}</view><view class="recent-chip" wx:if="{{recentSuggestions.cuisine && !form.cuisine}}" data-field="cuisine" data-value="{{recentSuggestions.cuisine}}" bindtap="useRecentSuggestion">菜系 {{recentSuggestions.cuisine}}</view></view></view>
-  </view>
-
-  <view class="section unrated-empty" wx:if="{{!isQuick && isReadonly && !form.isRated}}">
-    <view class="unrated-title">这次体验还没有评分</view>
-    <view class="unrated-desc">编辑记录并调整任一评分项后，才会计入个人均分和地点趋势。</view>
-  </view>
-
-  <view class="section score-overview" wx:if="{{!isQuick && (!isReadonly || form.isRated)}}">
-    <view class="field-label">维度评分</view>
-    <view class="score-intro" wx:if="{{!isReadonly && !form.ratingTouched}}">滑杆默认停在 8 分作为填写起点；调整任一项后才会计入评分统计。</view>
-    <view class="score-bar" wx:for="{{scoreBars}}" wx:key="key">
-      <view class="score-bar-row">
-        <view class="score-bar-label">{{item.title}}</view>
-        <view class="score-bar-value">{{form.ratingTouched ? item.score : "--"}}</view>
-      </view>
-      <view class="score-track">
-        <view class="score-fill" style="width: {{form.ratingTouched ? item.percent : 0}}%; background: {{item.accent}};"></view>
-      </view>
-    </view>
-  </view>
-
-  <view class="section" wx:if="{{!isQuick && (!isReadonly || form.isRated)}}" wx:for="{{categories}}" wx:key="key">
-    <view class="category-head">
-      <view>
-        <view class="category-title">{{item.title}}</view>
-        <view class="category-subtitle">{{item.subtitle}}</view>
-      </view>
-      <view class="category-score">{{form.ratingTouched ? form.categoryScores[item.key] : "--"}}</view>
-    </view>
-
-    <view class="metric" wx:for="{{item.metrics}}" wx:for-item="metric" wx:key="key">
-      <view class="metric-row">
-        <view class="metric-label">{{metric.label}}</view>
-        <view class="metric-value">{{form.scores[item.key][metric.key]}} / 10</view>
-      </view>
-      <slider
-        disabled="{{isReadonly}}"
-        min="0"
-        max="10"
-        step="0.5"
-        value="{{form.scores[item.key][metric.key]}}"
-        activeColor="{{item.accent}}"
-        backgroundColor="#d9dee8"
-        block-size="22"
-        data-category="{{item.key}}"
-        data-metric="{{metric.key}}"
-        bindchange="onScoreChange"
-        bindchanging="onScoreChange"
-      />
-    </view>
-
-    <view class="tag-list">
-      <view
-        class="tag {{form.selectedTags[item.key].indexOf(tag) >= 0 ? 'tag-active' : ''}} {{isReadonly ? 'tag-readonly' : ''}}"
-        wx:for="{{item.tags}}"
-        wx:for-item="tag"
-        wx:key="*this"
-        data-category="{{item.key}}"
-        data-tag="{{tag}}"
-        bindtap="onToggleTag"
-      >
-        {{tag}}
-      </view>
-    </view>
-  </view>
-
-  <view class="section photo-section" wx:if="{{!isQuick}}">
-    <view class="photo-head">
-      <view>
-        <view class="field-label photo-title">体验照片</view>
-        <view class="photo-subtitle">{{form.photos.length}} / {{maxPhotos}} 张{{form.photos.length ? " · 点击照片预览" : ""}}</view>
-      </view>
-      <button class="photo-add-button" wx:if="{{!isReadonly && form.photos.length < maxPhotos}}" loading="{{addingPhotos}}" bindtap="addPhotos">添加照片</button>
-    </view>
-    <view class="photo-empty" wx:if="{{!form.photos.length}}">还没有照片，可以记录房间、餐食和现场细节。</view>
-    <view class="photo-list" wx:for="{{form.photos}}" wx:key="id">
-      <view class="photo-preview-wrap" data-id="{{item.id}}" bindtap="previewPhoto">
-        <image class="photo-preview" wx:if="{{item.available !== false}}" src="{{item.filePath}}" mode="aspectFill" />
-        <view class="photo-missing" wx:else>文件已失效</view>
-        <view class="cover-badge" wx:if="{{form.coverPhotoId === item.id}}">封面</view>
-      </view>
-      <view class="photo-editor">
-        <view class="photo-meta-row">
-          <picker disabled="{{isReadonly}}" mode="selector" range="{{photoCategories}}" data-id="{{item.id}}" bindchange="onPhotoCategoryChange">
-            <view class="photo-category">{{item.category}}</view>
+      <view class="field-grid">
+        <view class="field">
+          <view class="label">城市</view>
+          <input
+            class="input"
+            disabled="{{readonly}}"
+            value="{{form.city}}"
+            placeholder="选填"
+            maxlength="40"
+            data-field="city"
+            bindinput="onInput"
+          />
+        </view>
+        <view class="field">
+          <view class="label">到访日期</view>
+          <picker mode="date" disabled="{{readonly}}" value="{{form.visitDate}}" bindchange="onDateChange">
+            <view class="input picker-value">
+              <text>{{form.visitDate}}</text>
+              <ui-icon wx:if="{{!readonly}}" name="calendar" size="{{23}}" tone="muted" />
+            </view>
           </picker>
-          <view class="photo-tools" wx:if="{{!isReadonly}}">
-            <view class="photo-icon" data-id="{{item.id}}" data-direction="-1" catchtap="movePhoto">‹</view>
-            <view class="photo-icon" data-id="{{item.id}}" data-direction="1" catchtap="movePhoto">›</view>
-            <view class="photo-cover-action" wx:if="{{form.coverPhotoId !== item.id}}" data-id="{{item.id}}" catchtap="setCoverPhoto">设封面</view>
-            <view class="photo-delete" data-id="{{item.id}}" catchtap="removePhoto">删除</view>
-          </view>
         </view>
-        <input class="photo-caption" disabled="{{isReadonly}}" maxlength="40" placeholder="补充一句照片说明" value="{{item.caption}}" data-id="{{item.id}}" bindinput="onPhotoCaptionInput" />
+      </view>
+
+      <view class="field">
+        <view class="label">评分（可选）</view>
+        <view class="score-input-row" wx:if="{{!readonly}}">
+          <input
+            class="score-input"
+            type="digit"
+            value="{{scoreInput}}"
+            placeholder="1.0 - 10.0"
+            maxlength="4"
+            bindinput="onScoreInput"
+          />
+          <button class="clear-score icon-center" wx:if="{{scoreInput !== ''}}" catchtap="clearScore" aria-label="清空评分">
+            <ui-icon name="x" size="{{22}}" tone="muted" />
+          </button>
+          <view class="score-suffix">/ 10</view>
+        </view>
+        <view class="readonly-value score-readonly" wx:else>
+          {{form.score !== null ? form.score + " / 10" : "未评分"}}
+        </view>
+      </view>
+
+      <view class="field">
+        <view class="label">备注</view>
+        <textarea
+          class="textarea"
+          disabled="{{readonly}}"
+          value="{{form.note}}"
+          placeholder="选填"
+          maxlength="500"
+          data-field="note"
+          bindinput="onInput"
+        />
       </view>
     </view>
-  </view>
 
-  <view class="section" wx:if="{{!isQuick}}">
-    <view class="field-label">自定义标签</view>
-    <view class="custom-tag-editor" wx:if="{{!isReadonly}}">
-      <input
-        class="input custom-tag-input"
-        placeholder="例如：适合纪念日 / 值得二刷"
-        value="{{customTagInput}}"
-        bindinput="onCustomTagInput"
-      />
-      <button class="tag-add-button" bindtap="addCustomTag">添加</button>
+    <view class="detail-actions" wx:if="{{mode === 'detail'}}">
+      <button class="action-button secondary icon-action" bindtap="goToList">
+        <ui-icon name="clipboard" size="{{25}}" />
+        <text>全部记录</text>
+      </button>
+      <button class="action-button primary icon-action" bindtap="enterEdit">
+        <ui-icon name="edit" size="{{25}}" tone="white" />
+        <text>编辑</text>
+      </button>
+      <button class="action-button danger icon-action" bindtap="remove">
+        <ui-icon name="trash" size="{{25}}" tone="accent" />
+        <text>删除</text>
+      </button>
     </view>
-    <view class="tag-list custom-tags" wx:if="{{form.customTags.length}}">
-      <view
-        class="tag tag-active {{isReadonly ? 'tag-readonly' : ''}}"
-        wx:for="{{form.customTags}}"
-        wx:key="*this"
-        data-tag="{{item}}"
-        bindtap="removeCustomTag"
-      >
-        {{item}}
-      </view>
+  </scroll-view>
+
+  <view class="missing-state" wx:if="{{missing}}">
+    <view class="missing-icon"><ui-icon name="alert" size="{{42}}" tone="accent" /></view>
+    <view class="missing-title">找不到这条记录</view>
+    <button class="missing-button" bindtap="goBack">返回上一页</button>
+  </view>
+
+  <view class="fixed-save-bar" wx:if="{{mode === 'create' || mode === 'edit'}}">
+    <view class="save-bar-inner">
+      <button class="cancel-button icon-center" wx:if="{{mode === 'edit'}}" bindtap="cancelEdit" aria-label="取消编辑">
+        <ui-icon name="x" size="{{29}}" />
+      </button>
+      <button class="save-button icon-action" bindtap="save">
+        <ui-icon name="check" size="{{27}}" tone="white" />
+        <text>{{mode === "edit" ? "保存修改" : "保存记录"}}</text>
+      </button>
     </view>
   </view>
-
-  <view class="section">
-    <view class="field-label">补充观察</view>
-    <textarea
-      class="textarea"
-      disabled="{{isReadonly}}"
-      placeholder="{{recordType === 'restaurant' ? '记录菜品亮点、服务节奏、酒水搭配、订位难度等细节' : '记录排队情况、会员识别、儿童友好度、拍照点等细节'}}"
-      value="{{form.note}}"
-      maxlength="300"
-      data-field="note"
-      bindinput="onFieldInput"
-    />
-  </view>
-
-  <view class="section" wx:if="{{!isQuick}}">
-    <view class="advanced-toggle share-toggle" bindtap="toggleShareSection">
-      <view class="advanced-copy">
-        <view class="advanced-title">分享内容预览</view>
-        <view class="advanced-subtitle">仅保存在本机，当前不会发布到网络</view>
-      </view>
-      <ui-icon name="{{showShareSection ? 'arrow-up' : 'chevron-right'}}" size="{{25}}" tone="muted" />
-    </view>
-    <block wx:if="{{showShareSection}}">
-    <textarea
-      class="textarea public-textarea"
-      disabled="{{isReadonly}}"
-      placeholder="写一段适合分享的摘要；精确日期、会员等级和价格不会进入预览"
-      value="{{form.publicNote}}"
-      maxlength="180"
-      data-field="publicNote"
-      bindinput="onFieldInput"
-    />
-    <view class="local-only-notice"><ui-icon name="shield" size="{{23}}" tone="green" /><text>本版本没有公开发布能力，这里只是脱敏分享效果预览。</text></view>
-    <view class="public-preview">
-      <view class="preview-head">
-        <view class="preview-title">{{publicPreview.title}}</view>
-        <view class="preview-score">{{form.isRated ? form.overallScore : "--"}}</view>
-      </view>
-      <view class="preview-meta">{{publicPreview.typeLabel}} · {{form.city || "未填写城市"}} · {{publicPreview.visitMonth}}</view>
-      <view class="preview-note">{{publicPreview.summary}}</view>
-      <view class="preview-tags">{{publicPreview.tags}}</view>
-    </view>
-    <view class="privacy-hint">分享预览不会展示精确日期、会员等级、价格和私密备注。</view>
-    </block>
-  </view>
-
-  <view class="actions detail-actions" wx:if="{{mode === 'detail'}}">
-    <button class="button secondary" bindtap="goStory">生成回顾</button>
-    <button class="button secondary" wx:if="{{form.placeId}}" bindtap="goPlaceDetail">查看地点</button>
-    <button class="button primary" bindtap="enterEdit">编辑记录</button>
-    <button class="button secondary" bindtap="copyRecord">复制记录</button>
-    <button class="button danger" bindtap="deleteRecord">删除记录</button>
-  </view>
-</scroll-view>
-
-<view class="fixed-actions" wx:if="{{mode === 'create' || mode === 'edit'}}">
-  <view class="fixed-actions-inner">
-    <button class="fixed-cancel icon-center" wx:if="{{mode === 'edit'}}" bindtap="cancelEdit" aria-label="取消编辑">
-      <ui-icon name="x" size="{{29}}" />
-    </button>
-    <button class="fixed-button fixed-draft icon-action" wx:if="{{!isQuick}}" data-status="draft" bindtap="saveRecord">
-      <ui-icon name="file" size="{{26}}" />
-      <text>{{mode === "edit" ? "存为草稿" : "保存草稿"}}</text>
-    </button>
-    <button class="fixed-button fixed-draft icon-action" wx:if="{{isQuick}}" bindtap="expandQuickRecord">
-      <ui-icon name="sliders" size="{{26}}" tone="blue" />
-      <text>继续完整评分</text>
-    </button>
-    <button class="fixed-button fixed-primary icon-action" wx:if="{{isQuick}}" data-status="draft" bindtap="saveRecord">
-      <ui-icon name="file" size="{{26}}" tone="white" />
-      <text>保存快速记录</text>
-    </button>
-    <button class="fixed-button fixed-primary icon-action" wx:else data-status="completed" bindtap="saveRecord">
-      <ui-icon name="check" size="{{27}}" tone="white" />
-      <text>{{mode === "edit" ? "保存修改" : (form.ratingTouched ? "保存记录" : "保存未评分")}}</text>
-    </button>
-  </view>
-</view>
 </view>

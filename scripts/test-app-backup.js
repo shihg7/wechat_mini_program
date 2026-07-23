@@ -41,6 +41,7 @@ const tripStore = require("../miniprogram/utils/tripStore");
 const checklistStore = require("../miniprogram/utils/checklistStore");
 const ledgerStore = require("../miniprogram/utils/tripLedgerStore");
 const wheelStore = require("../miniprogram/packages/tools/utils/wheelStore");
+const careerGameStore = require("../miniprogram/packages/tools/utils/careerGameStore");
 const backupApi = require("../miniprogram/packages/tools/utils/appBackup");
 
 function reset() {
@@ -81,6 +82,24 @@ function seedAll() {
     title: "晚饭吃什么",
     options: [{ id: "option-a", text: "杭帮菜" }, { id: "option-b", text: "面馆" }]
   });
+  careerGameStore.setRuns([careerGameStore.normalizeRun({
+    id: "career-hangzhou",
+    playerName: "小林",
+    seed: 20260720,
+    status: "active",
+    stageIndex: 0,
+    currentSceneId: "stage-1-scene-1",
+    phase: "scene",
+    stats: { tech: 20, communication: 20, energy: 20, savings: 20, influence: 20 },
+    flags: {},
+    pendingEffects: [],
+    history: [],
+    lastOutcome: null,
+    endingId: "",
+    startedAt: "2026-07-20T10:00:00.000Z",
+    updatedAt: "2026-07-20T10:00:00.000Z",
+    completedAt: ""
+  })]);
 }
 
 function comparableBackup(backup) {
@@ -99,24 +118,41 @@ function emptyBackup(patch = {}) {
     checklists: [],
     ledgers: [],
     wheels: [],
+    careerRuns: [],
     ...patch
   };
 }
 
-function testRoundTripAndSummary() {
+function v1Backup(patch = {}) {
+  const backup = emptyBackup(patch);
+  backup.schemaVersion = 1;
+  delete backup.careerRuns;
+  return backup;
+}
+
+function testV1Compatibility() {
+  reset();
+  const checked = backupApi.preflightBackup(v1Backup());
+  assert.strictEqual(checked.backup.schemaVersion, 2);
+  assert.deepStrictEqual(checked.backup.careerRuns, []);
+  assert.strictEqual(checked.summary.careerCount, 0);
+}
+
+function testV2RoundTripAndSummary() {
   reset();
   seedAll();
   const source = backupApi.buildBackup();
   const checked = backupApi.preflightBackup(JSON.stringify(source));
   assert.deepStrictEqual(checked.summary, {
-    schemaVersion: 1,
+    schemaVersion: 2,
     exportedAt: source.exportedAt,
     recordCount: 1,
     tripCount: 1,
     checklistCount: 1,
     ledgerCount: 1,
     expenseCount: 0,
-    wheelCount: 1
+    wheelCount: 1,
+    careerCount: 1
   });
 
   backupApi.resetAllData();
@@ -125,7 +161,7 @@ function testRoundTripAndSummary() {
   assert.deepStrictEqual(
     comparableBackup(backupApi.buildBackup()),
     comparableBackup(source),
-    "v1 backup should survive a full replace round trip"
+    "v2 backup should survive a full replace round trip"
   );
 }
 
@@ -154,11 +190,48 @@ function testMergeIsIdempotentAndRenamesConflicts() {
   assert.strictEqual(quickRecordStore.getRecords().length, 2);
 }
 
-function testAtomicRollbackAcrossFiveStores() {
+function testCareerMergeDefersActiveConflictToStore() {
+  reset();
+  const local = careerGameStore.normalizeRun({
+    id: "career-shared",
+    playerName: "本地玩家",
+    seed: 1,
+    status: "active",
+    updatedAt: "2026-07-22T10:00:00.000Z"
+  });
+  const incoming = careerGameStore.normalizeRun({
+    ...local,
+    playerName: "备份玩家",
+    seed: 2,
+    status: "active",
+    updatedAt: "2026-07-21T10:00:00.000Z"
+  });
+  careerGameStore.setRuns([local]);
+
+  const result = backupApi.applyBackup(emptyBackup({ careerRuns: [incoming] }), "merge");
+  const runs = careerGameStore.getRuns();
+  assert.strictEqual(result.careerRunsAdded, 1);
+  assert.strictEqual(result.careerRunsCount, 2);
+  assert.strictEqual(runs.length, 2);
+  assert(runs.some((run) => run.id === "career-shared_import_1"));
+  assert.strictEqual(runs.filter((run) => run.status === "active").length, 1, "setRuns should resolve multiple active careers");
+  assert.strictEqual(
+    runs.find((run) => run.id === "career-shared_import_1").status,
+    "interrupted",
+    "the store should demote the older imported active career"
+  );
+
+  const repeated = backupApi.applyBackup(emptyBackup({ careerRuns: [incoming] }), "merge");
+  assert.strictEqual(repeated.careerRunsAdded, 0);
+  assert.strictEqual(repeated.careerRunsSkipped, 1);
+  assert.strictEqual(careerGameStore.getRuns().length, 2);
+}
+
+function testAtomicRollbackAcrossSixStores() {
   reset();
   seedAll();
   const before = clone(memory);
-  failKey = checklistStore.STORAGE_KEY;
+  failKey = careerGameStore.STORAGE_KEY;
   failCount = 1;
   assert.throws(
     () => backupApi.applyBackup(emptyBackup(), "replace"),
@@ -169,7 +242,8 @@ function testAtomicRollbackAcrossFiveStores() {
     tripStore.STORAGE_KEY,
     checklistStore.STORAGE_KEY,
     ledgerStore.STORAGE_KEY,
-    wheelStore.STORAGE_KEY
+    wheelStore.STORAGE_KEY,
+    careerGameStore.STORAGE_KEY
   ].forEach((key) => assert.deepStrictEqual(memory[key], before[key], `${key} should be rolled back`));
 }
 
@@ -177,8 +251,9 @@ function testValidationExportAndClear() {
   reset();
   assert.throws(() => backupApi.preflightBackup("{"), /有效的工具箱 JSON/);
   assert.throws(() => backupApi.preflightBackup({ ...emptyBackup(), app: "another-app" }), /不是当前工具箱/);
-  assert.throws(() => backupApi.preflightBackup({ ...emptyBackup(), schemaVersion: 2 }), /仅支持工具箱备份 v1/);
+  assert.throws(() => backupApi.preflightBackup({ ...emptyBackup(), schemaVersion: 3 }), /仅支持工具箱备份 v1 或 v2/);
   assert.throws(() => backupApi.preflightBackup({ ...emptyBackup(), wheels: "bad" }), /wheels 必须是数组/);
+  assert.throws(() => backupApi.preflightBackup({ ...emptyBackup(), careerRuns: "bad" }), /careerRuns 必须是数组/);
   const duplicate = quickRecordStore.normalizeRecord({
     id: "duplicate",
     type: "restaurant",
@@ -193,8 +268,8 @@ function testValidationExportAndClear() {
 
   seedAll();
   const exported = backupApi.exportFullBackup();
-  assert.strictEqual(exported.backup.schemaVersion, 1);
-  assert.strictEqual(exported.filePath, "/tmp/toolbox-backup-v1.json");
+  assert.strictEqual(exported.backup.schemaVersion, 2);
+  assert.strictEqual(exported.filePath, "/tmp/toolbox-backup-v2.json");
   assert.strictEqual(writtenFile.filePath, exported.filePath);
   assert.strictEqual(writtenFile.encoding, "utf8");
   assert.strictEqual(JSON.parse(writtenFile.content).app, backupApi.APP_ID);
@@ -202,14 +277,21 @@ function testValidationExportAndClear() {
 
   backupApi.resetAllData();
   const summary = backupApi.getLocalDataSummary();
-  assert.strictEqual(summary.recordCount + summary.tripCount + summary.checklistCount + summary.ledgerCount + summary.wheelCount, 0);
+  assert.strictEqual(
+    summary.recordCount + summary.tripCount + summary.checklistCount
+      + summary.ledgerCount + summary.wheelCount + summary.careerCount,
+    0
+  );
+  assert.deepStrictEqual(careerGameStore.getRuns(), []);
   assert.strictEqual(summary.currentSizeKb, 16);
   assert.strictEqual(summary.limitSizeKb, 10240);
   assert.strictEqual(summary.lastBackupAt, "");
 }
 
-testRoundTripAndSummary();
+testV1Compatibility();
+testV2RoundTripAndSummary();
 testMergeIsIdempotentAndRenamesConflicts();
-testAtomicRollbackAcrossFiveStores();
+testCareerMergeDefersActiveConflictToStore();
+testAtomicRollbackAcrossSixStores();
 testValidationExportAndClear();
 console.log("toolbox backup tests passed");

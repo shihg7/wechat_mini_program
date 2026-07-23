@@ -3,9 +3,10 @@ const tripStore = require("../../../utils/tripStore");
 const checklistStore = require("../../../utils/checklistStore");
 const ledgerStore = require("../../../utils/tripLedgerStore");
 const wheelStore = require("./wheelStore");
+const careerGameStore = require("./careerGameStore");
 
 const APP_ID = "local-toolbox-miniprogram";
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 2;
 const LAST_BACKUP_KEY = "toolbox_last_backup_at";
 
 const COLLECTIONS = [
@@ -13,7 +14,16 @@ const COLLECTIONS = [
   { key: "trips", label: "行程", storageKey: tripStore.STORAGE_KEY, get: tripStore.getTrips, set: tripStore.setTrips, normalize: tripStore.normalizeTrip },
   { key: "checklists", label: "清单", storageKey: checklistStore.STORAGE_KEY, get: checklistStore.getChecklists, set: checklistStore.setChecklists, normalize: checklistStore.normalizeChecklist },
   { key: "ledgers", label: "账本", storageKey: ledgerStore.STORAGE_KEY, get: ledgerStore.getLedgers, set: ledgerStore.setLedgers, normalize: ledgerStore.normalizeLedger },
-  { key: "wheels", label: "转盘", storageKey: wheelStore.STORAGE_KEY, get: wheelStore.getWheels, set: wheelStore.setWheels, normalize: wheelStore.normalizeWheel }
+  { key: "wheels", label: "转盘", storageKey: wheelStore.STORAGE_KEY, get: wheelStore.getWheels, set: wheelStore.setWheels, normalize: wheelStore.normalizeWheel },
+  {
+    key: "careerRuns",
+    label: "生涯",
+    storageKey: careerGameStore.STORAGE_KEY,
+    get: careerGameStore.getRuns,
+    set: careerGameStore.setRuns,
+    normalize: careerGameStore.normalizeRun,
+    sameConflict: sameCareerImportedConflict
+  }
 ];
 
 function clone(value) {
@@ -54,7 +64,10 @@ function parseSource(source) {
 function normalizeBackup(source) {
   const value = parseSource(source);
   if (value.app !== APP_ID) throw new Error("这不是当前工具箱生成的备份");
-  if (Number(value.schemaVersion) !== SCHEMA_VERSION) throw new Error(`仅支持工具箱备份 v${SCHEMA_VERSION}`);
+  const sourceVersion = Number(value.schemaVersion);
+  if (sourceVersion !== 1 && sourceVersion !== SCHEMA_VERSION) {
+    throw new Error(`仅支持工具箱备份 v1 或 v${SCHEMA_VERSION}`);
+  }
   const backup = {
     schemaVersion: SCHEMA_VERSION,
     app: APP_ID,
@@ -63,13 +76,17 @@ function normalizeBackup(source) {
     trips: [],
     checklists: [],
     ledgers: [],
-    wheels: []
+    wheels: [],
+    careerRuns: []
   };
   COLLECTIONS.forEach((collection) => {
-    if (!Array.isArray(value[collection.key])) throw new Error(`${collection.key} 必须是数组`);
-    assertUniqueIds(value[collection.key], collection.label);
+    const sourceItems = sourceVersion === 1 && collection.key === "careerRuns"
+      ? []
+      : value[collection.key];
+    if (!Array.isArray(sourceItems)) throw new Error(`${collection.key} 必须是数组`);
+    assertUniqueIds(sourceItems, collection.label);
     try {
-      backup[collection.key] = value[collection.key].map(collection.normalize);
+      backup[collection.key] = sourceItems.map(collection.normalize);
     } catch (error) {
       throw new Error(`${collection.label}数据无效：${error.message || "格式错误"}`);
     }
@@ -86,7 +103,8 @@ function buildSummary(backup) {
     checklistCount: backup.checklists.length,
     ledgerCount: backup.ledgers.length,
     expenseCount: backup.ledgers.reduce((sum, ledger) => sum + (ledger.expenses || []).length, 0),
-    wheelCount: backup.wheels.length
+    wheelCount: backup.wheels.length,
+    careerCount: backup.careerRuns.length
   };
 }
 
@@ -134,7 +152,17 @@ function sameImportedConflict(candidate, incoming) {
   return stableStringify({ ...candidate, id: sourceId }) === stableStringify(incoming);
 }
 
-function mergeCollection(current, incoming, normalize) {
+function sameCareerImportedConflict(candidate, incoming) {
+  const sourceId = String(incoming.id);
+  if (!String(candidate.id).startsWith(`${sourceId}_import_`)) return false;
+  const comparable = { ...candidate, id: sourceId };
+  if (comparable.status === "interrupted" && incoming.status === "active") {
+    comparable.status = "active";
+  }
+  return stableStringify(comparable) === stableStringify(incoming);
+}
+
+function mergeCollection(current, incoming, normalize, sameConflict = sameImportedConflict) {
   const next = current.map(normalize);
   const byId = new Map(next.map((item) => [String(item.id), item]));
   const used = new Set(byId.keys());
@@ -148,7 +176,7 @@ function mergeCollection(current, incoming, normalize) {
       return;
     }
     if (existing) {
-      if (next.some((candidate) => sameImportedConflict(candidate, item))) {
+      if (next.some((candidate) => sameConflict(candidate, item))) {
         skipped += 1;
         return;
       }
@@ -175,7 +203,7 @@ function applyBackup(source, mode = "merge") {
     COLLECTIONS.forEach((collection) => {
       const next = mode === "replace"
         ? { items: backup[collection.key].map(collection.normalize), added: backup[collection.key].length, skipped: 0 }
-        : mergeCollection(collection.get(), backup[collection.key], collection.normalize);
+        : mergeCollection(collection.get(), backup[collection.key], collection.normalize, collection.sameConflict);
       collection.set(next.items);
       result[`${collection.key}Added`] = next.added;
       result[`${collection.key}Skipped`] = next.skipped;
@@ -196,7 +224,7 @@ function applyBackup(source, mode = "merge") {
 
 function exportFullBackup() {
   const backup = buildBackup();
-  const filePath = `${wx.env.USER_DATA_PATH}/toolbox-backup-v1.json`;
+  const filePath = `${wx.env.USER_DATA_PATH}/toolbox-backup-v2.json`;
   wx.getFileSystemManager().writeFileSync(filePath, JSON.stringify(backup, null, 2), "utf8");
   wx.setStorageSync(LAST_BACKUP_KEY, backup.exportedAt);
   return { backup, filePath, summary: buildSummary(backup) };

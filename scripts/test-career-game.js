@@ -1,0 +1,149 @@
+const assert = require("assert");
+
+const memory = {};
+global.wx = {
+  getStorageSync(key) {
+    return memory[key];
+  },
+  setStorageSync(key, value) {
+    memory[key] = JSON.parse(JSON.stringify(value));
+  }
+};
+
+const content = require("../miniprogram/packages/tools/utils/careerGameContent");
+const engine = require("../miniprogram/packages/tools/utils/careerGameEngine");
+const store = require("../miniprogram/packages/tools/utils/careerGameStore");
+
+assert.strictEqual(content.STAGES.length, 6);
+assert.strictEqual(content.ENDINGS.length, 12);
+assert.deepStrictEqual(Object.keys(engine.INITIAL_STATS).sort(), content.STAT_KEYS.slice().sort());
+content.STAT_KEYS.forEach((key) => {
+  assert.strictEqual(engine.applyEffects({ ...engine.INITIAL_STATS, [key]: 98 }, { [key]: 10 }).stats[key], 100);
+  assert.strictEqual(engine.applyEffects({ ...engine.INITIAL_STATS, [key]: 2 }, { [key]: -10 }).stats[key], 0);
+});
+
+const shuffledA = engine.seededShuffle(["a", "b", "c", "d"], "same-seed");
+const shuffledB = engine.seededShuffle(["a", "b", "c", "d"], "same-seed");
+assert.deepStrictEqual(shuffledA, shuffledB, "seeded event selection must be reproducible");
+assert(engine.matchesRequirements([
+  { type: "stat", key: "tech", op: "gte", value: 40 },
+  { type: "flag", key: "trusted", op: "truthy" }
+], { stats: { tech: 50 }, flags: { trusted: true }, history: [] }));
+
+const runA = engine.createInitialRun({
+  id: "run_a",
+  playerName: "小码",
+  seed: "fixed-seed",
+  timestamp: "2026-07-24T00:00:00.000Z"
+});
+const runB = engine.createInitialRun({
+  id: "run_b",
+  playerName: "小码",
+  seed: "fixed-seed",
+  timestamp: "2026-07-24T00:00:00.000Z"
+});
+assert.deepStrictEqual(runA.stageEventIds, runB.stageEventIds);
+assert.strictEqual(runA.stageEventIds.length, engine.EVENTS_PER_STAGE);
+const stageTwoWithoutDocs = engine.buildStageEventIds(1, {
+  ...runA,
+  stageIndex: 1,
+  flags: {},
+  history: []
+});
+const stageTwoWithDocs = engine.buildStageEventIds(1, {
+  ...runA,
+  stageIndex: 1,
+  flags: { documentation: true },
+  history: []
+});
+assert(!stageTwoWithoutDocs.includes("s2_p1_docs"));
+assert(stageTwoWithDocs.includes("s2_p1_docs"), "an earlier documentation choice should unlock its future event");
+const lowEnergyStage = engine.buildStageEventIds(4, {
+  ...runA,
+  stageIndex: 4,
+  stats: { ...runA.stats, energy: 15 },
+  history: []
+});
+assert(lowEnergyStage.includes("s5_p5_family"), "low energy should prioritize the recovery event");
+content.ENDINGS.forEach((ending) => {
+  const targetState = {
+    stats: { ...engine.INITIAL_STATS },
+    flags: {},
+    history: []
+  };
+  ending.requirements.forEach((requirement) => {
+    if (requirement.type === "flag") targetState.flags[requirement.key] = requirement.value;
+    if (requirement.type === "stat") {
+      targetState.stats[requirement.key] = requirement.op === "lte"
+        ? requirement.value
+        : requirement.value;
+    }
+  });
+  assert.strictEqual(
+    engine.resolveEnding(targetState).id,
+    ending.id,
+    `ending should be reachable with its curated condition set: ${ending.title}`
+  );
+});
+
+store.setRuns([]);
+assert.throws(() => store.startRun("   ", "seed"), /昵称/);
+const started = store.startRun("  小码  ", "stable-seed");
+assert.strictEqual(started.playerName, "小码");
+assert.strictEqual(store.getActiveRun().id, started.id);
+let view = store.getCurrentView();
+assert.strictEqual(view.phase, "scene");
+assert.strictEqual(view.scene.choices.length >= 2, true);
+
+const firstChoice = view.scene.choices[0];
+store.applyChoice(view.runId, view.scene.id, firstChoice.id);
+view = store.getCurrentView();
+assert.strictEqual(view.phase, "outcome");
+assert.throws(
+  () => store.applyChoice(view.runId, view.outcome.eventId, firstChoice.id),
+  /不能进行选择/,
+  "the same choice must not settle twice"
+);
+store.continueRun(view.runId);
+assert.strictEqual(store.getCurrentView().phase, "scene");
+
+const interrupted = store.getActiveRun();
+const restarted = store.restartRun("重开的人", "second-seed");
+assert.notStrictEqual(restarted.id, interrupted.id);
+assert.strictEqual(store.getRunById(interrupted.id).status, "interrupted");
+assert(store.getCareerArchive().some((run) => run.id === interrupted.id));
+
+let safety = 0;
+while (store.getActiveRun() && safety < 120) {
+  const current = store.getCurrentView();
+  if (current.phase === "scene") {
+    const choice = current.scene.choices.find((item) => {
+      const sourceEvent = content.getEventById(current.scene.id);
+      const sourceChoice = sourceEvent.choices.find((entry) => entry.id === item.id);
+      return !sourceChoice.endingId;
+    }) || current.scene.choices[0];
+    store.applyChoice(current.runId, current.scene.id, choice.id);
+  } else {
+    store.continueRun(current.runId);
+  }
+  safety += 1;
+}
+assert(safety < 120, "a complete career should terminate");
+const completed = store.getRuns().find((run) => run.status === "completed");
+assert(completed && completed.endingId);
+assert.strictEqual(completed.history.length, engine.TOTAL_EVENTS);
+assert.strictEqual(store.getEndingProgress().unlocked, 1);
+
+store.setRuns([
+  { ...started, id: "older_active", updatedAt: "2026-07-24T00:00:00.000Z", status: "active" },
+  { ...restarted, id: "newer_active", updatedAt: "2026-07-25T00:00:00.000Z", status: "active" }
+]);
+assert.strictEqual(store.getActiveRun().id, "newer_active");
+assert.strictEqual(store.getRunById("older_active").status, "interrupted");
+
+assert.throws(() => store.setRuns([
+  { ...started, id: "duplicate" },
+  { ...started, id: "duplicate" }
+]), /重复/);
+
+console.log("career game engine and store tests passed");

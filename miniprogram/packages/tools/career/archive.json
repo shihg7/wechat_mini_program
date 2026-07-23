@@ -1,0 +1,7 @@
+{
+  "navigationBarTitleText": "生涯档案",
+  "disableScroll": true,
+  "usingComponents": {
+    "ui-icon": "/components/ui-icon/index"
+  }
+}

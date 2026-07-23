@@ -12,16 +12,23 @@ global.wx = {
 };
 
 const root = path.join(__dirname, "..", "miniprogram", "packages", "tools");
-const toolPages = ["data", "help", "wheel"];
+const toolPages = [
+  "data/index",
+  "help/index",
+  "wheel/index",
+  "career/index",
+  "career/play",
+  "career/archive"
+];
 const removedPages = ["cleanup", "demo", "insights", "story", "travel-map", "yearbook"];
 
-toolPages.forEach((pageName) => {
+toolPages.forEach((pagePath) => {
   let definition;
   global.Page = (config) => { definition = config; };
-  const modulePath = path.join(root, pageName, "index.js");
+  const modulePath = path.join(root, `${pagePath}.js`);
   delete require.cache[require.resolve(modulePath)];
   require(modulePath);
-  assert(definition && definition.data, `${pageName} tool page should load`);
+  assert(definition && definition.data, `${pagePath} tool page should load`);
 });
 
 removedPages.forEach((pageName) => {

@@ -2,11 +2,11 @@
   <view class="hero">
     <view class="eyebrow">OFFLINE TOOLBOX</view>
     <view class="title">工具箱使用帮助</view>
-    <view class="hero-copy">五个工具各自独立、完全离线。搜索问题，展开步骤，或直接进入对应工具。</view>
+    <view class="hero-copy">六个工具各自独立、完全离线。搜索问题，展开步骤，或直接进入对应工具。</view>
     <view class="hero-actions">
       <button class="hero-button hero-primary icon-action" data-url="/pages/index/index" bindtap="openFeature">
         <ui-icon name="sliders" size="{{27}}" tone="white" />
-        <text>五个工具</text>
+        <text>六个工具</text>
       </button>
       <button class="hero-button hero-secondary icon-action" data-url="/packages/tools/data/index" bindtap="openFeature">
         <ui-icon name="database" size="{{27}}" />
@@ -18,7 +18,7 @@
   <view class="search-panel">
     <view class="search-box">
       <ui-icon name="search" size="{{28}}" tone="muted" />
-      <input class="search-input" value="{{keyword}}" placeholder="搜索分账、行程、清单、备份" bindinput="onSearchInput" />
+      <input class="search-input" value="{{keyword}}" placeholder="搜索游戏、分账、行程、清单、备份" bindinput="onSearchInput" />
       <view class="search-clear" wx:if="{{keyword}}" bindtap="clearSearch" aria-label="清除搜索"><ui-icon name="x" size="{{24}}" tone="muted" /></view>
     </view>
     <view class="search-meta">

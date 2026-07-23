@@ -1,0 +1,118 @@
+<view class="archive-page">
+  <scroll-view class="archive-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+    <view class="archive-hero">
+      <view class="eyebrow">CAREER ARCHIVE</view>
+      <view class="hero-title">生涯档案</view>
+      <view class="hero-subtitle">走过的路会留下证据，没走过的路仍在等你。</view>
+    </view>
+
+    <view class="loading-state" wx:if="{{loading}}">
+      <view class="loading-line"></view>
+      <view class="loading-line short"></view>
+    </view>
+
+    <view class="error-state" wx:elif="{{loadFailed}}">
+      <ui-icon name="alert" size="{{40}}" tone="accent" />
+      <view class="error-title">档案暂时无法读取</view>
+      <button class="retry-button icon-action" bindtap="retryLoad" aria-label="重新载入生涯档案">
+        <ui-icon name="refresh" size="{{24}}" tone="white" />
+        <text>重新载入</text>
+      </button>
+    </view>
+
+    <block wx:else>
+      <view class="progress-band">
+        <view class="progress-number">{{progress.unlocked}}<text>/{{progress.total}}</text></view>
+        <view class="progress-main">
+          <view class="progress-title">结局图鉴</view>
+          <view class="progress-copy">重复游玩，寻找不同的职业答案</view>
+          <view class="progress-track" aria-label="结局图鉴完成度 {{progress.percent}}%">
+            <view class="progress-fill" style="width: {{progress.percent}}%;"></view>
+          </view>
+        </view>
+        <view class="progress-percent">{{progress.percent}}%</view>
+      </view>
+
+      <view class="ending-section">
+        <view class="section-heading">
+          <view>
+            <view class="section-kicker">12 ENDINGS</view>
+            <view class="section-title">职业答案</view>
+          </view>
+          <view class="section-meta">解锁后显示完整名称</view>
+        </view>
+        <view class="ending-grid">
+          <view class="ending-card ending-item {{item.unlocked ? 'unlocked' : 'locked'}}" wx:for="{{progress.items}}" wx:key="id">
+            <view class="ending-topline">
+              <view class="ending-number">{{item.number}}</view>
+              <view class="ending-state">
+                <ui-icon name="{{item.unlocked ? 'check' : 'shield'}}" size="{{22}}" tone="{{item.unlocked ? 'green' : 'muted'}}" />
+              </view>
+            </view>
+            <view class="ending-title">{{item.displayTitle}}</view>
+            <view class="ending-hint {{item.unlocked ? '' : 'locked-hint'}}">{{item.hint}}</view>
+          </view>
+        </view>
+      </view>
+
+      <view class="runs-section">
+        <view class="section-heading">
+          <view>
+            <view class="section-kicker">RUN HISTORY</view>
+            <view class="section-title">生涯记录</view>
+          </view>
+          <view class="run-count">{{runs.length}} 段生涯</view>
+        </view>
+
+        <view class="runs-empty" wx:if="{{!runs.length}}">
+          <ui-icon name="book" size="{{42}}" tone="muted" />
+          <view class="empty-title">档案还是空白</view>
+          <view class="empty-copy">完成或重新开始一局后，经历与关键选择会保存在这里。</view>
+        </view>
+
+        <view
+          class="run-card career-run-item"
+          wx:for="{{runs}}"
+          wx:key="id"
+          data-id="{{item.id}}"
+          bindtap="toggleRun"
+          role="button"
+          aria-label="{{item.expanded ? '收起' : '展开'}} {{item.playerName}} 的生涯档案"
+        >
+          <view class="run-head">
+            <view class="run-number">{{index + 1}}</view>
+            <view class="run-head-main">
+              <view class="run-ending">{{item.endingTitle}}</view>
+              <view class="run-meta">{{item.playerName}} · {{item.displayDate}}</view>
+            </view>
+            <ui-icon name="chevron-right" size="{{25}}" tone="muted" />
+          </view>
+          <view class="run-summary">
+            <view><text>最终阶段</text><text>{{item.stageTitle}}</text></view>
+            <view><text>关键选择</text><text>{{item.choiceCount}} 次</text></view>
+          </view>
+          <view class="run-detail" wx:if="{{item.expanded}}">
+            <view class="detail-label">最终属性</view>
+            <view class="final-stats">
+              <view class="final-stat" wx:for="{{item.finalStats}}" wx:for-item="stat" wx:key="key">
+                <text>{{stat.label}}</text>
+                <text>{{stat.value}}</text>
+              </view>
+            </view>
+            <view class="detail-label choices-label" wx:if="{{item.keyChoices.length}}">影响深远的选择</view>
+            <view class="key-choice" wx:for="{{item.keyChoices}}" wx:for-item="choice" wx:key="key">
+              <view class="choice-marker"></view>
+              <view class="choice-copy">
+                <view class="choice-event" wx:if="{{choice.eventTitle}}">{{choice.eventTitle}}</view>
+                <view class="choice-text">{{choice.choiceText}}</view>
+                <view class="choice-outcome" wx:if="{{choice.outcome}}">{{choice.outcome}}</view>
+              </view>
+            </view>
+          </view>
+        </view>
+      </view>
+    </block>
+
+    <view class="bottom-space"></view>
+  </scroll-view>
+</view>

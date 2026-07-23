@@ -53,7 +53,7 @@ function allGuideBlocks() {
 
 function testHelpSearchAndSections() {
   const page = loadHelpPage();
-  const expectedIds = ["quick", "ledger", "trips", "checklists", "wheel", "records", "data", "faq"];
+  const expectedIds = ["quick", "ledger", "trips", "checklists", "wheel", "records", "career", "data", "faq"];
   assert.deepStrictEqual(page.data.sections.map((section) => section.id), expectedIds);
   assert.strictEqual(page.data.sections.length, HELP_SECTIONS.length);
   assert.strictEqual(page.data.visibleSections[0].id, "quick");
@@ -65,6 +65,7 @@ function testHelpSearchAndSections() {
     ["旅行打包", "checklists"],
     ["手拨", "wheel"],
     ["一句备注", "records"],
+    ["自动存档", "career"],
     ["覆盖", "data"]
   ];
   searches.forEach(([keyword, expectedId]) => {
@@ -97,6 +98,7 @@ function testHelpContentSourceAndRoutes() {
     "/pages/checklist/index",
     "/packages/tools/wheel/index",
     "/pages/record/index",
+    "/packages/tools/career/index",
     "/packages/tools/data/index"
   ];
   assert.deepStrictEqual(
@@ -109,6 +111,17 @@ function testHelpContentSourceAndRoutes() {
   assert(allGuideBlocks().filter((block) => block.type === "flow").length >= 7, "guide should use maintainable Mermaid diagrams");
 
   const serialized = JSON.stringify({ HELP_SECTIONS, USER_GUIDE_META });
+  const quickSection = HELP_SECTIONS.find((section) => section.id === "quick");
+  const quickToolsTable = quickSection.guide.sections
+    .flatMap((section) => section.blocks)
+    .find((block) => block.type === "table" && block.headers[0] === "工具");
+  assert(quickToolsTable, "quick start should include the tools overview");
+  assert.strictEqual(quickToolsTable.rows.length, 6, "quick start should list all six tools");
+  assert(quickToolsTable.rows.some((row) => row[0] === "程序员升级之路"));
+  assert(serialized.includes("六个工具"), "help content should describe six tools");
+  assert(!serialized.includes("五个工具"), "legacy five-tool wording should be removed");
+  assert(!serialized.includes("五类数据"), "legacy five-data wording should be removed");
+  assert(!serialized.includes("五类业务数据"), "legacy five-business-data wording should be removed");
   [
     "/pages/place/",
     "/pages/wishlist/",
@@ -117,6 +130,36 @@ function testHelpContentSourceAndRoutes() {
     "/packages/tools/insights/",
     "images/user-guide/"
   ].forEach((fragment) => assert(!serialized.includes(fragment), `retired help content found: ${fragment}`));
+}
+
+function testCareerHelpContent() {
+  const career = HELP_SECTIONS.find((section) => section.id === "career");
+  assert(career, "career help chapter should exist");
+  assert.strictEqual(career.url, "/packages/tools/career/index");
+  assert(["play", "zap"].includes(career.icon), "career should use an existing game icon");
+  assert(career.guide && career.guide.sections.length >= 5, "career should include a complete guide");
+
+  const careerText = JSON.stringify(career);
+  [
+    "开局",
+    "技术力",
+    "沟通力",
+    "精力",
+    "积蓄",
+    "影响力",
+    "选择反馈",
+    "自动存档",
+    "生涯档案",
+    "十二种结局",
+    "离线存档与备份",
+    "careerRuns"
+  ].forEach((text) => assert(careerText.includes(text), `career help should cover ${text}`));
+
+  const endingTable = career.guide.sections
+    .flatMap((section) => section.blocks)
+    .find((block) => block.type === "table" && block.headers[0] === "结局");
+  assert(endingTable, "career help should include the ending archive table");
+  assert.strictEqual(endingTable.rows.length, 12, "career help should describe all 12 endings");
 }
 
 function testHelpNavigationAndExpansion() {
@@ -175,6 +218,7 @@ function testQuickRecordFixedSaveBar() {
 
 testHelpSearchAndSections();
 testHelpContentSourceAndRoutes();
+testCareerHelpContent();
 testHelpNavigationAndExpansion();
 testHelpRegistrationAndHomeActions();
 testQuickRecordFixedSaveBar();

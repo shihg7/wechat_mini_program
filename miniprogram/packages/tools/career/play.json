@@ -1,0 +1,7 @@
+{
+  "navigationBarTitleText": "职业生涯",
+  "disableScroll": true,
+  "usingComponents": {
+    "ui-icon": "/components/ui-icon/index"
+  }
+}

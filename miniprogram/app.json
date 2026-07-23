@@ -17,6 +17,9 @@
       "name": "tools",
       "pages": [
         "wheel/index",
+        "career/index",
+        "career/play",
+        "career/archive",
         "help/index",
         "data/index"
       ]

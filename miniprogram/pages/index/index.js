@@ -33,6 +33,13 @@ const TOOLS = [
     icon: "edit",
     tone: "default",
     url: "/pages/record/index"
+  },
+  {
+    id: "career",
+    label: "程序员升级之路",
+    icon: "code",
+    tone: "blue",
+    url: "/packages/tools/career/index"
   }
 ];
 

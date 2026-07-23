@@ -5,7 +5,8 @@ const memory = {
   experience_places: [{ id: "legacy-place" }],
   experience_media_files: ["/tmp/legacy-photo-a.jpg", "/tmp/legacy-photo-b.jpg"],
   toolbox_quick_records: [{ id: "new-record" }],
-  toolbox_trips: [{ id: "new-trip" }]
+  toolbox_trips: [{ id: "new-trip" }],
+  toolbox_career_runs: [{ id: "new-career" }]
 };
 const removedFiles = [];
 
@@ -39,6 +40,7 @@ LEGACY_KEYS.forEach((key) => assert.strictEqual(memory[key], undefined, `${key} 
 assert.deepStrictEqual(removedFiles, ["/tmp/legacy-photo-a.jpg", "/tmp/legacy-photo-b.jpg"]);
 assert.deepStrictEqual(memory.toolbox_quick_records, [{ id: "new-record" }]);
 assert.deepStrictEqual(memory.toolbox_trips, [{ id: "new-trip" }]);
+assert.deepStrictEqual(memory.toolbox_career_runs, [{ id: "new-career" }]);
 assert.strictEqual(memory[INITIALIZED_KEY].schemaVersion, 1);
 
 memory.hotel_review_records = [{ id: "late-legacy-value" }];

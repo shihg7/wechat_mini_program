@@ -38,6 +38,7 @@ sourceFiles.forEach((filePath) => {
   while ((match = routePattern.exec(source))) {
     const route = `/${match[1]}/${match[2]}`.replace(/\/$/, "");
     const cleanRoute = route.split("?")[0];
+    if (cleanRoute.includes("/assets/") || cleanRoute.endsWith("/assets")) continue;
     if (/\.(png|jpe?g|gif|webp|svg)$/.test(cleanRoute)) continue;
     assert(registered.has(cleanRoute), `unregistered route ${cleanRoute} in ${path.relative(root, filePath)}`);
   }

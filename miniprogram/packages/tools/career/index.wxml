@@ -1,0 +1,140 @@
+<view class="career-home">
+  <scroll-view class="home-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+    <view class="hero">
+      <view class="hero-copy">
+        <view class="eyebrow">CAREER QUEST</view>
+        <view class="hero-title">程序员升级之路</view>
+        <view class="hero-subtitle">每一次选择，都在悄悄改写未来。</view>
+      </view>
+      <button class="archive-button icon-center" bindtap="openArchive" aria-label="打开生涯档案与结局图鉴">
+        <ui-icon name="book" size="{{31}}" tone="white" />
+      </button>
+    </view>
+
+    <view class="loading-state" wx:if="{{loading}}">
+      <view class="loading-line"></view>
+      <view class="loading-line short"></view>
+    </view>
+
+    <view class="error-state" wx:elif="{{loadFailed}}">
+      <view class="state-icon"><ui-icon name="alert" size="{{38}}" tone="accent" /></view>
+      <view class="state-title">生涯档案暂时打不开</view>
+      <view class="state-copy">本地数据没有改变，可以重新载入。</view>
+      <button class="retry-button icon-action" bindtap="retryLoad" aria-label="重新载入生涯数据">
+        <ui-icon name="refresh" size="{{25}}" tone="white" />
+        <text>重新载入</text>
+      </button>
+    </view>
+
+    <block wx:else>
+      <view class="active-card" wx:if="{{activeRun}}">
+        <view class="card-topline">
+          <view class="status-label icon-label">
+            <ui-icon name="play" size="{{22}}" tone="green" />
+            <text>正在进行</text>
+          </view>
+          <view class="autosave-label">{{activeRun.updatedText}}</view>
+        </view>
+        <view class="active-name">{{activeRun.playerName}} 的第 {{activeRun.progressText}} 个抉择</view>
+        <view class="active-stage">
+          <text>{{activeRun.stageTitle}}</text>
+          <text wx:if="{{activeRun.stageRank}}"> · {{activeRun.stageRank}}</text>
+        </view>
+        <view class="active-footer">
+          <view class="phase-chip">{{activeRun.phaseLabel}}</view>
+          <button class="continue-button icon-action" bindtap="continueActive" aria-label="继续当前程序员生涯">
+            <ui-icon name="play" size="{{25}}" tone="white" />
+            <text>继续生涯</text>
+          </button>
+        </view>
+      </view>
+
+      <view class="progress-band">
+        <view class="progress-copy">
+          <view class="section-kicker">结局收集</view>
+          <view class="progress-title">已解锁 {{endingProgress.unlocked}} / {{endingProgress.total}}</view>
+        </view>
+        <view class="progress-side">
+          <view class="progress-track" aria-label="结局解锁进度 {{endingProgress.percent}}%">
+            <view class="progress-fill" style="width: {{endingProgress.percent}}%;"></view>
+          </view>
+          <view class="progress-link icon-label" bindtap="openArchive" role="button" aria-label="查看十二种结局">
+            <text>查看图鉴</text>
+            <ui-icon name="chevron-right" size="{{22}}" tone="blue" />
+          </view>
+        </view>
+      </view>
+
+      <view class="new-run-section">
+        <view class="section-heading">
+          <view>
+            <view class="section-kicker">NEW RUN</view>
+            <view class="section-title">开启一段新生涯</view>
+          </view>
+          <view class="nickname-count">{{nicknameCount}} / 12</view>
+        </view>
+        <view class="nickname-field">
+          <ui-icon name="users" size="{{27}}" tone="muted" />
+          <input
+            class="nickname-input career-start-input"
+            value="{{nickname}}"
+            maxlength="12"
+            placeholder="输入你的昵称"
+            confirm-type="done"
+            bindinput="onNicknameInput"
+            bindblur="onNicknameBlur"
+            aria-label="程序员昵称，最多十二个字"
+          />
+        </view>
+        <button class="start-button icon-action" loading="{{starting}}" bindtap="startNew" aria-label="开始新的程序员生涯">
+          <ui-icon name="zap" size="{{28}}" tone="white" />
+          <text>{{activeRun ? "重新开局" : "开始第一天"}}</text>
+        </button>
+        <view class="save-note icon-label">
+          <ui-icon name="shield" size="{{22}}" tone="green" />
+          <text>每次选择后自动保存在本机</text>
+        </view>
+      </view>
+
+      <view class="recent-section">
+        <view class="section-heading">
+          <view>
+            <view class="section-kicker">RECENT RUNS</view>
+            <view class="section-title">最近生涯</view>
+          </view>
+          <view class="all-runs icon-label" wx:if="{{recentRuns.length}}" bindtap="openArchive" role="button" aria-label="查看全部生涯记录">
+            <text>全部</text>
+            <ui-icon name="chevron-right" size="{{22}}" tone="blue" />
+          </view>
+        </view>
+
+        <view class="recent-empty" wx:if="{{!recentRuns.length}}">
+          <ui-icon name="clock" size="{{34}}" tone="muted" />
+          <view>
+            <view class="empty-title">还没有完成的生涯</view>
+            <view class="empty-copy">你的第一份职业档案会出现在这里。</view>
+          </view>
+        </view>
+
+        <view
+          class="recent-row"
+          wx:for="{{recentRuns}}"
+          wx:key="id"
+          bindtap="openRecentRun"
+          role="button"
+          aria-label="查看 {{item.playerName}} 的生涯档案"
+        >
+          <view class="recent-index">{{index + 1}}</view>
+          <view class="recent-main">
+            <view class="recent-title">{{item.endingTitle}}</view>
+            <view class="recent-meta">{{item.playerName}} · {{item.stageTitle}} · {{item.choiceCount}} 次选择</view>
+          </view>
+          <view class="recent-date">{{item.displayDate}}</view>
+          <ui-icon name="chevron-right" size="{{23}}" tone="muted" />
+        </view>
+      </view>
+    </block>
+
+    <view class="bottom-space"></view>
+  </scroll-view>
+</view>

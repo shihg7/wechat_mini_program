@@ -1,0 +1,168 @@
+<view class="game-page">
+  <view class="loading-page" wx:if="{{loading}}">
+    <view class="loading-title">正在读取职业档案</view>
+    <view class="loading-track"><view class="loading-fill"></view></view>
+  </view>
+
+  <view class="missing-page" wx:elif="{{missing}}">
+    <view class="missing-icon"><ui-icon name="alert" size="{{44}}" tone="accent" /></view>
+    <view class="missing-title">没有可继续的生涯</view>
+    <view class="missing-copy">回到起点创建角色，再开始第一次选择。</view>
+    <button class="missing-button icon-action" bindtap="returnToCareer" aria-label="返回程序员升级之路首页">
+      <ui-icon name="chevron-right" size="{{25}}" tone="white" />
+      <text>返回生涯首页</text>
+    </button>
+  </view>
+
+  <block wx:else>
+    <view class="fixed-status">
+      <view class="progress-row">
+        <view class="progress-copy">
+          <text>第 {{view.progress.current}} / {{view.progress.total}} 个抉择</text>
+          <text class="chapter-progress">本阶段 {{view.progress.chapterCurrent}} / {{view.progress.chapterTotal}}</text>
+        </view>
+        <view class="progress-track" aria-label="本局进度 {{view.progress.percent}}%">
+          <view class="progress-fill" style="width: {{view.progress.percent}}%;"></view>
+        </view>
+      </view>
+      <view class="stats-bar">
+        <view class="stat-cell tone-{{item.tone}} {{item.warning ? 'warning' : ''}}" wx:for="{{view.stats}}" wx:key="key">
+          <view class="stat-label">{{item.label}}</view>
+          <view class="stat-value">{{item.value}}</view>
+          <view class="stat-meter"><view class="stat-meter-fill" style="width: {{item.meterWidth}}%;"></view></view>
+        </view>
+      </view>
+    </view>
+
+    <view class="stage-band">
+      <image class="stage-art" src="{{view.stage.illustrationPath}}" mode="aspectFill" aria-label="{{view.stage.title}}阶段插画" />
+      <view class="stage-overlay">
+        <view class="stage-index">STAGE {{view.stage.index}}</view>
+        <view class="stage-title">{{view.stage.title}}</view>
+        <view class="stage-meta">
+          <text>{{view.stage.rank}}</text>
+          <text wx:if="{{view.stage.rank && view.stage.subtitle}}"> · </text>
+          <text>{{view.stage.subtitle}}</text>
+        </view>
+      </view>
+    </view>
+
+    <scroll-view class="story-scroll" scroll-y enhanced show-scrollbar="{{false}}" scroll-top="{{scrollTop}}">
+      <view class="story-content">
+        <block wx:if="{{view.phase === 'scene'}}">
+          <view class="phase-label">正在发生</view>
+          <view class="story-title">{{view.scene.title}}</view>
+          <text class="story-body" user-select>{{view.scene.body}}</text>
+        </block>
+
+        <block wx:elif="{{view.phase === 'outcome'}}">
+          <view class="phase-label outcome-label">选择的回声</view>
+          <view class="story-title">事情开始有了变化</view>
+          <text class="story-body" user-select>{{view.outcome.text}}</text>
+          <view class="delta-list" wx:if="{{view.outcome.deltas.length}}">
+            <view class="delta-item {{item.direction}}" wx:for="{{view.outcome.deltas}}" wx:key="key">
+              <text>{{item.label}}</text>
+              <text class="delta-value">{{item.displayValue}}</text>
+            </view>
+          </view>
+          <view class="echo-list" wx:if="{{view.outcome.echoes.length}}">
+            <view class="echo-row" wx:for="{{view.outcome.echoes}}" wx:key="id">
+              <ui-icon name="zap" size="{{21}}" tone="amber" />
+              <text>{{item.text}}</text>
+            </view>
+          </view>
+        </block>
+
+        <block wx:elif="{{view.phase === 'chapter'}}">
+          <view class="phase-label chapter-label">阶段完成</view>
+          <view class="story-title">{{view.chapter.title}}</view>
+          <text class="story-body" user-select>{{view.chapter.summary}}</text>
+          <view class="chapter-stamp">
+            <ui-icon name="check" size="{{30}}" tone="green" />
+            <text>这段经历已写入生涯档案</text>
+          </view>
+        </block>
+
+        <block wx:elif="{{view.phase === 'ending'}}">
+          <view class="phase-label ending-label">职业答案</view>
+          <view class="ending-number">ENDING · {{view.ending.id}}</view>
+          <view class="story-title ending-title">{{view.ending.title}}</view>
+          <text class="story-body" user-select>{{view.ending.summary}}</text>
+          <view class="ending-hint" wx:if="{{view.ending.hint}}">
+            <ui-icon name="sparkles" size="{{25}}" tone="amber" />
+            <text>{{view.ending.hint}}</text>
+          </view>
+        </block>
+      </view>
+    </scroll-view>
+
+    <view class="fixed-actions phase-{{view.phase}}">
+      <block wx:if="{{view.phase === 'scene'}}">
+        <view class="action-heading">
+          <text>你会怎么做？</text>
+          <text>{{view.scene.choices.length}} 个选择</text>
+        </view>
+        <view class="choice-list">
+          <button
+            class="choice-button {{choosingId === item.id ? 'choosing' : ''}}"
+            wx:for="{{view.scene.choices}}"
+            wx:key="id"
+            disabled="{{!!choosingId}}"
+            data-choice-id="{{item.id}}"
+            bindtap="chooseOption"
+            aria-label="选择：{{item.text}}"
+          >
+            <view class="choice-main">
+              <view class="choice-number">{{index + 1}}</view>
+              <text class="choice-text">{{item.text}}</text>
+            </view>
+            <view class="choice-tags" wx:if="{{item.tags.length}}">
+              <text wx:for="{{item.tags}}" wx:for-item="tag" wx:key="*this">{{tag}}</text>
+            </view>
+            <ui-icon name="chevron-right" size="{{23}}" tone="muted" />
+          </button>
+        </view>
+      </block>
+
+      <block wx:elif="{{view.phase === 'outcome'}}">
+        <view class="feedback-summary">
+          <ui-icon name="check" size="{{31}}" tone="green" />
+          <view>
+            <view class="feedback-title">选择已保存</view>
+            <view class="feedback-copy">远期影响会在未来某个时刻出现</view>
+          </view>
+        </view>
+        <button class="primary-action advance-button icon-action" loading="{{advancing}}" bindtap="advance" aria-label="接受结果并继续下一段剧情">
+          <ui-icon name="play" size="{{27}}" tone="white" />
+          <text>继续向前</text>
+        </button>
+      </block>
+
+      <block wx:elif="{{view.phase === 'chapter'}}">
+        <view class="feedback-summary">
+          <ui-icon name="chart" size="{{31}}" tone="blue" />
+          <view>
+            <view class="feedback-title">准备进入下一阶段</view>
+            <view class="feedback-copy">新的身份会带来新的难题</view>
+          </view>
+        </view>
+        <button class="primary-action chapter-action advance-button icon-action" loading="{{advancing}}" bindtap="advance" aria-label="进入下一职业阶段">
+          <ui-icon name="arrow-up" size="{{27}}" tone="white" />
+          <text>解锁下一阶段</text>
+        </button>
+      </block>
+
+      <block wx:elif="{{view.phase === 'ending'}}">
+        <view class="ending-actions-title">这不是唯一的职业答案</view>
+        <button class="primary-action icon-action" bindtap="restartCareer" aria-label="使用当前昵称重新开始一局">
+          <ui-icon name="refresh" size="{{27}}" tone="white" />
+          <text>再走一条路线</text>
+        </button>
+        <button class="secondary-action ending-archive-button icon-action" bindtap="openArchive" aria-label="查看生涯档案和十二种结局">
+          <ui-icon name="book" size="{{26}}" tone="blue" />
+          <text>查看生涯档案</text>
+        </button>
+      </block>
+    </view>
+  </block>
+</view>

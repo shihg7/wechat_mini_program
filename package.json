@@ -1,6 +1,6 @@
 {
   "name": "offline-toolbox-miniprogram",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "description": "Offline daily toolbox WeChat Mini Program",
   "main": "index.js",
   "scripts": {

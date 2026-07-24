@@ -18,7 +18,9 @@ const FEATURED_TERM_IDS = [
   "call-artillery",
   "black-soil",
   "e2e",
-  "close-loop"
+  "close-loop",
+  "b-front",
+  "rd-output"
 ];
 
 function statViews(stats) {
@@ -48,7 +50,9 @@ function deltaViews(deltas) {
 
 function glossaryView(item) {
   return Object.assign({}, item, {
-    sourceTone: item.sourceKind === "official" ? "official" : "public"
+    sourceTone: item.sourceKind === "official"
+      ? "official"
+      : item.sourceKind === "reported" ? "network" : "public"
   });
 }
 

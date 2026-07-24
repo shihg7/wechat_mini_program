@@ -19,11 +19,11 @@ assert(DISCLAIMER.includes("非官方情景模拟"));
 assert(DISCLAIMER.includes("虚构复合"));
 assert(DISCLAIMER.includes("不代表"));
 assert.strictEqual(STAT_KEYS.length, 4);
-assert.strictEqual(STAGES.length, 4);
-assert(GLOSSARY.length >= 40, "glossary should provide a substantial public-term collection");
-assert(EVENTS.length >= 44, "scenario pool should provide varied fictional encounters");
+assert.strictEqual(STAGES.length, 5);
+assert(GLOSSARY.length >= 48, "glossary should provide a substantial public-term collection");
+assert(EVENTS.length >= 54, "scenario pool should provide varied fictional encounters");
 assert(PERSONAS.length >= 8, "simulation should offer varied result profiles");
-assert(SOURCE_SUMMARY.length >= 3, "source boundary should be visible in the product");
+assert(SOURCE_SUMMARY.length >= 4, "source boundary should be visible in the product");
 
 assertUnique(GLOSSARY.map((item) => item.id), "glossary ids");
 assertUnique(GLOSSARY.map((item) => item.term), "glossary terms");
@@ -33,7 +33,7 @@ assertUnique(PERSONAS.map((item) => item.id), "persona ids");
 const categoryIds = new Set(GLOSSARY_CATEGORIES.map((item) => item.id));
 const termIds = new Set(GLOSSARY.map((item) => item.id));
 const stageIds = new Set(STAGES.map((item) => item.id));
-const allowedSourceKinds = new Set(["official", "public", "common"]);
+const allowedSourceKinds = new Set(["official", "public", "common", "reported"]);
 
 GLOSSARY.forEach((item) => {
   assert(item.term.length >= 2, `${item.id} should have a readable term`);
@@ -62,8 +62,21 @@ GLOSSARY.forEach((item) => {
   "tr4a",
   "pbc",
   "e2e",
-  "close-loop"
+  "close-loop",
+  "b-rating",
+  "b-front",
+  "at-review",
+  "rd-output",
+  "performance-talk",
+  "public-scolding",
+  "person-role-fit",
+  "appeal-trace"
 ].forEach((id) => assert(termIds.has(id), `missing expected public term ${id}`));
+
+GLOSSARY.filter((item) => item.sourceKind === "reported").forEach((item) => {
+  assert.strictEqual(item.category, "network", `${item.id} should stay in the visibly separated network category`);
+  assert.strictEqual(item.sourceLabel, "网络职场叙事");
+});
 
 const allChoiceIds = [];
 EVENTS.forEach((item) => {
@@ -92,8 +105,20 @@ STAGES.forEach((stage) => {
 });
 
 const serialized = JSON.stringify({ EVENTS, GLOSSARY });
+[
+  "B绩效",
+  "B 里靠前",
+  "输出非研发",
+  "当众批评",
+  "被告知“输出非研发”",
+  "复盘会突然变成挨骂大会"
+].forEach((fragment) => {
+  assert(serialized.includes(fragment), `content should cover requested pressure scenario: ${fragment}`);
+});
 ["真实员工经历", "内部泄密", "未经证实"].forEach((fragment) => {
   assert(!serialized.includes(fragment), `content should not make unsupported claims: ${fragment}`);
 });
+assert(DISCLAIMER.includes("二手公开报道"));
+assert(DISCLAIMER.includes("不代表已证实制度"));
 
 console.log(`huawei simulation content tests passed (${GLOSSARY.length} terms, ${EVENTS.length} events, ${allChoiceIds.length} choices)`);

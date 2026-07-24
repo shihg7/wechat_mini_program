@@ -1,4 +1,4 @@
-const DISCLAIMER = "非官方情景模拟。术语整理自公开资料，情景为虚构复合创作，不代表任何企业、团队或员工的真实经历。";
+const DISCLAIMER = "非官方情景模拟。术语整理自公开资料；标记为“网络职场叙事”的内容来自二手公开报道，仅作虚构复合素材，不代表已证实制度、普遍经历或任何真实员工。";
 
 const STAT_META = {
   delivery: { label: "交付信用", shortLabel: "交付", tone: "blue" },
@@ -14,13 +14,15 @@ const GLOSSARY_CATEGORIES = [
   { id: "culture", label: "文化语境" },
   { id: "process", label: "研发流程" },
   { id: "delivery", label: "交付协同" },
-  { id: "office", label: "职场通用" }
+  { id: "office", label: "职场通用" },
+  { id: "network", label: "网络叙事" }
 ];
 
 const OFFICIAL_CULTURE = "华为公开材料";
 const OFFICIAL_PROCESS = "华为云公开文档";
 const PUBLIC_MANAGEMENT = "公开管理资料";
 const INDUSTRY_COMMON = "行业通用表达";
+const REPORTED_NARRATIVE = "网络职场叙事";
 
 const GLOSSARY = [
   {
@@ -382,6 +384,78 @@ const GLOSSARY = [
     usage: "结果要结合权限、事实与长期质量，不能只看单一数字。",
     sourceKind: "official",
     sourceLabel: OFFICIAL_CULTURE
+  },
+  {
+    id: "b-rating",
+    term: "B绩效",
+    category: "network",
+    plain: "网络职场讨论中对 B 档绩效结果的简称，具体比例、标准和影响会随时期与团队变化。",
+    usage: "沟通时应回到可核验事实、评价标准、实际影响和下周期要求，避免只接受模糊比较。",
+    sourceKind: "reported",
+    sourceLabel: REPORTED_NARRATIVE
+  },
+  {
+    id: "b-front",
+    term: "B里靠前",
+    category: "network",
+    plain: "一些二手文章转述的绩效安慰话术，意思是同为 B 档但相对靠前，并非正式制度定义。",
+    usage: "“靠前”不能替代评分证据、差距说明和后续安排，必要时可要求形成书面纪要。",
+    sourceKind: "reported",
+    sourceLabel: REPORTED_NARRATIVE
+  },
+  {
+    id: "at-review",
+    term: "AT评议",
+    category: "network",
+    plain: "公开管理文章中常见的集体绩效评议说法，具体成员、流程和权限并无统一公开定义。",
+    usage: "如果直接评价在评议后变化，应询问变化依据、决策链路与正式复核渠道。",
+    sourceKind: "reported",
+    sourceLabel: REPORTED_NARRATIVE
+  },
+  {
+    id: "rd-output",
+    term: "输出非研发",
+    category: "network",
+    plain: "公开管理案例里对研发人员流向非研发岗位的描述，可能被解释为培养，也可能被个人体验为被动转岗。",
+    usage: "确认新岗位职责、汇报关系、考核、地点、薪酬、过渡期限和旧工作移交，并保留书面版本。",
+    sourceKind: "reported",
+    sourceLabel: REPORTED_NARRATIVE
+  },
+  {
+    id: "performance-talk",
+    term: "绩效沟通",
+    category: "office",
+    plain: "围绕评价事实、判断标准、结果影响和改进要求进行的正式沟通。",
+    usage: "有效沟通应能回答做对了什么、差距在哪里、证据是什么、如何复核和下一步做什么。",
+    sourceKind: "common",
+    sourceLabel: INDUSTRY_COMMON
+  },
+  {
+    id: "public-scolding",
+    term: "当众批评",
+    category: "network",
+    plain: "公开员工叙事中出现的高压管理行为，但它并非某一家企业独有，也不能据此推断普遍文化。",
+    usage: "把讨论拉回具体事实与补救动作；涉及侮辱或持续越界时，记录时间、原话、见证人与正式反馈。",
+    sourceKind: "reported",
+    sourceLabel: REPORTED_NARRATIVE
+  },
+  {
+    id: "person-role-fit",
+    term: "人岗匹配",
+    category: "office",
+    plain: "评估个人能力、意愿与岗位责任是否匹配，不应成为没有事实依据的模糊威胁。",
+    usage: "讨论调整时要明确岗位缺口、评价证据、可选路径、时间表和相应保障。",
+    sourceKind: "common",
+    sourceLabel: INDUSTRY_COMMON
+  },
+  {
+    id: "appeal-trace",
+    term: "申诉留痕",
+    category: "office",
+    plain: "对重要评价或岗位争议保存事实材料，并通过正式渠道提出复核请求。",
+    usage: "整理目标、交付证据、反馈纪要和时间线，避免夹带客户秘密、源代码或无关隐私。",
+    sourceKind: "common",
+    sourceLabel: INDUSTRY_COMMON
   }
 ];
 
@@ -389,7 +463,8 @@ const STAGES = [
   { id: "onboarding", title: "第一阶段 · 入场对齐", subtitle: "先听懂语言，再决定怎样做事" },
   { id: "release", title: "第二阶段 · 版本攻坚", subtitle: "进度、质量和技术债同时敲门" },
   { id: "frontline", title: "第三阶段 · 一线协同", subtitle: "客户现场不会按组织架构报错" },
-  { id: "crossroad", title: "第四阶段 · 路线抉择", subtitle: "你开始影响系统，也被系统影响" }
+  { id: "crossroad", title: "第四阶段 · 路线抉择", subtitle: "你开始影响系统，也被系统影响" },
+  { id: "performance", title: "第五阶段 · 绩效与去留", subtitle: "当评价、关系与岗位同时到场" }
 ];
 
 function choice(id, text, outcome, effects, tags) {
@@ -711,6 +786,76 @@ const EVENTS = [
       choice("sustainable-plan", "公开团队负荷，安排轮换和恢复，把可持续交付写进版本计划。", "你承认人也是系统容量的一部分。", { energy: 14, influence: 7, delivery: 3, tech: 1 }, ["长期", "恢复"]),
       choice("one-last-push", "告诉自己再拼最后一次，等这个版本结束就一定休息。", "版本继续前进，“最后一次”也变得越来越熟悉。", { delivery: 7, energy: -16, influence: -2 }, ["冲刺", "燃尽"]),
       choice("silent-withdraw", "不解释状态，逐渐减少参与，只完成最容易被看见的任务。", "能量暂时止跌，团队却无法理解你的变化。", { energy: 6, delivery: -5, influence: -6 }, ["自保", "失联"])
+    ]),
+  event("performance-b-result", "performance", "b-rating", "名单上出现了一个 B",
+    "你完成了核心版本和两次救火，直接主管此前反馈良好，绩效沟通时却只给出一句“综合评议是 B”。这是虚构情景，不代表真实制度。",
+    [
+      choice("ask-rating-evidence", "带着 PBC、交付结果和历次反馈逐项核对，请对方说明评价标准、差距、实际影响与复核渠道。", "对话从抽象结论回到了可以核验的事实，你也得到了一份后续行动清单。", { influence: 8, delivery: 5, energy: -3 }, ["证据", "复核"]),
+      choice("accept-and-overwork", "先接受结果，再把下周期承诺全部加码，试图用更多无边界投入证明自己。", "你获得了“态度不错”的评价，却把一个模糊结论变成了长期透支。", { delivery: 4, energy: -14, influence: -2 }, ["加码", "透支"]),
+      choice("rank-gossip", "立即在同事群里猜测谁拿了更高档，并用传闻拼出一份秘密排名。", "焦虑迅速扩散，真正决定评价的事实仍然没有变清楚。", { influence: -8, energy: -7, delivery: -2 }, ["传闻", "内耗"])
+    ]),
+  event("performance-b-front", "performance", "b-front", "“沟通一下，你是 B 里靠前的”",
+    "你追问 B 的依据，主管安慰说“你是 B 里靠前的，和更高档差距很小”，但没有说明靠前如何衡量、结果有什么区别。",
+    [
+      choice("define-front", "平静追问“靠前”的可验证含义，请确认档位影响、关键差距、改进目标和下次检查时间。", "安慰话术被拆成了四个待回答的问题，沟通终于有了下一步。", { influence: 9, delivery: 4, energy: -2 }, ["澄清", "边界"]),
+      choice("take-comfort", "把“靠前”当成隐形认可，不再追问，只期待下一次自然轮到自己。", "情绪暂时得到缓冲，但你依然不知道该保持什么、改变什么。", { energy: 2, influence: -4, delivery: -2 }, ["安慰", "模糊"]),
+      choice("demand-peer-list", "要求主管当场公开所有同事的档位与排名，用别人的结果证明自己的位置。", "你把合理的证据请求变成了隐私对抗，团队信任随之下降。", { influence: -11, energy: -5, delivery: -1 }, ["排名", "对抗"])
+    ]),
+  event("performance-at-review", "performance", "at-review", "直接评价在评议后变了",
+    "主管说自己原本给了更高评价，但经过所谓 AT 评议后被调整；他无法现场说明是谁、基于什么新事实作出的改变。",
+    [
+      choice("trace-review", "请主管确认直接评价、评议后的变化、采用的新证据与正式复核入口，并在会后发送事实纪要。", "你没有追逐看不见的人，而是开始建立一条可复核的决策链。", { influence: 8, delivery: 3, energy: -4 }, ["决策链", "留痕"]),
+      choice("attack-panel", "把未露面的评议者都视为敌人，在跨部门会议上逐一质疑他们的动机。", "火力很足，证据很少，你与多个协作方同时进入防御状态。", { influence: -12, energy: -8, tech: -1 }, ["归因", "失控"]),
+      choice("give-up-review", "认定所有评议都无法改变，从此不再记录目标、反馈和交付贡献。", "你省下了整理材料的时间，也失去了下一次讲清事实的基础。", { energy: 3, delivery: -5, influence: -6 }, ["放弃", "失语"])
+    ]),
+  event("performance-output", "performance", "rd-output", "突然被告知“输出非研发”",
+    "你被通知下月转去一个非研发岗位，理由是“组织需要”和“锻炼视野”；新职责、考核方式、周期与旧项目移交都没有写清。",
+    [
+      choice("request-role-terms", "先索取岗位职责、汇报关系、薪酬地点、考核、过渡期限和回流条件，再基于书面信息决定。", "“组织需要”被翻译成了一张可以判断风险与机会的岗位清单。", { influence: 10, energy: -3, delivery: 2 }, ["转岗", "书面"]),
+      choice("loyalty-transfer", "当天答应全部安排，主动表示任何岗位都能干，旧项目也继续由自己兜底。", "态度没有争议，工作边界却从此同时属于两个岗位。", { delivery: 5, influence: 2, energy: -16 }, ["服从", "双份工作"]),
+      choice("public-refusal", "在大群里直接定性这是针对自己，拒绝交接并要求立即撤回全部安排。", "你的不满被所有人看见，协商岗位条件的空间反而迅速收窄。", { influence: -10, delivery: -6, energy: -5 }, ["公开冲突", "拒绝"])
+    ]),
+  event("performance-shadow-rd", "performance", "person-role-fit", "人已转岗，代码还归你",
+    "你名义上已输出非研发，但原团队仍每天找你修问题，新岗位又按完整工作量排任务，两边都说“先帮忙顶一下”。",
+    [
+      choice("responsibility-matrix", "召集两边负责人确认唯一优先级、移交清单、支持时段和结束日期，并把责任矩阵同步给相关人。", "隐形的双份工作第一次变成了可被管理的容量冲突。", { influence: 10, delivery: 6, energy: 3 }, ["责任", "移交"]),
+      choice("do-both", "白天完成新岗位任务，晚上继续维护旧系统，等大家自然找到替代者。", "两个团队都觉得过渡顺利，只有你的能量曲线知道真实成本。", { delivery: 8, energy: -18, tech: 2 }, ["兜底", "燃尽"]),
+      choice("drop-old-now", "不做任何交接，立即停止回应原团队，认为岗位变化已经自动结束旧责任。", "你的边界很快生效，生产问题和关系成本也同时爆发。", { energy: 7, delivery: -10, influence: -7 }, ["切断", "失交"])
+    ]),
+  event("performance-scold-meeting", "performance", "public-scolding", "复盘会突然变成挨骂大会",
+    "客户投诉后的复盘会上，领导没有讨论故障链路，而是提高音量说团队“没有血性、都是废物”，并要求每个人现场表态。",
+    [
+      choice("return-to-facts", "等对方停顿后确认客户影响、故障事实和恢复负责人，建议把个人反馈另约一对一沟通。", "会议短暂安静，至少有一部分注意力重新回到了客户和补救动作。", { delivery: 8, influence: 9, energy: -6 }, ["事实", "降温"]),
+      choice("document-later", "先不在高压现场争辩，完整记录时间、原话、见证人与任务要求，会后走正式反馈渠道。", "你没有让现场继续升级，也为后续判断是否持续越界保留了证据。", { influence: 5, energy: -4, delivery: 3 }, ["留痕", "渠道"]),
+      choice("shout-back", "当场用同样音量反骂领导无能，把历次错误全部翻出来公开结算。", "压抑得到瞬间释放，客户问题和组织冲突却同时升级。", { energy: 2, influence: -14, delivery: -8 }, ["反击", "升级"])
+    ]),
+  event("performance-personal-attack", "performance", "performance-talk", "反馈只剩“你这个人不行”",
+    "一对一沟通里，主管反复说你“格局不够、狼性不足”，却没有指出对应行为、业务后果或可执行的改变。",
+    [
+      choice("behavior-impact", "请对方给出具体行为、发生场景、造成影响和期待动作，并逐条确认你能控制的改进项。", "人格标签被迫落回了行为反馈，其中一部分终于可以行动。", { influence: 8, delivery: 4, energy: -3 }, ["反馈", "具体"]),
+      choice("internalize-label", "把所有标签都当作能力真相，取消休息并全面模仿主管的工作方式。", "你开始努力成为另一个人，能量和判断力却一起下降。", { delivery: 2, tech: -3, energy: -15 }, ["内化", "迷失"]),
+      choice("counter-label", "拒绝讨论任何具体问题，直接给主管贴上更难听的标签作为回应。", "双方完成了标签交换，没有产生一条可以验证的改进。", { influence: -12, energy: -6, delivery: -3 }, ["人身化", "僵局"])
+    ]),
+  event("performance-appeal", "performance", "appeal-trace", "申诉不是把所有文件打包带走",
+    "你决定复核绩效，但材料散落在聊天、周报和交付系统里；其中还混有客户数据、源代码与同事隐私。",
+    [
+      choice("build-evidence-pack", "按目标、交付、反馈和时间线整理最小必要证据，去除敏感信息后通过正式渠道提交。", "你的材料既能支持主张，也没有把一次申诉变成新的合规风险。", { influence: 9, delivery: 5, tech: 3, energy: -5 }, ["申诉", "合规"]),
+      choice("copy-everything", "把客户数据、代码和全部群聊都复制到私人设备，认为材料越多越有说服力。", "证据数量增加了，你也制造了远大于绩效争议的安全问题。", { tech: -12, influence: -10, energy: -6 }, ["泄露风险", "失控"]),
+      choice("angry-resign", "不再整理事实，当晚情绪化辞职，并在公开平台点名所有相关同事。", "你迅速离开了争议，也把职业关系、隐私与退路一起推上了赌桌。", { energy: -7, influence: -14, delivery: -5 }, ["冲动", "退路"])
+    ]),
+  event("performance-witness", "performance", "public-scolding", "被骂的不是你",
+    "同事在全员会上因一个尚未查清的问题被连续羞辱，其他人低头看屏幕。你掌握的日志显示责任并不在他一个人。",
+    [
+      choice("offer-facts", "在不激化人身冲突的前提下补充日志事实，建议先确认故障链路和共同改进项。", "同事不再独自承担全部叙事，讨论也多了一份技术证据。", { tech: 8, influence: 9, energy: -5 }, ["同伴", "证据"]),
+      choice("support-after", "现场避免打断，散会后关心同事状态，帮助整理事实并陪同使用正式反馈渠道。", "你没能改变刚才的会议，却让对方不必独自处理后果。", { influence: 7, energy: -3, delivery: 2 }, ["支持", "陪伴"]),
+      choice("join-ridicule", "跟着批评几句以证明自己站队正确，并悄悄删掉可能改变结论的日志。", "你暂时远离了火力，也亲手损坏了团队的事实基础。", { influence: -13, tech: -8, energy: -2 }, ["站队", "失真"])
+    ]),
+  event("performance-stay-transfer-leave", "performance", "person-role-fit", "留下、转岗还是离开",
+    "连续的模糊评价、岗位变化和高压沟通让你开始怀疑是否还值得留下，但你尚未盘点现金储备、内部机会和外部选择。",
+    [
+      choice("timeboxed-options", "设定六周窗口，同时推进事实复核、内部岗位沟通、外部面试和现金规划，再按明确信号决定。", "你没有把去留交给一次情绪，也没有假装环境一定会自行改善。", { energy: 8, influence: 6, tech: 3, delivery: 2 }, ["选择权", "计划"]),
+      choice("prove-with-overtime", "暂停所有外部选择，用无限加班证明忠诚，期待下一轮评价自动修复一切。", "短期存在感上升，决定自己未来的能力却继续下降。", { delivery: 6, energy: -18, influence: -3 }, ["证明", "依赖"]),
+      choice("leave-no-runway", "第二天直接离开，不做财务准备、交接或下一步安排，先结束痛苦再说。", "压力源被切断了，你也立刻面对现金、关系与职业空窗的新压力。", { energy: 4, delivery: -9, influence: -7 }, ["离开", "无准备"])
     ])
 ];
 
@@ -784,7 +929,8 @@ const PERSONAS = [
 const SOURCE_SUMMARY = [
   "企业治理与新年公开信：客户、奋斗者、自我批判、主航道、粮食、土地肥力、班长的战争等语境。",
   "华为云公开 IPD 测试指南：IPD、PDT 与 TR1 至 TR6 等研发评审术语。",
-  "公开管理与行业资料：PBC、DSTE、LTC、CBB 及常见职场表达，仅作通俗解释。"
+  "公开管理与行业资料：PBC、DSTE、LTC、CBB 及常见职场表达，仅作通俗解释。",
+  "公开媒体与管理文章：B绩效、B里靠前、AT评议、输出非研发和高压沟通等网络叙事；均不视为官方制度定义或普遍事实。"
 ];
 
 module.exports = {

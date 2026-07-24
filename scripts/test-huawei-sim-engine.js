@@ -25,6 +25,7 @@ function testSeededSelection() {
   assert.deepStrictEqual(first.eventIds, second.eventIds, "same seed should reproduce the event sequence");
   assert.notDeepStrictEqual(first.eventIds, third.eventIds, "different seeds should usually change the event sequence");
   assert.strictEqual(first.eventIds.length, engine.TOTAL_EVENTS);
+  assert.strictEqual(engine.TOTAL_EVENTS, 15);
   assert.strictEqual(new Set(first.eventIds).size, engine.TOTAL_EVENTS);
 
   STAGES.forEach((stage, stageIndex) => {
@@ -78,6 +79,8 @@ function testCompleteRunAndSummary() {
 function testGlossarySearch() {
   assert(engine.searchGlossary("PBC").some((item) => item.id === "pbc"));
   assert(engine.searchGlossary("发布准备").some((item) => item.id === "tr4a" || item.id === "tr6"));
+  assert(engine.searchGlossary("B里靠前").some((item) => item.id === "b-front"));
+  assert(engine.searchGlossary("输出非研发", "network").some((item) => item.id === "rd-output"));
   assert(engine.searchGlossary("", "process").every((item) => item.category === "process"));
   assert.strictEqual(engine.searchGlossary("不存在的黑话").length, 0);
   assert.strictEqual(engine.searchGlossary("").length, GLOSSARY.length);

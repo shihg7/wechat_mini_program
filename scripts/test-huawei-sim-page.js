@@ -53,8 +53,9 @@ function dataset(id, name = "id") {
 function testMainFlow() {
   const page = createPage();
   assert.strictEqual(page.data.screen, "intro");
-  assert(page.data.contentStats.termCount >= 40);
-  assert(page.data.contentStats.eventCount >= 44);
+  assert(page.data.contentStats.termCount >= 48);
+  assert(page.data.contentStats.eventCount >= 54);
+  assert.strictEqual(page.data.contentStats.choicesPerRun, 15);
   page.startSimulation();
   assert.strictEqual(page.data.screen, "run");
   assert.strictEqual(page.data.runView.choices.length, 3);
@@ -97,6 +98,10 @@ function testGlossaryFlow() {
   page.clearGlossarySearch();
   assert(page.data.glossaryResults.length > 0);
   assert(page.data.glossaryResults.every((item) => item.category === "process"));
+  page.selectGlossaryCategory(dataset("network"));
+  page.onGlossaryInput({ detail: { value: "B里靠前" } });
+  assert(page.data.glossaryResults.some((item) => item.id === "b-front"));
+  assert(page.data.glossaryResults.every((item) => item.sourceTone === "network"));
   page.copyGlossaryTerm(dataset(page.data.glossaryResults[0].id));
   assert(clipboard.some((item) => item.includes("：")));
   page.onGlossaryInput({ detail: { value: "完全不存在" } });
@@ -115,6 +120,12 @@ function testTemplateAndStyleGuards() {
   assert(wxml.includes('class="choice-text"'));
   assert(wxml.includes('class="content-scroll"'));
   assert(wxml.includes("非官方") || wxml.includes("{{disclaimer}}"));
+  assert(wxml.includes("B里靠前"));
+  assert(wxml.includes("五个阶段"));
+  assert(wxml.includes("十五回合"));
+  assert(!wxml.includes("四个阶段"));
+  assert(!wxml.includes("十二回合"));
+  assert(wxss.includes(".source-network"));
   assert(/\.hw-page\s*\{[\s\S]*?height:\s*100vh[\s\S]*?overflow:\s*hidden/.test(wxss));
   assert(/\.content-scroll\s*\{[\s\S]*?flex:\s*1[\s\S]*?height:\s*0/.test(wxss));
   assert(/\.choice-card\s*\{[\s\S]*?min-height:\s*126rpx[\s\S]*?height:\s*auto[\s\S]*?overflow:\s*visible/.test(wxss));

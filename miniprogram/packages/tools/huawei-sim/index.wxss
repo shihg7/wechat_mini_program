@@ -893,6 +893,11 @@ page {
   color: #596474;
 }
 
+.source-network {
+  background: #fff0e5;
+  color: #9a442b;
+}
+
 .glossary-plain {
   margin-top: 13rpx;
   color: #263244;

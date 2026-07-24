@@ -66,14 +66,14 @@
       <view class="intro-lead">
         <view class="section-kicker">YOUR FIRST DAY</view>
         <view class="intro-title">PBC 刚写完，TR 又来了</view>
-        <view class="intro-copy">四个阶段会随机抽取研发现场。交付、技术、能量与影响会共同形成你的最终画像。</view>
+        <view class="intro-copy">五个阶段会随机抽取研发现场，最后进入绩效与去留。交付、技术、能量与影响会共同形成你的最终画像。</view>
       </view>
 
       <view class="term-ribbon">
         <view class="term-chip" wx:for="{{featuredTerms}}" wx:key="id">{{item.term}}</view>
       </view>
 
-      <button class="primary-button icon-action" bindtap="startSimulation" aria-label="开始十二回合研发情景模拟">
+      <button class="primary-button icon-action" bindtap="startSimulation" aria-label="开始十五回合研发情景模拟">
         <ui-icon name="play" size="{{27}}" tone="white" />
         <text>开始情景模拟</text>
       </button>
@@ -237,13 +237,13 @@
   >
     <view class="dictionary-head">
       <view class="dictionary-title">黑话词典</view>
-      <view class="dictionary-copy">公开语境的通俗翻译，不是内部资料，也不是企业背书。</view>
+      <view class="dictionary-copy">公开语境的通俗翻译；网络叙事单独标记，不是内部资料或事实认证。</view>
       <view class="search-box">
         <ui-icon name="search" size="{{25}}" tone="muted" />
         <input
           class="search-input"
           value="{{glossaryQuery}}"
-          placeholder="搜索 PBC、TR、打粮食……"
+          placeholder="搜索 PBC、B里靠前、输出非研发……"
           bindinput="onGlossaryInput"
           confirm-type="search"
           aria-label="搜索黑话词典"

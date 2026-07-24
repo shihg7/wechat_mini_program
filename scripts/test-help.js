@@ -69,6 +69,7 @@ function testHelpSearchAndSections() {
     ["手拨", "wheel"],
     ["自动存档", "career"],
     ["虚构复合", "huawei"],
+    ["B里靠前", "huawei"],
     ["覆盖", "data"]
   ];
   searches.forEach(([keyword, expectedId]) => {
@@ -148,9 +149,15 @@ function testHuaweiSimulationHelpContent() {
   const serialized = JSON.stringify(huawei);
   [
     "非官方",
-    "40 个",
-    "44 个",
-    "12 次选择",
+    "48 个",
+    "54 个",
+    "162 个",
+    "15 次选择",
+    "绩效与去留",
+    "网络职场叙事",
+    "B里靠前",
+    "输出非研发",
+    "当众批评",
     "虚构复合",
     "不代表任何企业",
     "华为公开材料",

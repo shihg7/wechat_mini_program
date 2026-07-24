@@ -221,7 +221,7 @@ function formatSummary(run) {
     result.persona.subtitle,
     statText,
     `${result.choiceCount} 次选择全部在本地完成。${keywordText}`,
-    "非官方情景模拟，术语来自公开资料，情景为虚构复合创作。"
+    "非官方情景模拟，术语来自公开资料；网络职场叙事已单独标记，情景为虚构复合创作。"
   ].join("\n");
 }
 

@@ -1,10 +1,10 @@
 # 工具箱
 
-一个完全离线的微信小程序日常工具箱。首页平级提供六个工具：AA 分账、简版行程、通用清单、决策转盘、酒店餐厅快评、程序员生涯模拟；右上角仅保留帮助与数据设置。
+一个完全离线的微信小程序日常工具箱。首页平级提供五个工具：AA 分账、简版行程、通用清单、决策转盘和程序员生涯模拟；右上角仅保留帮助与数据设置。
 
-应用不要求登录，也不依赖业务服务器。所有业务数据均保存在当前微信小程序的本地缓存中，六个工具之间不保存关联 ID，删除或损坏其中一类数据不会连带修改其他工具。
+应用不要求登录，也不依赖业务服务器。所有业务数据均保存在当前微信小程序的本地缓存中，五个工具之间不保存关联 ID，删除或损坏其中一类数据不会连带修改其他工具。
 
-## 六个工具
+## 五个工具
 
 ### AA 分账
 
@@ -40,27 +40,6 @@
 - 选项可排序、临时停用或移出本轮。
 - 保存最近 `50` 条结果历史，可再次旋转或清空历史。
 
-### 酒店餐厅快评
-
-- 类型仅区分酒店和餐厅。
-- 每条快评保存名称、城市、到访日期、可选总分和一句备注。
-- 支持新增、查看、编辑、删除、搜索和类型筛选。
-- 固定数据结构：
-
-```js
-{
-  id,
-  type,
-  name,
-  city,
-  visitDate,
-  score,
-  note,
-  createdAt,
-  updatedAt
-}
-```
-
 ### 程序员生涯模拟
 
 - 一次模拟约 `20-30` 分钟，依次经历入行求职、初级生存、独当一面、核心骨干、路线分叉和职业答案。
@@ -79,11 +58,10 @@
 
 ## 本地数据
 
-页面通过六个本地域 Store 读写数据，不直接操作业务缓存：
+页面通过五个本地域 Store 读写数据，不直接操作业务缓存：
 
 | 工具 | Store | 缓存键 |
 | --- | --- | --- |
-| 酒店餐厅快评 | `miniprogram/utils/quickRecordStore.js` | `toolbox_quick_records` |
 | 简版行程 | `miniprogram/utils/tripStore.js` | `toolbox_trips` |
 | 通用清单 | `miniprogram/utils/checklistStore.js` | `toolbox_checklists` |
 | AA 分账 | `miniprogram/utils/tripLedgerStore.js` | `toolbox_ledgers` |
@@ -92,14 +70,13 @@
 
 ### 完整备份
 
-数据设置页可以导出和导入完整 JSON 备份。当前工具箱备份格式为 `schemaVersion: 2`，与 AA 账本自身的 `schemaVersion: 4`、生涯模拟存档自身的 `schemaVersion: 2` 是不同层级的版本号。
+数据设置页可以导出和导入完整 JSON 备份。当前工具箱备份格式为 `schemaVersion: 3`，与 AA 账本自身的 `schemaVersion: 4`、生涯模拟存档自身的 `schemaVersion: 2` 是不同层级的版本号。
 
 ```js
 {
-  schemaVersion: 2,
+  schemaVersion: 3,
   app: "local-toolbox-miniprogram",
   exportedAt: "...",
-  records: [],
   trips: [],
   checklists: [],
   ledgers: [],
@@ -109,17 +86,18 @@
 ```
 
 - 导入前会校验应用标识、版本、集合类型和重复 ID。
-- 兼容导入工具箱备份 v1；v1 不包含生涯模拟数据，导入时按空生涯集合处理。
+- 兼容导入工具箱备份 v1、v2；v1 不包含生涯模拟数据，导入时按空生涯集合处理。
+- 旧 v1、v2 备份中的 `records` 快评集合会被忽略，不影响其余五类数据恢复。
 - 支持合并导入与覆盖导入。
-- 写入前会为六个缓存创建统一快照；任一缓存写入失败时，已写入的集合会自动回滚。
+- 写入前会为五个缓存创建统一快照；任一缓存写入失败时，已写入的集合会自动回滚。
 - 合并时若出现多个活动生涯，只保留更新时间最新的一段为活动进度，其余标记为已中断。
 - 数据设置页显示本地占用和上次成功导出时间，也提供清空全部工具数据的入口。
 
 ### 首次升级清理
 
-第一次运行工具箱版本时，`toolboxMigration` 会执行一次不可逆清理：删除旧版体验档案缓存及其中登记的本地照片，然后写入 `toolbox_initialized_v1` 标记。后续启动不会重复执行，也不会删除上述六个 `toolbox_*` 新缓存。
+第一次运行工具箱版本时，`toolboxMigration` 会执行一次不可逆清理：删除旧版体验档案缓存及其中登记的本地照片，然后写入 `toolbox_initialized_v1` 标记。移除快评模块后还会通过 `toolbox_quick_records_removed_v1` 标记一次性清理遗留快评缓存，不影响其余五个 `toolbox_*` 缓存。
 
-在升级前仍需要旧数据时，应先使用旧版本自行留存；新工具箱不提供旧数据迁移或旧备份恢复。
+在升级前仍需要退役的旧体验档案或快评数据时，应先使用旧版本自行留存；新工具箱只恢复旧备份中仍然存在的五类工具数据。
 
 ### 数据风险
 
@@ -143,8 +121,6 @@
 | `/pages/trip/edit` | 新建或编辑行程 |
 | `/pages/trip/detail` | 按天管理行程事项 |
 | `/pages/checklist/index` | 多清单管理 |
-| `/pages/record/index` | 快评列表 |
-| `/pages/record/record` | 新建、查看或编辑快评 |
 | `/packages/tools/wheel/index` | 决策转盘 |
 | `/packages/tools/career/index` | 生涯模拟首页、继续或新建生涯 |
 | `/packages/tools/career/play` | 职业情景、选择反馈、章节与结果 |
@@ -164,7 +140,6 @@ miniprogram/
   pages/ledger/                  AA 账本列表、编辑和详情
   pages/trip/                    行程列表、编辑和详情
   pages/checklist/               通用多清单
-  pages/record/                  酒店餐厅快评
   packages/tools/wheel/          决策转盘页面
   packages/tools/career/         程序员生涯模拟页面与插画
   packages/tools/help/           小程序内帮助
@@ -175,9 +150,8 @@ miniprogram/
     careerGameEngine.js          种子事件、数值和职业答案计算
     careerGameMeta.js            今日情景、职业画像、章节报告和里程碑
     careerGameStore.js           模拟存档与生涯档案 Store
-    appBackup.js                 v2 备份、v1 兼容与回滚
+    appBackup.js                 v3 备份、v1/v2 兼容与回滚
   utils/
-    quickRecordStore.js          快评 Store
     tripStore.js                 行程 Store
     checklistStore.js            清单 Store
     tripLedgerStore.js           AA Store
@@ -237,7 +211,7 @@ npm run docs:generate
 
 1. 在编译模式中选择“普通编译”，点击“编译”。
 2. 确认模拟器能进入六工具首页，控制台没有 WXML、WXSS、JS 或路由错误。
-3. 依次点击六个工具；生涯模拟至少完成创建档案、连续选择、刷新恢复和查看生涯档案。
+3. 依次点击五个工具；生涯模拟至少完成创建档案、连续选择、刷新恢复和查看生涯档案。
 4. 打开开发者工具的“代码质量”面板并执行扫描；不同版本中该入口可能位于右上角“详情”或“工具”菜单。
 5. 检查主包、工具分包和本地 SVG 资源均能正常加载。
 
@@ -245,8 +219,7 @@ npm run docs:generate
 
 `npm test` 使用 mock 的 `wx`、`Page` 和文件系统接口，覆盖：
 
-- 首页六个工具入口、帮助入口和数据设置入口。
-- 快评严格字段归一化、CRUD、搜索筛选、未保存提醒与固定保存栏。
+- 首页五个工具入口、帮助入口和数据设置入口。
 - 行程日期边界、事项 CRUD、同日排序、时间冲突和页面事件。
 - 多清单 CRUD、完成进度、排序和旅行模板幂等。
 - AA 多人及部分成员分摊、四种分摊方式、随机金额守恒和稳定尾差。
@@ -255,8 +228,8 @@ npm run docs:generate
 - 生涯模拟 60 个事件的结构引用、自由/每日种子复现、属性边界、隐藏经历、延迟后果和 12 种职业答案。
 - 生涯模拟的动态职业画像、章节净变化、伏笔提示、12 项里程碑和旧存档升级。
 - 生涯模拟自动存档、结果阶段幂等、章节推进、重新模拟确认、复制总结和生涯档案页面事件。
-- 完整备份 v1/v2 预检、合并与覆盖、重复 ID、非法文件和六缓存写入失败回滚。
-- 首次升级清理只执行一次，并保护六个新工具缓存。
+- 完整备份 v1/v2/v3 预检、合并与覆盖、重复 ID、非法文件和五缓存写入失败回滚。
+- 首次升级清理和退役快评缓存清理均只执行一次，并保护其余五个工具缓存。
 - 页面路由、主包边界、图标资源、工具分包和用户手册一致性。
 
 每次开发完成后执行 `npm run verify`，再使用微信官方 `wechatide-skill` 完成普通编译、主要点击流程、截图与控制台检查。验证通过后更新 README、提交 Git，并上传对应版本的体验版。

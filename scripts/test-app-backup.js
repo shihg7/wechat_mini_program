@@ -36,7 +36,6 @@ global.wx = {
   }
 };
 
-const quickRecordStore = require("../miniprogram/utils/quickRecordStore");
 const tripStore = require("../miniprogram/utils/tripStore");
 const checklistStore = require("../miniprogram/utils/checklistStore");
 const ledgerStore = require("../miniprogram/utils/tripLedgerStore");
@@ -52,14 +51,6 @@ function reset() {
 }
 
 function seedAll() {
-  quickRecordStore.addRecord({
-    type: "hotel",
-    name: "西湖酒店",
-    city: "杭州",
-    visitDate: "2026-07-18",
-    score: 8.6,
-    note: "早餐不错"
-  });
   tripStore.addTrip({
     title: "杭州周末",
     destination: "杭州",
@@ -113,7 +104,6 @@ function emptyBackup(patch = {}) {
     schemaVersion: backupApi.SCHEMA_VERSION,
     app: backupApi.APP_ID,
     exportedAt: "2026-07-20T10:00:00.000Z",
-    records: [],
     trips: [],
     checklists: [],
     ledgers: [],
@@ -130,23 +120,29 @@ function v1Backup(patch = {}) {
   return backup;
 }
 
-function testV1Compatibility() {
+function testLegacyCompatibility() {
   reset();
   const checked = backupApi.preflightBackup(v1Backup());
-  assert.strictEqual(checked.backup.schemaVersion, 2);
+  assert.strictEqual(checked.backup.schemaVersion, 3);
   assert.deepStrictEqual(checked.backup.careerRuns, []);
   assert.strictEqual(checked.summary.careerCount, 0);
+  const legacyV2 = emptyBackup({
+    schemaVersion: 2,
+    records: [{ id: "retired-record", name: "旧快评" }]
+  });
+  const checkedV2 = backupApi.preflightBackup(legacyV2);
+  assert.strictEqual(checkedV2.backup.schemaVersion, 3);
+  assert.strictEqual(Object.prototype.hasOwnProperty.call(checkedV2.backup, "records"), false);
 }
 
-function testV2RoundTripAndSummary() {
+function testV3RoundTripAndSummary() {
   reset();
   seedAll();
   const source = backupApi.buildBackup();
   const checked = backupApi.preflightBackup(JSON.stringify(source));
   assert.deepStrictEqual(checked.summary, {
-    schemaVersion: 2,
+    schemaVersion: 3,
     exportedAt: source.exportedAt,
-    recordCount: 1,
     tripCount: 1,
     checklistCount: 1,
     ledgerCount: 1,
@@ -156,38 +152,36 @@ function testV2RoundTripAndSummary() {
   });
 
   backupApi.resetAllData();
-  assert.strictEqual(backupApi.getLocalDataSummary().recordCount, 0);
   backupApi.applyBackup(checked, "replace");
   assert.deepStrictEqual(
     comparableBackup(backupApi.buildBackup()),
     comparableBackup(source),
-    "v2 backup should survive a full replace round trip"
+    "v3 backup should survive a full replace round trip"
   );
 }
 
 function testMergeIsIdempotentAndRenamesConflicts() {
   reset();
-  const local = quickRecordStore.addRecord({
-    type: "hotel",
-    name: "本地酒店",
-    visitDate: "2026-07-01"
+  const local = wheelStore.createWheel({
+    title: "本地转盘",
+    options: [{ id: "option-a", text: "甲" }, { id: "option-b", text: "乙" }]
   });
-  const incoming = quickRecordStore.normalizeRecord({
+  const incoming = wheelStore.normalizeWheel({
     ...local,
-    name: "备份酒店",
+    title: "备份转盘",
     updatedAt: "2026-07-02T00:00:00.000Z"
   });
-  const payload = emptyBackup({ records: [incoming] });
+  const payload = emptyBackup({ wheels: [incoming] });
 
   const first = backupApi.applyBackup(payload, "merge");
-  assert.strictEqual(first.recordsAdded, 1);
-  assert.strictEqual(quickRecordStore.getRecords().length, 2);
-  assert(quickRecordStore.getRecords().some((record) => record.id === `${local.id}_import_1`));
+  assert.strictEqual(first.wheelsAdded, 1);
+  assert.strictEqual(wheelStore.getWheels().length, 2);
+  assert(wheelStore.getWheels().some((wheel) => wheel.id === `${local.id}_import_1`));
 
   const second = backupApi.applyBackup(payload, "merge");
-  assert.strictEqual(second.recordsAdded, 0);
-  assert.strictEqual(second.recordsSkipped, 1);
-  assert.strictEqual(quickRecordStore.getRecords().length, 2);
+  assert.strictEqual(second.wheelsAdded, 0);
+  assert.strictEqual(second.wheelsSkipped, 1);
+  assert.strictEqual(wheelStore.getWheels().length, 2);
 }
 
 function testCareerMergeDefersActiveConflictToStore() {
@@ -227,7 +221,7 @@ function testCareerMergeDefersActiveConflictToStore() {
   assert.strictEqual(careerGameStore.getRuns().length, 2);
 }
 
-function testAtomicRollbackAcrossSixStores() {
+function testAtomicRollbackAcrossFiveStores() {
   reset();
   seedAll();
   const before = clone(memory);
@@ -238,7 +232,6 @@ function testAtomicRollbackAcrossSixStores() {
     /已自动回滚/
   );
   [
-    quickRecordStore.STORAGE_KEY,
     tripStore.STORAGE_KEY,
     checklistStore.STORAGE_KEY,
     ledgerStore.STORAGE_KEY,
@@ -251,25 +244,24 @@ function testValidationExportAndClear() {
   reset();
   assert.throws(() => backupApi.preflightBackup("{"), /有效的工具箱 JSON/);
   assert.throws(() => backupApi.preflightBackup({ ...emptyBackup(), app: "another-app" }), /不是当前工具箱/);
-  assert.throws(() => backupApi.preflightBackup({ ...emptyBackup(), schemaVersion: 3 }), /仅支持工具箱备份 v1 或 v2/);
+  assert.throws(() => backupApi.preflightBackup({ ...emptyBackup(), schemaVersion: 4 }), /仅支持工具箱备份 v1、v2 或 v3/);
   assert.throws(() => backupApi.preflightBackup({ ...emptyBackup(), wheels: "bad" }), /wheels 必须是数组/);
   assert.throws(() => backupApi.preflightBackup({ ...emptyBackup(), careerRuns: "bad" }), /careerRuns 必须是数组/);
-  const duplicate = quickRecordStore.normalizeRecord({
+  const duplicate = wheelStore.normalizeWheel({
     id: "duplicate",
-    type: "restaurant",
-    name: "小馆",
-    visitDate: "2026-07-20",
+    title: "重复转盘",
+    options: [{ id: "duplicate-a", text: "甲" }, { id: "duplicate-b", text: "乙" }],
     createdAt: "2026-07-20T00:00:00.000Z"
   });
   assert.throws(
-    () => backupApi.preflightBackup(emptyBackup({ records: [duplicate, duplicate] })),
+    () => backupApi.preflightBackup(emptyBackup({ wheels: [duplicate, duplicate] })),
     /重复 id/
   );
 
   seedAll();
   const exported = backupApi.exportFullBackup();
-  assert.strictEqual(exported.backup.schemaVersion, 2);
-  assert.strictEqual(exported.filePath, "/tmp/toolbox-backup-v2.json");
+  assert.strictEqual(exported.backup.schemaVersion, 3);
+  assert.strictEqual(exported.filePath, "/tmp/toolbox-backup-v3.json");
   assert.strictEqual(writtenFile.filePath, exported.filePath);
   assert.strictEqual(writtenFile.encoding, "utf8");
   assert.strictEqual(JSON.parse(writtenFile.content).app, backupApi.APP_ID);
@@ -278,7 +270,7 @@ function testValidationExportAndClear() {
   backupApi.resetAllData();
   const summary = backupApi.getLocalDataSummary();
   assert.strictEqual(
-    summary.recordCount + summary.tripCount + summary.checklistCount
+    summary.tripCount + summary.checklistCount
       + summary.ledgerCount + summary.wheelCount + summary.careerCount,
     0
   );
@@ -288,10 +280,10 @@ function testValidationExportAndClear() {
   assert.strictEqual(summary.lastBackupAt, "");
 }
 
-testV1Compatibility();
-testV2RoundTripAndSummary();
+testLegacyCompatibility();
+testV3RoundTripAndSummary();
 testMergeIsIdempotentAndRenamesConflicts();
 testCareerMergeDefersActiveConflictToStore();
-testAtomicRollbackAcrossSixStores();
+testAtomicRollbackAcrossFiveStores();
 testValidationExportAndClear();
 console.log("toolbox backup tests passed");

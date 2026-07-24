@@ -31,12 +31,12 @@ function summaryView(summary) {
 }
 
 function totalAdded(result) {
-  return ["records", "trips", "checklists", "ledgers", "wheels", "careerRuns"]
+  return ["trips", "checklists", "ledgers", "wheels", "careerRuns"]
     .reduce((sum, key) => sum + Number(result[`${key}Added`] || 0), 0);
 }
 
 function totalSkipped(result) {
-  return ["records", "trips", "checklists", "ledgers", "wheels", "careerRuns"]
+  return ["trips", "checklists", "ledgers", "wheels", "careerRuns"]
     .reduce((sum, key) => sum + Number(result[`${key}Skipped`] || 0), 0);
 }
 
@@ -106,7 +106,7 @@ Page({
     wx.showModal({
       title: mode === "replace" ? "覆盖本地数据？" : "合并这份备份？",
       content: mode === "replace"
-        ? `本机六类工具数据会替换为：${preview.recordCount} 条快评、${preview.tripCount} 个行程、${preview.checklistCount} 份清单、${preview.ledgerCount} 本账本、${preview.wheelCount} 个转盘和 ${preview.careerCount} 段生涯。`
+        ? `本机五类工具数据会替换为：${preview.tripCount} 个行程、${preview.checklistCount} 份清单、${preview.ledgerCount} 本账本、${preview.wheelCount} 个转盘和 ${preview.careerCount} 段生涯。`
         : `备份中包含 ${preview.careerCount} 段生涯。已有内容会保留；相同 ID 且内容不同的项目会生成新 ID，完全相同的项目会跳过。`,
       confirmText: mode === "replace" ? "确认覆盖" : "确认合并",
       confirmColor: mode === "replace" ? "#a33d2d" : "#2864d9",
@@ -125,7 +125,7 @@ Page({
         title: "恢复完成",
         content: mode === "merge"
           ? `新增 ${totalAdded(result)} 项，跳过 ${totalSkipped(result)} 项重复内容。`
-          : "六类工具数据已按备份完整恢复。",
+          : "五类工具数据已按备份完整恢复。",
         showCancel: false
       });
     } catch (error) {
@@ -148,7 +148,7 @@ Page({
       if (wx.shareFileMessage) {
         wx.shareFileMessage({
           filePath: result.filePath,
-          fileName: "工具箱-完整备份-v2.json",
+          fileName: "工具箱-完整备份-v3.json",
           fail: (error) => {
             if (String(error && error.errMsg || "").indexOf("cancel") < 0) {
               wx.showToast({ title: "发送备份失败", icon: "none" });
@@ -177,7 +177,7 @@ Page({
     if (this.data.clearing) return;
     wx.showModal({
       title: "清空全部本地数据？",
-      content: "快评、行程、清单、AA 账本、转盘和生涯都会删除，且无法撤销。建议先导出备份。",
+      content: "行程、清单、AA 账本、转盘和生涯都会删除，且无法撤销。建议先导出备份。",
       confirmText: "全部清空",
       confirmColor: "#a33d2d",
       success: (result) => {

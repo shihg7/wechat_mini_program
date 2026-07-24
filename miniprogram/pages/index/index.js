@@ -28,13 +28,6 @@ const TOOLS = [
     url: "/packages/tools/wheel/index"
   },
   {
-    id: "review",
-    label: "酒店餐厅快评",
-    icon: "edit",
-    tone: "default",
-    url: "/pages/record/index"
-  },
-  {
     id: "career",
     label: "程序员生涯模拟",
     icon: "code",

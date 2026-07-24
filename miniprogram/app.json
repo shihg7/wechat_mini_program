@@ -7,9 +7,7 @@
     "pages/trip/index",
     "pages/trip/edit",
     "pages/trip/detail",
-    "pages/checklist/index",
-    "pages/record/index",
-    "pages/record/record"
+    "pages/checklist/index"
   ],
   "subPackages": [
     {

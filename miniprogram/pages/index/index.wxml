@@ -17,12 +17,14 @@
   </view>
 
   <view class="tool-grid">
-    <button
+    <view
       class="tool-card tool-card-{{item.id}}"
       wx:for="{{tools}}"
       wx:key="id"
       data-url="{{item.url}}"
       bindtap="openRoute"
+      hover-class="tool-card-hover"
+      aria-role="button"
       aria-label="打开{{item.label}}"
     >
       <view class="tool-icon tool-icon-{{item.tone}}">
@@ -32,6 +34,6 @@
         <text class="tool-label">{{item.label}}</text>
         <ui-icon name="chevron-right" size="{{24}}" tone="muted" />
       </view>
-    </button>
+    </view>
   </view>
 </view>

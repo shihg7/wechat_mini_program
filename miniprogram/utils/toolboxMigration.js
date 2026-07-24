@@ -1,6 +1,8 @@
 const INITIALIZED_KEY = "toolbox_initialized_v1";
 const LOCAL_NOTICE_KEY = "toolbox_local_notice_seen";
 const LEGACY_MEDIA_KEY = "experience_media_files";
+const RETIRED_QUICK_RECORDS_KEY = "toolbox_quick_records";
+const RETIRED_QUICK_RECORDS_CLEANED_KEY = "toolbox_quick_records_removed_v1";
 const LEGACY_KEYS = [
   "hotel_review_records",
   "experience_places",
@@ -48,9 +50,22 @@ function initializeToolboxStorage() {
   return true;
 }
 
+function removeRetiredQuickRecords() {
+  if (wx.getStorageSync(RETIRED_QUICK_RECORDS_CLEANED_KEY)) return false;
+  removeStoredValue(RETIRED_QUICK_RECORDS_KEY);
+  wx.setStorageSync(RETIRED_QUICK_RECORDS_CLEANED_KEY, {
+    schemaVersion: 1,
+    removedAt: new Date().toISOString()
+  });
+  return true;
+}
+
 module.exports = {
   INITIALIZED_KEY,
   LEGACY_KEYS,
   LOCAL_NOTICE_KEY,
-  initializeToolboxStorage
+  RETIRED_QUICK_RECORDS_CLEANED_KEY,
+  RETIRED_QUICK_RECORDS_KEY,
+  initializeToolboxStorage,
+  removeRetiredQuickRecords
 };

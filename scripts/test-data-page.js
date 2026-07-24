@@ -72,7 +72,7 @@ const careerGameStore = require("../miniprogram/packages/tools/utils/careerGameS
 const page = createPage("../miniprogram/packages/tools/data/index.js");
 
 page.onShow();
-assert.strictEqual(page.data.localSummary.recordCount, 0);
+assert.strictEqual(page.data.localSummary.tripCount, 0);
 assert.strictEqual(page.data.localSummary.storageText, "8 KB");
 
 selectedContent = JSON.stringify({
@@ -98,14 +98,14 @@ selectedContent = JSON.stringify({
 
 page.chooseBackup();
 assert.strictEqual(page.data.selectedFileName, "toolbox.json");
-assert.strictEqual(page.data.preview.recordCount, 1);
+assert.strictEqual(Object.prototype.hasOwnProperty.call(page.data.preview, "recordCount"), false);
 assert.strictEqual(page.data.preview.careerCount, 0);
 
 page.confirmImport({ currentTarget: { dataset: { mode: "merge" } } });
 const mergePrompt = ui.modals.pop();
 assert(mergePrompt.content.includes("0 段生涯"));
 mergePrompt.success({ confirm: true });
-assert.strictEqual(page.data.localSummary.recordCount, 1);
+assert.strictEqual(page.data.localSummary.tripCount, 0);
 assert(ui.modals.pop().title === "恢复完成");
 
 const career = careerGameStore.normalizeRun({
@@ -133,21 +133,20 @@ page.chooseBackup();
 assert.strictEqual(page.data.preview.careerCount, 1);
 page.confirmImport({ currentTarget: { dataset: { mode: "replace" } } });
 const replacePrompt = ui.modals.pop();
-assert(replacePrompt.content.includes("六类工具数据"));
+assert(replacePrompt.content.includes("五类工具数据"));
 assert(replacePrompt.content.includes("1 段生涯"));
 replacePrompt.success({ confirm: true });
 assert.strictEqual(page.data.localSummary.careerCount, 1);
-assert.strictEqual(ui.modals.pop().content, "六类工具数据已按备份完整恢复。");
+assert.strictEqual(ui.modals.pop().content, "五类工具数据已按备份完整恢复。");
 
 page.exportBackup();
 assert.strictEqual(ui.writtenFiles.length, 1);
 assert.strictEqual(ui.sharedFiles.length, 1);
-assert.strictEqual(ui.sharedFiles[0].fileName, "工具箱-完整备份-v2.json");
+assert.strictEqual(ui.sharedFiles[0].fileName, "工具箱-完整备份-v3.json");
 assert.notStrictEqual(page.data.localSummary.lastBackupText, "尚未备份");
 
 page.confirmClear();
 ui.modals.pop().success({ confirm: true });
-assert.strictEqual(page.data.localSummary.recordCount, 0);
 assert.strictEqual(page.data.localSummary.tripCount, 0);
 assert.strictEqual(page.data.localSummary.checklistCount, 0);
 assert.strictEqual(page.data.localSummary.ledgerCount, 0);
@@ -157,11 +156,12 @@ assert.strictEqual(page.data.localSummary.careerCount, 0);
 const dataPageDir = path.join(__dirname, "../miniprogram/packages/tools/data");
 const wxml = fs.readFileSync(path.join(dataPageDir, "index.wxml"), "utf8");
 const wxss = fs.readFileSync(path.join(dataPageDir, "index.wxss"), "utf8");
-assert(wxml.includes("包含六个工具的全部本地数据"));
-assert(wxml.includes("兼容此前生成的 v1 JSON 备份"));
+assert(wxml.includes("包含五个工具的全部本地数据"));
+assert(wxml.includes("兼容此前生成的 v1、v2 JSON 备份"));
 assert(wxml.includes("localSummary.careerCount"));
 assert(wxml.includes("preview.careerCount"));
-assert(wxml.includes("一次删除六个工具的全部内容"));
+assert(wxml.includes("一次删除五个工具的全部内容"));
+assert(!wxml.includes("localSummary.recordCount"));
 assert(wxss.includes("grid-template-columns: repeat(3, 1fr)"));
 
 console.log("data settings page interaction tests passed");

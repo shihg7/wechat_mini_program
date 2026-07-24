@@ -10,7 +10,6 @@ const expectedTools = [
   { label: "行程安排", url: "/pages/trip/index" },
   { label: "通用清单", url: "/pages/checklist/index" },
   { label: "决策转盘", url: "/packages/tools/wheel/index" },
-  { label: "酒店餐厅快评", url: "/pages/record/index" },
   { label: "程序员生涯模拟", url: "/packages/tools/career/index" }
 ];
 const expectedHeaderActions = [
@@ -36,7 +35,7 @@ assert(pageDefinition, "toolbox home should register a Page");
 assert.deepStrictEqual(
   pageDefinition.data.tools.map(({ label, url }) => ({ label, url })),
   expectedTools,
-  "tool list should contain the six requested destinations in order"
+  "tool list should contain the five requested destinations in order"
 );
 assert.deepStrictEqual(
   pageDefinition.data.headerActions.map(({ label, url }) => ({ label, url })),
@@ -63,8 +62,11 @@ assert(!jsSource.includes("switchTab"), "home should not assume tab-bar routing"
 assert(wxmlSource.includes('<view class="title">工具箱</view>'), "page should show the 工具箱 title");
 assert(wxmlSource.includes("<ui-icon"), "page actions should use ui-icon");
 assert(wxmlSource.includes('wx:for="{{tools}}"'), "tools should render from the static list");
+assert(wxmlSource.includes('aria-role="button"'), "tool cards should retain accessible button semantics");
 assert(/grid-template-columns:\s*1fr\s+1fr/.test(wxssSource), "tool grid should keep two columns");
 assert(/grid-auto-rows:\s*184rpx/.test(wxssSource), "tool rows should have stable dimensions");
+assert(wxssSource.includes(".tool-card:last-child:nth-child(odd)"), "an odd final tool should span both columns");
+assert(wxssSource.includes("justify-self: stretch"), "the final native button should stretch across its grid area");
 assert(/\.tool-card\s*\{[\s\S]*?border-radius:\s*8rpx/.test(wxssSource), "tool cards should use an 8rpx radius");
 assert.strictEqual(pageConfig.navigationBarTitleText, "工具箱");
 assert.strictEqual(pageConfig.usingComponents["ui-icon"], "/components/ui-icon/index");
@@ -73,4 +75,4 @@ assert.strictEqual(pageConfig.usingComponents["ui-icon"], "/components/ui-icon/i
   assert(!wxmlSource.includes(legacyText), `legacy dashboard content should not include ${legacyText}`);
 });
 
-console.log("toolbox home tests passed (6 tools, 2 header actions)");
+console.log("toolbox home tests passed (5 tools, 2 header actions)");

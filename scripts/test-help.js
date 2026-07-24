@@ -53,7 +53,7 @@ function allGuideBlocks() {
 
 function testHelpSearchAndSections() {
   const page = loadHelpPage();
-  const expectedIds = ["quick", "ledger", "trips", "checklists", "wheel", "records", "career", "data", "faq"];
+  const expectedIds = ["quick", "ledger", "trips", "checklists", "wheel", "career", "data", "faq"];
   assert.deepStrictEqual(page.data.sections.map((section) => section.id), expectedIds);
   assert.strictEqual(page.data.sections.length, HELP_SECTIONS.length);
   assert.strictEqual(page.data.visibleSections[0].id, "quick");
@@ -64,7 +64,6 @@ function testHelpSearchAndSections() {
     ["时间冲突", "trips"],
     ["旅行打包", "checklists"],
     ["手拨", "wheel"],
-    ["一句备注", "records"],
     ["自动存档", "career"],
     ["覆盖", "data"]
   ];
@@ -97,7 +96,6 @@ function testHelpContentSourceAndRoutes() {
     "/pages/trip/index",
     "/pages/checklist/index",
     "/packages/tools/wheel/index",
-    "/pages/record/index",
     "/packages/tools/career/index",
     "/packages/tools/data/index"
   ];
@@ -116,12 +114,13 @@ function testHelpContentSourceAndRoutes() {
     .flatMap((section) => section.blocks)
     .find((block) => block.type === "table" && block.headers[0] === "工具");
   assert(quickToolsTable, "quick start should include the tools overview");
-  assert.strictEqual(quickToolsTable.rows.length, 6, "quick start should list all six tools");
+  assert.strictEqual(quickToolsTable.rows.length, 5, "quick start should list all five tools");
   assert(quickToolsTable.rows.some((row) => row[0] === "程序员生涯模拟"));
-  assert(serialized.includes("六个工具"), "help content should describe six tools");
-  assert(!serialized.includes("五个工具"), "legacy five-tool wording should be removed");
-  assert(!serialized.includes("五类数据"), "legacy five-data wording should be removed");
-  assert(!serialized.includes("五类业务数据"), "legacy five-business-data wording should be removed");
+  assert(serialized.includes("五个工具"), "help content should describe five tools");
+  assert(serialized.includes("五类数据"), "help content should describe five data collections");
+  assert(!serialized.includes("六个工具"), "retired six-tool wording should be removed");
+  assert(!serialized.includes("酒店餐厅快评"), "retired quick ratings should not remain in help");
+  assert(!serialized.includes("/pages/record/"), "retired quick-rating routes should not remain in help");
   [
     "/pages/place/",
     "/pages/wishlist/",
@@ -201,31 +200,9 @@ function testHelpRegistrationAndHomeActions() {
   assert(!homeJs.includes("switchTab"), "home navigation must not depend on a tab bar");
 }
 
-function testQuickRecordFixedSaveBar() {
-  const recordWxml = fs.readFileSync(path.join(miniprogramRoot, "pages/record/record.wxml"), "utf8");
-  const recordWxss = fs.readFileSync(path.join(miniprogramRoot, "pages/record/record.wxss"), "utf8");
-  const scrollEnd = recordWxml.indexOf("</scroll-view>");
-  const fixedActions = recordWxml.indexOf('class="fixed-save-bar"');
-  assert(scrollEnd >= 0 && fixedActions > scrollEnd, "quick rating save bar must stay outside scrolling content");
-  assert(recordWxml.includes("page-with-save-bar"), "form content should reserve room for the fixed save bar");
-  assert(recordWxml.includes('class="save-button icon-action"'));
-  assert(recordWxml.includes('bindtap="save"'));
-  assert(recordWxml.includes("保存记录") && recordWxml.includes("保存修改"));
-  assert(recordWxml.includes("评分（可选）"));
-  assert(recordWxml.includes("未评分"));
-  assert(!recordWxml.includes("selectedTags"));
-  assert(!recordWxml.includes("placeId"));
-  assert(!recordWxml.includes("保存草稿"));
-  assert(recordWxss.includes(".fixed-save-bar {"));
-  assert(recordWxss.includes("position: fixed;"));
-  assert(recordWxss.includes("bottom: 0;"));
-  assert(recordWxss.includes("env(safe-area-inset-bottom)"), "fixed save bar should respect the device safe area");
-}
-
 testHelpSearchAndSections();
 testHelpContentSourceAndRoutes();
 testCareerHelpContent();
 testHelpNavigationAndExpansion();
 testHelpRegistrationAndHomeActions();
-testQuickRecordFixedSaveBar();
-console.log("offline toolbox help and quick record action tests passed");
+console.log("offline toolbox help tests passed");

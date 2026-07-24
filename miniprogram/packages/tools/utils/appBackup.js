@@ -1,4 +1,3 @@
-const quickRecordStore = require("../../../utils/quickRecordStore");
 const tripStore = require("../../../utils/tripStore");
 const checklistStore = require("../../../utils/checklistStore");
 const ledgerStore = require("../../../utils/tripLedgerStore");
@@ -6,11 +5,10 @@ const wheelStore = require("./wheelStore");
 const careerGameStore = require("./careerGameStore");
 
 const APP_ID = "local-toolbox-miniprogram";
-const SCHEMA_VERSION = 2;
+const SCHEMA_VERSION = 3;
 const LAST_BACKUP_KEY = "toolbox_last_backup_at";
 
 const COLLECTIONS = [
-  { key: "records", label: "快评", storageKey: quickRecordStore.STORAGE_KEY, get: quickRecordStore.getRecords, set: quickRecordStore.setRecords, normalize: quickRecordStore.normalizeRecord },
   { key: "trips", label: "行程", storageKey: tripStore.STORAGE_KEY, get: tripStore.getTrips, set: tripStore.setTrips, normalize: tripStore.normalizeTrip },
   { key: "checklists", label: "清单", storageKey: checklistStore.STORAGE_KEY, get: checklistStore.getChecklists, set: checklistStore.setChecklists, normalize: checklistStore.normalizeChecklist },
   { key: "ledgers", label: "账本", storageKey: ledgerStore.STORAGE_KEY, get: ledgerStore.getLedgers, set: ledgerStore.setLedgers, normalize: ledgerStore.normalizeLedger },
@@ -65,14 +63,13 @@ function normalizeBackup(source) {
   const value = parseSource(source);
   if (value.app !== APP_ID) throw new Error("这不是当前工具箱生成的备份");
   const sourceVersion = Number(value.schemaVersion);
-  if (sourceVersion !== 1 && sourceVersion !== SCHEMA_VERSION) {
-    throw new Error(`仅支持工具箱备份 v1 或 v${SCHEMA_VERSION}`);
+  if (![1, 2, SCHEMA_VERSION].includes(sourceVersion)) {
+    throw new Error(`仅支持工具箱备份 v1、v2 或 v${SCHEMA_VERSION}`);
   }
   const backup = {
     schemaVersion: SCHEMA_VERSION,
     app: APP_ID,
     exportedAt: String(value.exportedAt || ""),
-    records: [],
     trips: [],
     checklists: [],
     ledgers: [],
@@ -98,7 +95,6 @@ function buildSummary(backup) {
   return {
     schemaVersion: backup.schemaVersion,
     exportedAt: backup.exportedAt,
-    recordCount: backup.records.length,
     tripCount: backup.trips.length,
     checklistCount: backup.checklists.length,
     ledgerCount: backup.ledgers.length,
@@ -224,7 +220,7 @@ function applyBackup(source, mode = "merge") {
 
 function exportFullBackup() {
   const backup = buildBackup();
-  const filePath = `${wx.env.USER_DATA_PATH}/toolbox-backup-v2.json`;
+  const filePath = `${wx.env.USER_DATA_PATH}/toolbox-backup-v3.json`;
   wx.getFileSystemManager().writeFileSync(filePath, JSON.stringify(backup, null, 2), "utf8");
   wx.setStorageSync(LAST_BACKUP_KEY, backup.exportedAt);
   return { backup, filePath, summary: buildSummary(backup) };

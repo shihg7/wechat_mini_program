@@ -55,14 +55,12 @@ assert(referencedIcons.size >= 15, "core pages should use a meaningful semantic 
 referencedIcons.forEach(assertIcon);
 
 const homeScript = fs.readFileSync(path.join(miniprogramRoot, "pages/index/index.js"), "utf8");
-["receipt", "calendar", "clipboard", "wheel", "edit", "code", "book", "database"].forEach((iconName) => {
+["receipt", "calendar", "clipboard", "wheel", "code", "book", "database"].forEach((iconName) => {
   assert(homeScript.includes(`icon: "${iconName}"`), `home should declare the ${iconName} icon`);
   assertIcon(iconName);
 });
 
 const pageExpectations = {
-  "pages/record/index.wxml": ["search", "plus", "hotel", "utensils"],
-  "pages/record/record.wxml": ["hotel", "utensils", "calendar", "check"],
   "pages/trip/index.wxml": ["route", "calendar", "clock"],
   "pages/checklist/index.wxml": ["clipboard", "edit", "more"],
   "pages/ledger/index/index.wxml": ["receipt", "users", "check"],
@@ -81,10 +79,8 @@ Object.entries(pageExpectations).forEach(([relativePath, names]) => {
   });
 });
 
-const recordEditor = fs.readFileSync(path.join(miniprogramRoot, "pages/record/record.wxml"), "utf8");
 const tripEditor = fs.readFileSync(path.join(miniprogramRoot, "pages/trip/edit.wxml"), "utf8");
 const wheelSource = fs.readFileSync(path.join(miniprogramRoot, "packages/tools/wheel/index.wxml"), "utf8");
-assert(recordEditor.includes('class="fixed-save-bar"'), "quick rating save action should stay fixed");
 assert(tripEditor.includes('class="save-bar"'), "trip save action should stay fixed");
 assert(
   fs.readFileSync(path.join(miniprogramRoot, "packages/tools/wheel/index.js"), "utf8").includes("drawFixedPointer(ctx, radius)"),

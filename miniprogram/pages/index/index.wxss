@@ -52,8 +52,7 @@ page {
   letter-spacing: 0;
 }
 
-.top-action::after,
-.tool-card::after {
+.top-action::after {
   border: none;
 }
 
@@ -85,8 +84,15 @@ page {
   text-align: left;
 }
 
-.tool-card:active {
+.tool-card:active,
+.tool-card-hover {
   background: #eef2f5;
+}
+
+.tool-card:last-child:nth-child(odd) {
+  grid-column: 1 / -1;
+  justify-self: stretch;
+  width: auto;
 }
 
 .tool-icon {

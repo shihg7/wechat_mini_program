@@ -22,7 +22,6 @@
   </view>
 
   <view class="summary-grid">
-    <view class="summary-item"><text class="summary-value">{{localSummary.recordCount}}</text><text class="summary-label">快评</text></view>
     <view class="summary-item"><text class="summary-value">{{localSummary.tripCount}}</text><text class="summary-label">行程</text></view>
     <view class="summary-item"><text class="summary-value">{{localSummary.checklistCount}}</text><text class="summary-label">清单</text></view>
     <view class="summary-item"><text class="summary-value">{{localSummary.ledgerCount}}</text><text class="summary-label">账本</text></view>
@@ -35,7 +34,7 @@
       <view class="section-icon icon-blue"><ui-icon name="download" size="{{32}}" tone="blue" /></view>
       <view class="section-copy">
         <view class="section-title">导出完整备份</view>
-        <view class="section-subtitle">生成一个 JSON 文件，包含六个工具的全部本地数据。</view>
+        <view class="section-subtitle">生成一个 JSON 文件，包含五个工具的全部本地数据。</view>
       </view>
     </view>
     <button class="button primary" loading="{{exporting}}" bindtap="exportBackup">
@@ -49,7 +48,7 @@
       <view class="section-icon icon-green"><ui-icon name="upload" size="{{32}}" tone="green" /></view>
       <view class="section-copy">
         <view class="section-title">从备份恢复</view>
-        <view class="section-subtitle">支持当前 v2 备份，也兼容此前生成的 v1 JSON 备份。</view>
+        <view class="section-subtitle">支持当前 v3 备份，也兼容此前生成的 v1、v2 JSON 备份；旧快评数据会忽略。</view>
       </view>
     </view>
     <button class="button secondary" bindtap="chooseBackup">
@@ -64,7 +63,6 @@
       </view>
       <view class="preview-time">导出于 {{preview.exportedAtText}}</view>
       <view class="preview-grid">
-        <view><text class="metric">{{preview.recordCount}}</text><text class="metric-label">快评</text></view>
         <view><text class="metric">{{preview.tripCount}}</text><text class="metric-label">行程</text></view>
         <view><text class="metric">{{preview.checklistCount}}</text><text class="metric-label">清单</text></view>
         <view><text class="metric">{{preview.ledgerCount}}</text><text class="metric-label">账本</text></view>
@@ -83,7 +81,7 @@
       <view class="section-icon icon-danger"><ui-icon name="trash" size="{{32}}" tone="accent" /></view>
       <view class="section-copy">
         <view class="section-title">清空本地数据</view>
-        <view class="section-subtitle">一次删除六个工具的全部内容，不影响已发送到外部的备份文件。</view>
+        <view class="section-subtitle">一次删除五个工具的全部内容，不影响已发送到外部的备份文件。</view>
       </view>
     </view>
     <button class="button danger" loading="{{clearing}}" bindtap="confirmClear">

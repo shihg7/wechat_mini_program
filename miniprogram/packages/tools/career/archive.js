@@ -82,10 +82,21 @@ function achievementView(progress) {
   };
 }
 
+function discoveryView(progress) {
+  const total = Math.max(1, Number(progress && progress.total || 120));
+  const unlocked = Math.min(total, Math.max(0, Number(progress && progress.unlocked || 0)));
+  return {
+    total,
+    unlocked,
+    percent: Math.round(unlocked / total * 100)
+  };
+}
+
 Page({
   data: {
     progress: progressView(null),
     achievements: achievementView(null),
+    discoveries: discoveryView(null),
     runs: [],
     expandedIds: {},
     loading: true,
@@ -101,10 +112,12 @@ Page({
       const archive = careerGameStore.getCareerArchive();
       const progress = careerGameStore.getEndingProgress();
       const achievements = careerGameStore.getAchievementProgress();
+      const discoveries = careerGameStore.getEventDiscoveryProgress();
       const expandedIds = this.data.expandedIds;
       this.setData({
         progress: progressView(progress),
         achievements: achievementView(achievements),
+        discoveries: discoveryView(discoveries),
         runs: (Array.isArray(archive) ? archive : [])
           .slice()
           .sort((left, right) => Number(new Date(right.completedAt || right.updatedAt || 0)) - Number(new Date(left.completedAt || left.updatedAt || 0)))

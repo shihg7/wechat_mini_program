@@ -317,6 +317,28 @@ function getAchievementProgress() {
   return careerMeta.getAchievementProgress(getRuns());
 }
 
+function getEventDiscoveryProgress() {
+  const discoveredIds = new Set();
+  getRuns().forEach((run) => {
+    (Array.isArray(run.history) ? run.history : []).forEach((entry) => {
+      if (content.getEventById(entry.eventId)) discoveredIds.add(entry.eventId);
+    });
+  });
+  return {
+    total: content.EVENTS.length,
+    unlocked: discoveredIds.size,
+    percent: Math.round(discoveredIds.size / Math.max(1, content.EVENTS.length) * 100)
+  };
+}
+
+function getContentStats() {
+  return {
+    eventCount: content.EVENTS.length,
+    choicesPerRun: engine.TOTAL_EVENTS,
+    endingCount: content.ENDINGS.length
+  };
+}
+
 function getCollectionProgress() {
   const endings = getEndingProgress();
   const achievements = getAchievementProgress();
@@ -351,9 +373,11 @@ module.exports = {
   getAchievementProgress,
   getCareerArchive,
   getCollectionProgress,
+  getContentStats,
   getCurrentView,
   getDailyChallenge: careerMeta.getDailyChallenge,
   getEndingProgress,
+  getEventDiscoveryProgress,
   getRunById,
   getRuns,
   normalizeRun,

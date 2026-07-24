@@ -33,6 +33,18 @@
         <view class="progress-percent">{{progress.percent}}%</view>
       </view>
 
+      <view class="discovery-band">
+        <view class="discovery-icon"><ui-icon name="route" size="{{29}}" tone="amber" /></view>
+        <view class="discovery-main">
+          <view class="discovery-title">事件图鉴</view>
+          <view class="discovery-copy">已遇见 {{discoveries.unlocked}} / {{discoveries.total}} 种职业情景</view>
+          <view class="discovery-track" aria-label="事件发现进度 {{discoveries.percent}}%">
+            <view class="discovery-fill" style="width: {{discoveries.percent}}%;"></view>
+          </view>
+        </view>
+        <view class="discovery-percent">{{discoveries.percent}}%</view>
+      </view>
+
       <view class="ending-section">
         <view class="section-heading">
           <view>

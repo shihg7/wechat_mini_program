@@ -46,6 +46,7 @@ const FLAG_KEYS = Object.freeze([
 ]);
 
 const CONDITION_OPERATORS = Object.freeze(["gte", "lte", "eq", "truthy"]);
+const EXPANDED_POOL_EVENTS = require("./careerGameExpansion");
 const EXPECTED_ENDING_TITLES = Object.freeze([
   "首席架构师",
   "技术负责人",
@@ -927,6 +928,17 @@ const STAGE_CONTENT = [
   }
 ];
 
+const STAGE_CONTENT_BY_ID = STAGE_CONTENT.reduce((result, stage) => {
+  result[stage.id] = stage;
+  return result;
+}, {});
+
+EXPANDED_POOL_EVENTS.forEach((item) => {
+  const stage = STAGE_CONTENT_BY_ID[item.stageId];
+  if (!stage) throw new Error(`Expanded career event ${item.id} references unknown stage ${item.stageId}`);
+  stage.pool.push(item);
+});
+
 const EVENT_RULES = {
   s2_p1_docs: {
     priority: 20,
@@ -1254,7 +1266,7 @@ function validateContent(overrides = {}) {
   if (Object.keys(statMeta).some((key) => !statKeys.has(key))) fail("STAT_META contains an unknown stat");
 
   if (!Array.isArray(stages) || stages.length !== 6) fail("exactly 6 stages are required");
-  if (!Array.isArray(events) || events.length !== 60) fail("exactly 60 events are required");
+  if (!Array.isArray(events) || events.length !== 120) fail("exactly 120 events are required");
   if (!Array.isArray(endings) || endings.length !== 12) fail("exactly 12 endings are required");
 
   const stageIds = new Set();
@@ -1271,8 +1283,8 @@ function validateContent(overrides = {}) {
     if (!Array.isArray(stage.coreEventIds) || stage.coreEventIds.length !== 4) {
       fail(`stage ${stage.id} must have 4 core events`);
     }
-    if (!Array.isArray(stage.poolEventIds) || stage.poolEventIds.length !== 6) {
-      fail(`stage ${stage.id} must have 6 pool events`);
+    if (!Array.isArray(stage.poolEventIds) || stage.poolEventIds.length !== 16) {
+      fail(`stage ${stage.id} must have 16 pool events`);
     }
     stage.coreEventIds.concat(stage.poolEventIds).forEach((eventId) => {
       if (referencedEventIds.has(eventId)) fail(`event reference ${eventId} is duplicated`);
@@ -1292,6 +1304,9 @@ function validateContent(overrides = {}) {
     eventIds.add(item.id);
     if (!stageIds.has(item.stageId)) fail(`event ${item.id} references unknown stage ${item.stageId}`);
     if (item.kind !== "core" && item.kind !== "pool") fail(`event ${item.id} has invalid kind`);
+    if (item.category !== undefined && (typeof item.category !== "string" || !item.category.trim())) {
+      fail(`event ${item.id} has invalid category`);
+    }
     if (item.priority !== undefined && !Number.isFinite(item.priority)) fail(`event ${item.id} has invalid priority`);
     if (item.requirements !== undefined) {
       validateRequirements(item.requirements, statKeys, flagKeys, `event ${item.id}.requirements`);

@@ -79,10 +79,10 @@ STAT_KEYS.forEach((key) => {
 
 const summary = validateContent();
 assert.strictEqual(summary.stageCount, 6);
-assert.strictEqual(summary.eventCount, 60);
+assert.strictEqual(summary.eventCount, 120);
 assert.strictEqual(summary.endingCount, 12);
-assert(summary.choiceCount >= 120);
-assert(summary.pendingEffectCount > 0);
+assert(summary.choiceCount >= 330);
+assert(summary.pendingEffectCount >= 25);
 
 assert.strictEqual(STAGES.length, 6);
 const stageIds = new Set();
@@ -103,15 +103,15 @@ STAGES.forEach((stage, index) => {
   stageIds.add(stage.id);
   assert(stage.title && stage.rank && stage.subtitle && stage.illustration);
   assert.strictEqual(stage.coreEventIds.length, 4);
-  assert.strictEqual(stage.poolEventIds.length, 6);
+  assert.strictEqual(stage.poolEventIds.length, 16);
   stage.coreEventIds.concat(stage.poolEventIds).forEach((eventId) => {
     assert(!referencedEventIds.has(eventId), `duplicate event reference ${eventId}`);
     referencedEventIds.add(eventId);
   });
 });
 
-assert.strictEqual(EVENTS.length, 60);
-assert.strictEqual(referencedEventIds.size, 60);
+assert.strictEqual(EVENTS.length, 120);
+assert.strictEqual(referencedEventIds.size, 120);
 const eventIds = new Set();
 const choiceIds = new Set();
 const pendingIds = new Set();
@@ -163,6 +163,21 @@ EVENTS.forEach((event) => {
 assert.deepStrictEqual(eventIds, referencedEventIds);
 assert.strictEqual(choiceIds.size, summary.choiceCount);
 assert.strictEqual(pendingIds.size, summary.pendingEffectCount);
+
+const expandedEvents = EVENTS.filter((event) => /_x\d+_/.test(event.id));
+assert.strictEqual(expandedEvents.length, 60);
+const expandedByStage = new Map();
+expandedEvents.forEach((event) => {
+  expandedByStage.set(event.stageId, (expandedByStage.get(event.stageId) || 0) + 1);
+  assert(event.category && event.category.trim(), `${event.id} must expose a theme label`);
+});
+STAGES.forEach((stage) => assert.strictEqual(expandedByStage.get(stage.id), 10));
+assert(new Set(expandedEvents.map((event) => event.category)).size >= 12);
+const expandedText = expandedEvents.map((event) => `${event.title}${event.body}`).join("\n");
+["AI", "无障碍", "供应链", "隐私", "开源", "远程", "裁员", "照护", "数据泄露"].forEach((keyword) => {
+  assert(expandedText.includes(keyword), `expanded event library should cover ${keyword}`);
+});
+assert(expandedEvents.filter((event) => event.requirements && event.priority >= 30).length >= 18);
 assert.strictEqual(getEventById("missing"), null);
 
 assert.strictEqual(ENDINGS.length, 12);

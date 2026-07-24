@@ -47,6 +47,31 @@ assert.strictEqual(runA.stageEventIds.length, engine.EVENTS_PER_STAGE);
 assert.strictEqual(runA.schemaVersion, 2);
 assert.strictEqual(runA.mode, "free");
 assert.deepStrictEqual(runA.stageStartStats, engine.INITIAL_STATS);
+assert.deepStrictEqual(
+  engine.ensureStageSequence({ ...runA, stageEventIds: runA.stageEventIds }).stageEventIds,
+  runA.stageEventIds,
+  "expanded pools must not rewrite an active v2 stage sequence"
+);
+content.STAGES.forEach((stage, stageIndex) => {
+  const baselineState = {
+    stats: engine.INITIAL_STATS,
+    flags: {},
+    history: []
+  };
+  const baselineEligible = stage.poolEventIds.filter((eventId) => (
+    engine.matchesRequirements(content.getEventById(eventId).requirements, baselineState)
+  ));
+  const seen = new Set();
+  for (let seedIndex = 0; seedIndex < 400; seedIndex += 1) {
+    engine.buildStageEventIds(stageIndex, {
+      ...baselineState,
+      seed: `coverage-${stageIndex}-${seedIndex}`
+    }).slice(4).forEach((eventId) => seen.add(eventId));
+  }
+  baselineEligible.forEach((eventId) => {
+    assert(seen.has(eventId), `${eventId} should be reachable through seeded pool selection`);
+  });
+});
 
 const dailyRunA = engine.createInitialRun({
   id: "daily_a",
@@ -80,6 +105,27 @@ const stageTwoWithDocs = engine.buildStageEventIds(1, {
 });
 assert(!stageTwoWithoutDocs.includes("s2_p1_docs"));
 assert(stageTwoWithDocs.includes("s2_p1_docs"), "an earlier documentation choice should unlock its future event");
+const stageTwoWithAiHistory = engine.buildStageEventIds(1, {
+  ...runA,
+  stageIndex: 1,
+  flags: {},
+  history: [{ eventId: "s1_x1_ai_pair", choiceId: "s1_x1_ai_pair_a" }]
+});
+assert(stageTwoWithAiHistory.includes("s2_x1_ai_bug"), "verified AI use should unlock its later incident");
+const stageTwoWithoutAiHistory = engine.buildStageEventIds(1, {
+  ...runA,
+  stageIndex: 1,
+  flags: {},
+  history: []
+});
+assert(!stageTwoWithoutAiHistory.includes("s2_x1_ai_bug"), "AI echo must stay hidden without its earlier choice");
+const themedRun = {
+  ...runA,
+  stageEventIds: content.STAGES[0].coreEventIds.concat(["s1_x1_ai_pair", "s1_x3_accessibility"]),
+  eventCursor: 4,
+  currentSceneId: "s1_x1_ai_pair"
+};
+assert.strictEqual(engine.buildView(themedRun).scene.kindLabel, "AI 时代");
 const lowEnergyStage = engine.buildStageEventIds(4, {
   ...runA,
   stageIndex: 4,
@@ -133,11 +179,15 @@ assert.strictEqual(store.getActiveRun().id, started.id);
 let view = store.getCurrentView();
 assert.strictEqual(view.phase, "scene");
 assert.strictEqual(view.scene.choices.length >= 2, true);
+assert.strictEqual(store.getContentStats().eventCount, 120);
+assert.strictEqual(store.getContentStats().choicesPerRun, 36);
+assert.strictEqual(store.getEventDiscoveryProgress().total, 120);
 assert.strictEqual(view.persona.id, "uncompiled");
 assert.strictEqual(view.achievements.total, 12);
 
 const firstChoice = view.scene.choices[0];
 store.applyChoice(view.runId, view.scene.id, firstChoice.id);
+assert.strictEqual(store.getEventDiscoveryProgress().unlocked, 1);
 view = store.getCurrentView();
 assert.strictEqual(view.phase, "outcome");
 assert.throws(
@@ -181,6 +231,7 @@ assert(chapterReportSeen, "a full run should expose chapter reports");
 const completed = store.getRuns().find((run) => run.status === "completed");
 assert(completed && completed.endingId);
 assert.strictEqual(completed.history.length, engine.TOTAL_EVENTS);
+assert(store.getEventDiscoveryProgress().unlocked >= engine.TOTAL_EVENTS);
 assert.strictEqual(store.getEndingProgress().unlocked, 1);
 assert(store.getAchievementProgress().unlocked >= 3);
 const careerSummary = store.buildCareerSummary(completed.id);

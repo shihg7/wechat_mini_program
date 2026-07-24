@@ -92,6 +92,7 @@ function modeOptionsView(dailyChallenge) {
 }
 
 const initialDailyChallenge = careerGameStore.getDailyChallenge();
+const contentStats = careerGameStore.getContentStats();
 
 Page({
   data: {
@@ -104,6 +105,7 @@ Page({
     collectionPercent: 0,
     startMode: "free",
     dailyChallenge: initialDailyChallenge,
+    contentStats,
     modeOptions: modeOptionsView(initialDailyChallenge),
     loading: true,
     loadFailed: false,

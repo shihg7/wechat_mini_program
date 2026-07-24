@@ -27,6 +27,21 @@
     </view>
 
     <block wx:else>
+      <view class="content-stats" aria-label="生涯模拟内容规模">
+        <view class="content-stat">
+          <text class="content-stat-value">{{contentStats.eventCount}}</text>
+          <text class="content-stat-label">职业事件</text>
+        </view>
+        <view class="content-stat">
+          <text class="content-stat-value">{{contentStats.choicesPerRun}}</text>
+          <text class="content-stat-label">每局抉择</text>
+        </view>
+        <view class="content-stat">
+          <text class="content-stat-value">{{contentStats.endingCount}}</text>
+          <text class="content-stat-label">职业答案</text>
+        </view>
+      </view>
+
       <view class="active-card" wx:if="{{activeRun}}">
         <view class="card-topline">
           <view class="status-label icon-label">

@@ -426,7 +426,7 @@ function buildView(sourceRun) {
     scene: event ? {
       id: event.id,
       kind: event.kind,
-      kindLabel: event.kind === "pool" ? "命运支线" : "职业主线",
+      kindLabel: event.category || (event.kind === "pool" ? "命运支线" : "职业主线"),
       title: event.title,
       body: event.body,
       choices: getAvailableChoices(event, run).map((choice) => ({

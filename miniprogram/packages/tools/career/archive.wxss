@@ -140,6 +140,68 @@ page {
   text-align: right;
 }
 
+.discovery-band {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  min-height: 112rpx;
+  padding: 18rpx 30rpx;
+  box-sizing: border-box;
+  border-bottom: 1rpx solid #dce2e5;
+  background: #fff8e9;
+}
+
+.discovery-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 52rpx;
+  height: 52rpx;
+  flex-shrink: 0;
+  border-radius: 8rpx;
+  background: #f8e3ae;
+}
+
+.discovery-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.discovery-title {
+  color: #172033;
+  font-size: 23rpx;
+  font-weight: 900;
+  line-height: 31rpx;
+}
+
+.discovery-copy {
+  color: #7a5917;
+  font-size: 18rpx;
+  line-height: 26rpx;
+}
+
+.discovery-track {
+  height: 8rpx;
+  margin-top: 8rpx;
+  overflow: hidden;
+  border-radius: 4rpx;
+  background: #ead9b3;
+}
+
+.discovery-fill {
+  height: 100%;
+  background: #d69518;
+}
+
+.discovery-percent {
+  width: 70rpx;
+  flex-shrink: 0;
+  color: #9a6514;
+  font-size: 21rpx;
+  font-weight: 900;
+  text-align: right;
+}
+
 .ending-section,
 .achievement-section,
 .runs-section {

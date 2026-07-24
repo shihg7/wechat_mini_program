@@ -117,6 +117,42 @@ page {
   font-weight: 800;
 }
 
+.content-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-bottom: 1rpx solid #dce2e5;
+  background: #f8fafb;
+}
+
+.content-stat {
+  min-width: 0;
+  padding: 18rpx 10rpx 17rpx;
+  border-right: 1rpx solid #dce2e5;
+  text-align: center;
+}
+
+.content-stat:last-child {
+  border-right: 0;
+}
+
+.content-stat-value,
+.content-stat-label {
+  display: block;
+}
+
+.content-stat-value {
+  color: #172033;
+  font-size: 30rpx;
+  font-weight: 900;
+  line-height: 38rpx;
+}
+
+.content-stat-label {
+  color: #667085;
+  font-size: 18rpx;
+  line-height: 26rpx;
+}
+
 .active-card {
   margin: 24rpx 30rpx 0;
   padding: 25rpx 26rpx 24rpx;

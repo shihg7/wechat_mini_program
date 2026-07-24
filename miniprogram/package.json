@@ -1,6 +1,6 @@
 {
   "name": "offline-toolbox-miniprogram-client",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "Offline daily toolbox Mini Program client",
   "main": "app.js",
   "scripts": {

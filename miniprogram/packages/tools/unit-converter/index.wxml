@@ -4,21 +4,19 @@
     <view class="page-title">单位换算</view>
   </view>
 
-  <scroll-view class="category-scroll" scroll-x enhanced show-scrollbar="{{false}}">
-    <view class="category-row">
-      <view
-        class="category-chip {{categoryId === item.id ? 'category-chip-active' : ''}}"
-        wx:for="{{categories}}"
-        wx:key="id"
-        data-category="{{item.id}}"
-        bindtap="selectCategory"
-      >{{item.name}}</view>
-    </view>
-  </scroll-view>
+  <view class="category-grid">
+    <view
+      class="category-chip {{categoryId === item.id ? 'category-chip-active' : ''}}"
+      wx:for="{{categories}}"
+      wx:key="id"
+      data-category="{{item.id}}"
+      bindtap="selectCategory"
+    >{{item.name}}</view>
+  </view>
 
   <view class="result-panel">
     <view class="result-label">换算结果</view>
-    <view class="result-value {{result.length > 16 ? 'result-value-small' : ''}}">{{result || '—'}}</view>
+    <view class="result-value {{result.length > 20 ? 'result-value-compact' : result.length > 12 ? 'result-value-small' : ''}}">{{result || '—'}}</view>
     <view class="result-unit">{{category.units[toIndex].name || ''}}</view>
     <view class="result-error" wx:if="{{error}}">{{error}}</view>
   </view>
@@ -34,28 +32,29 @@
       placeholder="请输入数值"
     />
 
-    <view class="unit-row">
-      <view class="unit-field">
-        <view class="field-label">从</view>
-        <picker range="{{category.units}}" range-key="name" value="{{fromIndex}}" bindchange="onFromUnitChange">
-          <view class="picker-field">
-            <text>{{category.units[fromIndex].name}}</text>
-            <ui-icon name="arrow-down" size="{{22}}" tone="muted" />
-          </view>
-        </picker>
-      </view>
-      <button class="swap-button" bindtap="swapUnits" aria-label="交换换算单位">
-        <ui-icon name="refresh" size="{{28}}" tone="blue" />
-      </button>
-      <view class="unit-field">
-        <view class="field-label">到</view>
-        <picker range="{{category.units}}" range-key="name" value="{{toIndex}}" bindchange="onToUnitChange">
-          <view class="picker-field">
-            <text>{{category.units[toIndex].name}}</text>
-            <ui-icon name="arrow-down" size="{{22}}" tone="muted" />
-          </view>
-        </picker>
-      </view>
+    <view class="unit-field">
+      <view class="field-label">来源单位</view>
+      <picker range="{{category.units}}" range-key="name" value="{{fromIndex}}" bindchange="onFromUnitChange">
+        <view class="picker-field">
+          <text>{{category.units[fromIndex].name}}</text>
+          <ui-icon name="arrow-down" size="{{22}}" tone="muted" />
+        </view>
+      </picker>
+    </view>
+
+    <button class="swap-button" bindtap="swapUnits" aria-label="交换换算单位">
+      <ui-icon name="refresh" size="{{25}}" tone="blue" />
+      <text>交换单位</text>
+    </button>
+
+    <view class="unit-field">
+      <view class="field-label">目标单位</view>
+      <picker range="{{category.units}}" range-key="name" value="{{toIndex}}" bindchange="onToUnitChange">
+        <view class="picker-field">
+          <text>{{category.units[toIndex].name}}</text>
+          <ui-icon name="arrow-down" size="{{22}}" tone="muted" />
+        </view>
+      </picker>
     </view>
 
     <view class="category-note" wx:if="{{category.note}}">

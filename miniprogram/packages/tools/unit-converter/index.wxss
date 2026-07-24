@@ -23,30 +23,30 @@ page {
   line-height: 56rpx;
 }
 
-.category-scroll {
-  width: calc(100% + 48rpx);
-  margin: 22rpx -24rpx 0;
-  white-space: nowrap;
-}
-
-.category-row {
-  display: inline-flex;
+.category-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 10rpx;
-  padding: 0 24rpx 4rpx;
+  margin-top: 22rpx;
 }
 
 .category-chip {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   justify-content: center;
-  height: 58rpx;
-  padding: 0 20rpx;
+  min-width: 0;
+  height: 60rpx;
+  padding: 0 6rpx;
+  box-sizing: border-box;
   border: 1rpx solid #d9e0e8;
   border-radius: 8rpx;
   background: #ffffff;
   color: #5a6676;
-  font-size: 21rpx;
+  font-size: 20rpx;
   font-weight: 800;
+  line-height: 27rpx;
+  text-align: center;
+  overflow-wrap: anywhere;
 }
 
 .category-chip-active {
@@ -85,11 +85,18 @@ page {
   line-height: 60rpx;
 }
 
+.result-value-compact {
+  font-size: 36rpx;
+  line-height: 50rpx;
+}
+
 .result-unit {
   margin-top: 8rpx;
   color: #d3dae4;
   font-size: 24rpx;
   font-weight: 700;
+  line-height: 34rpx;
+  overflow-wrap: anywhere;
 }
 
 .result-error {
@@ -129,7 +136,6 @@ page {
   width: 100%;
 }
 
-.unit-row,
 .picker-field,
 .category-note,
 .primary-button,
@@ -138,39 +144,41 @@ page {
   align-items: center;
 }
 
-.unit-row {
-  gap: 12rpx;
+.unit-field {
   margin-top: 20rpx;
 }
 
-.unit-field {
-  flex: 1;
-  min-width: 0;
-}
-
 .picker-field {
+  min-height: 80rpx;
+  height: auto;
   justify-content: space-between;
   gap: 10rpx;
+  padding-top: 16rpx;
+  padding-bottom: 16rpx;
 }
 
 .picker-field text {
+  flex: 1;
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font-size: 25rpx;
+  line-height: 35rpx;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .swap-button {
-  flex: none;
-  align-self: flex-end;
   justify-content: center;
-  width: 72rpx;
-  height: 80rpx;
-  margin: 0;
-  padding: 0;
+  gap: 8rpx;
+  width: 190rpx;
+  height: 58rpx;
+  margin: 14rpx auto -6rpx;
+  padding: 0 14rpx;
   border-radius: 8rpx;
   background: #edf4ff;
-  line-height: 80rpx;
+  color: #3568ad;
+  font-size: 20rpx;
+  font-weight: 800;
+  line-height: 58rpx;
 }
 
 .swap-button::after,

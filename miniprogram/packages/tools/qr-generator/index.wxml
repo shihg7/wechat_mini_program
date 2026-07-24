@@ -44,23 +44,19 @@
   <view class="form-panel" wx:else>
     <view class="field-label">Wi-Fi 名称</view>
     <input class="text-input" value="{{ssid}}" bindinput="onSsidInput" placeholder="SSID" />
-    <view class="wifi-grid">
+    <view class="field-label">安全类型</view>
+    <picker range="{{securityOptions}}" range-key="name" value="{{securityIndex}}" bindchange="onSecurityChange">
+      <view class="picker-field">
+        <text>{{securityOptions[securityIndex].name}}</text>
+        <ui-icon name="arrow-down" size="{{22}}" tone="muted" />
+      </view>
+    </picker>
+    <view class="hidden-setting">
       <view>
-        <view class="field-label">安全类型</view>
-        <picker range="{{securityOptions}}" range-key="name" value="{{securityIndex}}" bindchange="onSecurityChange">
-          <view class="picker-field">
-            <text>{{securityOptions[securityIndex].name}}</text>
-            <ui-icon name="arrow-down" size="{{22}}" tone="muted" />
-          </view>
-        </picker>
+        <view class="hidden-title">隐藏网络</view>
+        <view class="field-help">Wi-Fi 不广播名称时开启</view>
       </view>
-      <view class="hidden-setting">
-        <view>
-          <view class="field-label">隐藏网络</view>
-          <view class="field-help">不广播名称</view>
-        </view>
-        <switch checked="{{hidden}}" bindchange="onHiddenChange" color="#176b68" />
-      </view>
+      <switch checked="{{hidden}}" bindchange="onHiddenChange" color="#176b68" />
     </view>
     <block wx:if="{{securityOptions[securityIndex].id !== 'nopass'}}">
       <view class="field-label">Wi-Fi 密码</view>

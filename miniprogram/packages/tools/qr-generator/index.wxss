@@ -13,7 +13,6 @@ page {
 .offline-badge,
 .segmented,
 .field-heading,
-.wifi-grid,
 .picker-field,
 .hidden-setting,
 .generate-button,
@@ -198,16 +197,6 @@ page {
   width: 100%;
 }
 
-.wifi-grid {
-  align-items: flex-end;
-  gap: 12rpx;
-}
-
-.wifi-grid > view {
-  flex: 1;
-  min-width: 0;
-}
-
 .picker-field,
 .hidden-setting {
   justify-content: space-between;
@@ -215,22 +204,27 @@ page {
 }
 
 .hidden-setting {
-  height: 72rpx;
-  padding: 0 12rpx 0 16rpx;
+  min-height: 82rpx;
+  margin-top: 14rpx;
+  padding: 12rpx 14rpx 12rpx 18rpx;
   box-sizing: border-box;
   border: 1rpx solid #d9e0e8;
   border-radius: 8rpx;
   background: #f8fafb;
 }
 
-.hidden-setting .field-label {
-  margin: 0;
+.hidden-title {
+  color: #526071;
+  font-size: 22rpx;
+  font-weight: 800;
+  line-height: 30rpx;
 }
 
 .field-help {
-  margin-top: 2rpx;
+  margin-top: 3rpx;
   color: #8490a0;
-  font-size: 17rpx;
+  font-size: 19rpx;
+  line-height: 27rpx;
 }
 
 .generate-button {

@@ -1,4 +1,5 @@
 const assert = require("assert");
+const fs = require("fs");
 const path = require("path");
 
 function loadPage(relativePath, wxMock) {
@@ -82,6 +83,21 @@ assert(clipboard.pop().includes("GiB"));
 unitPage.selectCategory(event(undefined, { category: "length" }));
 unitPage.onInput(event("-1"));
 assert(unitPage.data.error.includes("不能为负数"));
+
+const toolsRoot = path.join(__dirname, "..", "miniprogram", "packages", "tools");
+const unitWxml = fs.readFileSync(path.join(toolsRoot, "unit-converter", "index.wxml"), "utf8");
+const unitWxss = fs.readFileSync(path.join(toolsRoot, "unit-converter", "index.wxss"), "utf8");
+assert(unitWxml.includes('class="category-grid"'), "unit categories should all be visible in a grid");
+assert(!unitWxml.includes("category-scroll"), "unit categories should not hide behind horizontal scrolling");
+assert(unitWxml.includes("来源单位") && unitWxml.includes("目标单位"), "unit pickers should use full-width rows");
+assert(!unitWxss.includes("text-overflow: ellipsis"), "unit names must not be truncated with ellipsis");
+assert(unitWxss.includes("white-space: normal"), "long unit names should wrap");
+
+const qrWxml = fs.readFileSync(path.join(toolsRoot, "qr-generator", "index.wxml"), "utf8");
+const qrWxss = fs.readFileSync(path.join(toolsRoot, "qr-generator", "index.wxss"), "utf8");
+assert(!qrWxml.includes("wifi-grid"), "Wi-Fi settings should not be squeezed into two columns");
+assert(qrWxml.includes("Wi-Fi 不广播名称时开启"), "hidden network explanation should remain complete");
+assert(qrWxss.includes(".hidden-title"), "hidden network title should have a stable full-width layout");
 
 function makeCanvas() {
   const operations = [];

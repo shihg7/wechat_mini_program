@@ -109,7 +109,7 @@ function normalizeRun(input = {}) {
   if (run.status === "completed") {
     run.phase = "ending";
     run.currentSceneId = "";
-    if (!content.getEndingById(run.endingId)) throw new Error("生涯记录结局无效");
+    if (!content.getEndingById(run.endingId)) throw new Error("生涯记录职业答案无效");
   }
   return engine.ensureStageSequence(run);
 }

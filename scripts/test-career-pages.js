@@ -111,7 +111,7 @@ assert.strictEqual(
 
 indexPage.onShow();
 assert.strictEqual(indexPage.data.activeRun.runId, firstRunId);
-assert(indexPage.data.activeRun.modeLabel.includes("挑战"));
+assert(indexPage.data.activeRun.modeLabel.includes("今日"));
 indexPage.continueActive();
 assert.strictEqual(ui.navigations.pop(), `/packages/tools/career/play?id=${firstRunId}`);
 indexPage.openArchive();
@@ -177,7 +177,7 @@ playPage.openArchive();
 assert.strictEqual(ui.navigations.pop(), "/packages/tools/career/archive");
 playPage.restartCareer();
 const replayPrompt = ui.modals.pop();
-assert(replayPrompt.content.includes("本次结局会保留"));
+assert(replayPrompt.content.includes("本次结果会保留"));
 replayPrompt.success({ confirm: true });
 assert.strictEqual(playPage.data.view.phase, "scene");
 assert.notStrictEqual(playPage.data.runId, activeRun.id);
@@ -216,6 +216,7 @@ for (let index = 1; index <= 6; index += 1) {
 }
 
 const indexWxml = fs.readFileSync(path.join(careerDir, "index.wxml"), "utf8");
+const indexJson = JSON.parse(fs.readFileSync(path.join(careerDir, "index.json"), "utf8"));
 const playWxml = fs.readFileSync(path.join(careerDir, "play.wxml"), "utf8");
 const archiveWxml = fs.readFileSync(path.join(careerDir, "archive.wxml"), "utf8");
 const playWxss = fs.readFileSync(path.join(careerDir, "play.wxss"), "utf8");
@@ -224,6 +225,12 @@ assert(indexWxml.includes("start-button"));
 assert(indexWxml.includes("continue-button"));
 assert(indexWxml.includes("archive-button"));
 assert(indexWxml.includes("mode-option"));
+assert(indexWxml.includes("程序员生涯模拟"));
+assert(indexWxml.includes("CAREER SIMULATOR"));
+assert(indexWxml.includes("不构成职业建议"));
+assert(!indexWxml.includes("程序员升级之路"));
+assert(!indexWxml.includes("游戏模式"));
+assert.strictEqual(indexJson.navigationBarTitleText, "程序员生涯模拟");
 assert(playWxml.includes("fixed-status"));
 assert(playWxml.includes("story-scroll"));
 assert(playWxml.includes("fixed-actions"));

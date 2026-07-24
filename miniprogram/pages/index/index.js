@@ -36,7 +36,7 @@ const TOOLS = [
   },
   {
     id: "career",
-    label: "程序员升级之路",
+    label: "程序员生涯模拟",
     icon: "code",
     tone: "blue",
     url: "/packages/tools/career/index"

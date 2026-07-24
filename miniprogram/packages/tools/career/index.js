@@ -19,7 +19,7 @@ function phaseLabel(phase) {
     scene: "等待选择",
     outcome: "查看后果",
     chapter: "阶段小结",
-    ending: "生涯结局"
+    ending: "模拟结果"
   }[phase] || "进行中";
 }
 
@@ -34,7 +34,7 @@ function activeRunView(view) {
     phaseLabel: phaseLabel(view.phase),
     stageTitle: stage.title || "职业起点",
     stageRank: stage.rank || "",
-    modeLabel: view.mode && view.mode.shortLabel || "自由生涯",
+    modeLabel: view.mode && view.mode.shortLabel || "自由模拟",
     personaTitle: view.persona && view.persona.title || "待编译新人",
     personaTone: view.persona && view.persona.tone || "muted",
     progressText: `${Number(progress.current || 0)} / ${Number(progress.total || 0)}`,
@@ -46,9 +46,9 @@ function archiveRunView(run) {
   return {
     ...run,
     displayDate: formatDate(run.completedAt || run.updatedAt || run.startedAt),
-    endingTitle: run.endingTitle || "未抵达结局",
+    endingTitle: run.endingTitle || "尚未形成答案",
     stageTitle: run.stageTitle || "职业起点",
-    modeLabel: run.mode && run.mode.shortLabel || "自由生涯",
+    modeLabel: run.mode && run.mode.shortLabel || "自由模拟",
     personaTitle: run.persona && run.persona.title || "待编译新人",
     choiceCount: Number(run.choiceCount || 0)
   };
@@ -78,14 +78,14 @@ function modeOptionsView(dailyChallenge) {
   return [
     {
       id: "free",
-      title: "自由生涯",
+      title: "自由模拟",
       subtitle: "每次随机事件",
       icon: "route"
     },
     {
       id: "daily",
-      title: "今日挑战",
-      subtitle: `${dailyChallenge.shortLabel} 固定命运`,
+      title: "今日情景",
+      subtitle: `${dailyChallenge.shortLabel} 固定事件`,
       icon: "calendar"
     }
   ];

@@ -280,7 +280,7 @@ function applyDuePendingEffects(run) {
 
 function completeWithEnding(run, endingId, timestamp) {
   const ending = getEndingById(endingId);
-  if (!ending) throw new Error(`未知结局：${endingId}`);
+  if (!ending) throw new Error(`未知职业答案：${endingId}`);
   run.status = "completed";
   run.phase = "ending";
   run.endingId = ending.id;

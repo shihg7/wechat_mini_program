@@ -24,9 +24,9 @@
       <view class="progress-band">
         <view class="progress-number">{{progress.unlocked}}<text>/{{progress.total}}</text></view>
         <view class="progress-main">
-          <view class="progress-title">结局图鉴</view>
-          <view class="progress-copy">重复游玩，寻找不同的职业答案</view>
-          <view class="progress-track" aria-label="结局图鉴完成度 {{progress.percent}}%">
+          <view class="progress-title">职业答案集</view>
+          <view class="progress-copy">继续模拟，观察不同选择形成的职业答案</view>
+          <view class="progress-track" aria-label="职业答案发现进度 {{progress.percent}}%">
             <view class="progress-fill" style="width: {{progress.percent}}%;"></view>
           </view>
         </view>
@@ -36,10 +36,10 @@
       <view class="ending-section">
         <view class="section-heading">
           <view>
-            <view class="section-kicker">12 ENDINGS</view>
+            <view class="section-kicker">12 OUTCOMES</view>
             <view class="section-title">职业答案</view>
           </view>
-          <view class="section-meta">解锁后显示完整名称</view>
+          <view class="section-meta">发现后显示完整名称</view>
         </view>
         <view class="ending-grid">
           <view class="ending-card ending-item {{item.unlocked ? 'unlocked' : 'locked'}}" wx:for="{{progress.items}}" wx:key="id">
@@ -58,8 +58,8 @@
       <view class="achievement-section">
         <view class="section-heading">
           <view>
-            <view class="section-kicker">12 ACHIEVEMENTS</view>
-            <view class="section-title">职业成就</view>
+            <view class="section-kicker">12 MILESTONES</view>
+            <view class="section-title">职业里程碑</view>
           </view>
           <view class="achievement-count">{{achievements.unlocked}} / {{achievements.total}}</view>
         </view>
@@ -84,7 +84,7 @@
       <view class="runs-section">
         <view class="section-heading">
           <view>
-            <view class="section-kicker">RUN HISTORY</view>
+            <view class="section-kicker">SIMULATION HISTORY</view>
             <view class="section-title">生涯记录</view>
           </view>
           <view class="run-count">{{runs.length}} 段生涯</view>
@@ -93,7 +93,7 @@
         <view class="runs-empty" wx:if="{{!runs.length}}">
           <ui-icon name="book" size="{{42}}" tone="muted" />
           <view class="empty-title">档案还是空白</view>
-          <view class="empty-copy">完成或重新开始一局后，经历与关键选择会保存在这里。</view>
+          <view class="empty-copy">完成或重新开始一次模拟后，经历与关键选择会保存在这里。</view>
         </view>
 
         <view

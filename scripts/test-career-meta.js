@@ -10,7 +10,7 @@ assert.strictEqual(dailyA.date, "2026-07-24");
 assert.strictEqual(dailyA.seed, dailyB.seed);
 assert.notStrictEqual(dailyA.seed, dailyNext.seed);
 assert.strictEqual(meta.normalizeMode("unknown"), meta.MODE_FREE);
-assert.strictEqual(meta.getModeInfo({ mode: "daily", challengeDate: "2026-07-24" }).label, "今日挑战");
+assert.strictEqual(meta.getModeInfo({ mode: "daily", challengeDate: "2026-07-24" }).label, "今日情景");
 
 const newcomer = meta.getPersona({
   stats: { tech: 45, communication: 45, energy: 65, savings: 30, influence: 35 },
@@ -141,8 +141,10 @@ assert(signal.text.includes("2"));
 
 const summary = meta.buildCareerSummary(baseRun, "首席架构师");
 assert(summary.includes("《小码的程序员生涯》"));
-assert(summary.includes("今日挑战"));
+assert(summary.includes("今日情景"));
 assert(summary.includes("首席架构师"));
+assert(summary.includes("程序员生涯模拟"));
+assert(!summary.includes("程序员升级之路"));
 assert(!summary.includes(baseRun.id));
 
 console.log("career game meta-system tests passed");

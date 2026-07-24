@@ -117,7 +117,7 @@ function testHelpContentSourceAndRoutes() {
     .find((block) => block.type === "table" && block.headers[0] === "工具");
   assert(quickToolsTable, "quick start should include the tools overview");
   assert.strictEqual(quickToolsTable.rows.length, 6, "quick start should list all six tools");
-  assert(quickToolsTable.rows.some((row) => row[0] === "程序员升级之路"));
+  assert(quickToolsTable.rows.some((row) => row[0] === "程序员生涯模拟"));
   assert(serialized.includes("六个工具"), "help content should describe six tools");
   assert(!serialized.includes("五个工具"), "legacy five-tool wording should be removed");
   assert(!serialized.includes("五类数据"), "legacy five-data wording should be removed");
@@ -141,7 +141,7 @@ function testCareerHelpContent() {
 
   const careerText = JSON.stringify(career);
   [
-    "开局",
+    "模拟模式",
     "技术力",
     "沟通力",
     "精力",
@@ -149,21 +149,21 @@ function testCareerHelpContent() {
     "影响力",
     "选择反馈",
     "自动存档",
-    "自由生涯",
-    "今日挑战",
+    "自由模拟",
+    "今日情景",
     "职业画像",
     "章节复盘",
-    "十二项职业成就",
+    "十二项职业里程碑",
     "复制",
     "生涯档案",
-    "十二种结局",
+    "十二种职业答案",
     "离线存档与备份",
     "careerRuns"
   ].forEach((text) => assert(careerText.includes(text), `career help should cover ${text}`));
 
   const endingTable = career.guide.sections
     .flatMap((section) => section.blocks)
-    .find((block) => block.type === "table" && block.headers[0] === "结局");
+    .find((block) => block.type === "table" && block.headers[0] === "职业答案");
   assert(endingTable, "career help should include the ending archive table");
   assert.strictEqual(endingTable.rows.length, 12, "career help should describe all 12 endings");
 }

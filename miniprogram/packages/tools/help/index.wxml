@@ -18,7 +18,7 @@
   <view class="search-panel">
     <view class="search-box">
       <ui-icon name="search" size="{{28}}" tone="muted" />
-      <input class="search-input" value="{{keyword}}" placeholder="搜索游戏、分账、行程、清单、备份" bindinput="onSearchInput" />
+      <input class="search-input" value="{{keyword}}" placeholder="搜索模拟、分账、行程、清单、备份" bindinput="onSearchInput" />
       <view class="search-clear" wx:if="{{keyword}}" bindtap="clearSearch" aria-label="清除搜索"><ui-icon name="x" size="{{24}}" tone="muted" /></view>
     </view>
     <view class="search-meta">

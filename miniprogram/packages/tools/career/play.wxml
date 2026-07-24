@@ -8,7 +8,7 @@
     <view class="missing-icon"><ui-icon name="alert" size="{{44}}" tone="accent" /></view>
     <view class="missing-title">没有可继续的生涯</view>
     <view class="missing-copy">回到起点创建角色，再开始第一次选择。</view>
-    <button class="missing-button icon-action" bindtap="returnToCareer" aria-label="返回程序员升级之路首页">
+    <button class="missing-button icon-action" bindtap="returnToCareer" aria-label="返回程序员生涯模拟首页">
       <ui-icon name="chevron-right" size="{{25}}" tone="white" />
       <text>返回生涯首页</text>
     </button>
@@ -210,22 +210,22 @@
         </view>
         <button class="primary-action chapter-action advance-button icon-action" loading="{{advancing}}" bindtap="advance" aria-label="进入下一职业阶段">
           <ui-icon name="arrow-up" size="{{27}}" tone="white" />
-          <text>解锁下一阶段</text>
+          <text>进入下一阶段</text>
         </button>
       </block>
 
       <block wx:elif="{{view.phase === 'ending'}}">
         <view class="ending-actions-title">这不是唯一的职业答案</view>
-        <button class="primary-action icon-action" bindtap="restartCareer" aria-label="使用当前昵称重新开始一局">
+        <button class="primary-action icon-action" bindtap="restartCareer" aria-label="使用当前昵称重新开始一次模拟">
           <ui-icon name="refresh" size="{{27}}" tone="white" />
           <text>再走一条路线</text>
         </button>
         <view class="ending-secondary-row">
-          <button class="secondary-action career-copy-button icon-action" bindtap="copyCareerSummary" aria-label="复制本局生涯总结">
+          <button class="secondary-action career-copy-button icon-action" bindtap="copyCareerSummary" aria-label="复制本次生涯模拟总结">
             <ui-icon name="copy" size="{{25}}" tone="blue" />
             <text>复制总结</text>
           </button>
-          <button class="secondary-action ending-archive-button icon-action" bindtap="openArchive" aria-label="查看生涯档案和十二种结局">
+          <button class="secondary-action ending-archive-button icon-action" bindtap="openArchive" aria-label="查看生涯档案和十二种职业答案">
             <ui-icon name="book" size="{{25}}" tone="blue" />
             <text>生涯档案</text>
           </button>

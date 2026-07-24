@@ -11,7 +11,7 @@ const expectedTools = [
   { label: "通用清单", url: "/pages/checklist/index" },
   { label: "决策转盘", url: "/packages/tools/wheel/index" },
   { label: "酒店餐厅快评", url: "/pages/record/index" },
-  { label: "程序员升级之路", url: "/packages/tools/career/index" }
+  { label: "程序员生涯模拟", url: "/packages/tools/career/index" }
 ];
 const expectedHeaderActions = [
   { label: "帮助", url: "/packages/tools/help/index" },

@@ -2,11 +2,11 @@
   <scroll-view class="home-scroll" scroll-y enhanced show-scrollbar="{{false}}">
     <view class="hero">
       <view class="hero-copy">
-        <view class="eyebrow">CAREER QUEST</view>
-        <view class="hero-title">程序员升级之路</view>
-        <view class="hero-subtitle">每一次选择，都在悄悄改写未来。</view>
+        <view class="eyebrow">CAREER SIMULATOR</view>
+        <view class="hero-title">程序员生涯模拟</view>
+        <view class="hero-subtitle">在职业情景中观察每一次选择的后续影响。</view>
       </view>
-      <button class="archive-button icon-center" bindtap="openArchive" aria-label="打开生涯档案与结局图鉴">
+      <button class="archive-button icon-center" bindtap="openArchive" aria-label="打开生涯档案与职业答案集">
         <ui-icon name="book" size="{{31}}" tone="white" />
       </button>
     </view>
@@ -54,15 +54,15 @@
 
       <view class="progress-band">
         <view class="progress-copy">
-          <view class="section-kicker">生涯收藏</view>
-          <view class="progress-title">{{endingProgress.unlocked}} 个结局 · {{achievementProgress.unlocked}} 项成就</view>
+          <view class="section-kicker">模拟档案</view>
+          <view class="progress-title">{{endingProgress.unlocked}} 个职业答案 · {{achievementProgress.unlocked}} 项里程碑</view>
         </view>
         <view class="progress-side">
-          <view class="progress-track" aria-label="生涯收藏进度 {{collectionPercent}}%">
+          <view class="progress-track" aria-label="生涯档案完成度 {{collectionPercent}}%">
             <view class="progress-fill" style="width: {{collectionPercent}}%;"></view>
           </view>
-          <view class="progress-link icon-label" bindtap="openArchive" role="button" aria-label="查看结局和成就图鉴">
-            <text>查看收藏</text>
+          <view class="progress-link icon-label" bindtap="openArchive" role="button" aria-label="查看职业答案和里程碑">
+            <text>查看档案</text>
             <ui-icon name="chevron-right" size="{{22}}" tone="blue" />
           </view>
         </view>
@@ -71,12 +71,12 @@
       <view class="new-run-section">
         <view class="section-heading">
           <view>
-            <view class="section-kicker">NEW RUN</view>
-            <view class="section-title">开启一段新生涯</view>
+            <view class="section-kicker">NEW SIMULATION</view>
+            <view class="section-title">开始一次生涯模拟</view>
           </view>
           <view class="nickname-count">{{nicknameCount}} / 12</view>
         </view>
-        <view class="mode-switch" aria-label="选择游戏模式">
+        <view class="mode-switch" aria-label="选择模拟模式">
           <view
             class="mode-option {{startMode === item.id ? 'mode-active' : ''}}"
             wx:for="{{modeOptions}}"
@@ -95,7 +95,7 @@
         </view>
         <view class="mode-description icon-label">
           <ui-icon name="{{startMode === 'daily' ? 'calendar' : 'sparkles'}}" size="{{22}}" tone="{{startMode === 'daily' ? 'amber' : 'green'}}" />
-          <text>{{startMode === "daily" ? dailyChallenge.description : "每次开局抽取新的种子事件，适合自由探索。"}}</text>
+          <text>{{startMode === "daily" ? dailyChallenge.description : "每次模拟抽取新的种子事件，适合自由观察不同路径。"}}</text>
         </view>
         <view class="nickname-field">
           <ui-icon name="users" size="{{27}}" tone="muted" />
@@ -110,21 +110,22 @@
             aria-label="程序员昵称，最多十二个字"
           />
         </view>
-        <button class="start-button icon-action" loading="{{starting}}" bindtap="startNew" aria-label="开始新的程序员生涯">
+        <button class="start-button icon-action" loading="{{starting}}" bindtap="startNew" aria-label="开始新的程序员生涯模拟">
           <ui-icon name="{{startMode === 'daily' ? 'calendar' : 'zap'}}" size="{{28}}" tone="white" />
-          <text>{{activeRun ? "重新开局" : (startMode === "daily" ? "接受今日命题" : "开始第一天")}}</text>
+          <text>{{activeRun ? "重新模拟" : (startMode === "daily" ? "进入今日情景" : "开始模拟")}}</text>
         </button>
         <view class="save-note icon-label">
           <ui-icon name="shield" size="{{22}}" tone="green" />
           <text>每次选择后自动保存在本机</text>
         </view>
+        <view class="simulation-note">结果来自预设职业情景和本地规则，仅用于选择反思，不构成职业建议。</view>
       </view>
 
       <view class="recent-section">
         <view class="section-heading">
           <view>
-            <view class="section-kicker">RECENT RUNS</view>
-            <view class="section-title">最近生涯</view>
+            <view class="section-kicker">RECENT SIMULATIONS</view>
+            <view class="section-title">最近模拟</view>
           </view>
           <view class="all-runs icon-label" wx:if="{{recentRuns.length}}" bindtap="openArchive" role="button" aria-label="查看全部生涯记录">
             <text>全部</text>

@@ -1,5 +1,5 @@
 {
-  "navigationBarTitleText": "程序员升级之路",
+  "navigationBarTitleText": "程序员生涯模拟",
   "disableScroll": true,
   "usingComponents": {
     "ui-icon": "/components/ui-icon/index"

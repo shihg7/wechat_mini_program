@@ -798,7 +798,7 @@ const STAGE_CONTENT = [
     id: "stage_6_answer",
     order: 6,
     title: "第六章：职业答案",
-    subtitle: "没有标准结局，只有你愿意承担的选择",
+    subtitle: "没有标准答案，只有你愿意承担的选择",
     poolDrawCount: 2,
     fixed: [
       event(
@@ -1028,7 +1028,7 @@ const ENDINGS = Object.freeze([
     id: "ending_laid_off",
     title: "被优化的一天",
     hint: "当风险积累得比退路更快，组织会替你做选择。",
-    summary: "组织调整落在了你身上。旧工牌失效，但积累的能力仍是下一局的初始装备。",
+    summary: "组织调整落在了你身上。旧工牌失效，但积累的能力仍是下一段生涯的初始装备。",
     priority: 120,
     requirements: requirements([
       condition("flag", "layoffRisk", "truthy", true),

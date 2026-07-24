@@ -89,7 +89,7 @@ function normalizeView(view) {
   return {
     ...view,
     phase,
-    mode: view.mode || { id: "free", label: "自由生涯", shortLabel: "自由生涯" },
+    mode: view.mode || { id: "free", label: "自由模拟", shortLabel: "自由模拟" },
     persona: view.persona || {
       id: "uncompiled",
       title: "待编译新人",
@@ -225,8 +225,8 @@ Page({
     if (!playerName) return;
     wx.showModal({
       title: "再走一条职业路线？",
-      content: "本次结局会保留在生涯档案中，新一局从求职阶段开始。",
-      confirmText: "重新开局",
+      content: "本次结果会保留在生涯档案中，新的模拟从求职阶段开始。",
+      confirmText: "重新模拟",
       confirmColor: "#e86343",
       success: (result) => {
         if (!result.confirm) return;
@@ -242,7 +242,7 @@ Page({
           safeVibrate("medium");
           this.loadCurrentView();
         } catch (error) {
-          wx.showToast({ title: error.message || "无法重新开局", icon: "none" });
+          wx.showToast({ title: error.message || "无法重新模拟", icon: "none" });
         }
       }
     });

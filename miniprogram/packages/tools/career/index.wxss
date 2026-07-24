@@ -371,6 +371,14 @@ page {
   font-size: 20rpx;
 }
 
+.simulation-note {
+  margin-top: 10rpx;
+  color: #7b8493;
+  font-size: 18rpx;
+  line-height: 29rpx;
+  text-align: center;
+}
+
 .recent-empty {
   justify-content: flex-start;
   gap: 16rpx;

@@ -108,15 +108,15 @@ const ACHIEVEMENTS = [
   { id: "first-choice", title: "Hello, World", hint: "做出第一个职业选择。", icon: "play", tone: "blue", target: 1 },
   { id: "first-stage", title: "熬过试用期", hint: "完整走过一个职业阶段。", icon: "check", tone: "green", target: 1 },
   { id: "first-ending", title: "跑到答案", hint: "完成第一段程序员生涯。", icon: "route", tone: "accent", target: 1 },
-  { id: "daily", title: "今日有解", hint: "在今日挑战中做出选择。", icon: "calendar", tone: "amber", target: 1 },
+  { id: "daily", title: "今日有解", hint: "在今日情景中做出选择。", icon: "calendar", tone: "amber", target: 1 },
   { id: "replay", title: "平行宇宙", hint: "完成两段不同的生涯。", icon: "refresh", tone: "blue", target: 2 },
   { id: "deep-tech", title: "技术硬通货", hint: "任一存档的技术力达到 80。", icon: "code", tone: "blue", target: 80 },
   { id: "trusted-voice", title: "可信的声音", hint: "沟通力达到 75，影响力达到 65。", icon: "users", tone: "green", target: 1 },
   { id: "runway", title: "选择的底气", hint: "任一存档的积蓄达到 70。", icon: "wallet", tone: "amber", target: 70 },
-  { id: "sustainable", title: "可持续运行", hint: "带着生活边界和 65 点精力抵达结局。", icon: "heart", tone: "green", target: 1 },
+  { id: "sustainable", title: "可持续运行", hint: "带着生活边界和 65 点精力形成职业答案。", icon: "heart", tone: "green", target: 1 },
   { id: "firefighter", title: "生产守夜人", hint: "成功处理一次职业危机。", icon: "alert", tone: "accent", target: 1 },
-  { id: "six-endings", title: "六面人生", hint: "解锁六种不同结局。", icon: "book", tone: "blue", target: 6 },
-  { id: "all-endings", title: "职业万花筒", hint: "解锁全部十二种结局。", icon: "sparkles", tone: "amber", target: 12 }
+  { id: "six-endings", title: "六面人生", hint: "发现六种不同职业答案。", icon: "book", tone: "blue", target: 6 },
+  { id: "all-endings", title: "职业万花筒", hint: "发现全部十二种职业答案。", icon: "sparkles", tone: "amber", target: 12 }
 ];
 
 function clamp(value, minimum, maximum) {
@@ -153,8 +153,8 @@ function getModeInfo(run = {}) {
     const challenge = getDailyChallenge(run.challengeDate || run.startedAt);
     return {
       id,
-      label: "今日挑战",
-      shortLabel: `挑战 ${challenge.shortLabel}`,
+      label: "今日情景",
+      shortLabel: `今日 ${challenge.shortLabel}`,
       description: challenge.description,
       challengeDate: challenge.date,
       icon: "calendar",
@@ -163,9 +163,9 @@ function getModeInfo(run = {}) {
   }
   return {
     id,
-    label: "自由生涯",
-    shortLabel: "自由生涯",
-    description: "每次开局都会抽取新的种子事件。",
+    label: "自由模拟",
+    shortLabel: "自由模拟",
+    description: "每次模拟都会抽取新的种子事件。",
     challengeDate: "",
     icon: "route",
     tone: "blue"
@@ -416,13 +416,13 @@ function buildCareerSummary(run = {}, endingTitle = "") {
   const keyChoices = historyItems(run).slice(-3).map((entry) => `- ${entry.eventTitle}：${entry.choiceText}`);
   return [
     `《${run.playerName || "我"}的程序员生涯》`,
-    `结局：${endingTitle || "仍在编译中"}`,
+    `职业答案：${endingTitle || "仍在编译中"}`,
     `职业画像：${persona.title}`,
     `模式：${mode.label}${mode.challengeDate ? `（${mode.challengeDate}）` : ""}`,
     `最终属性：${stats}`,
     `关键词：${keywords.length ? keywords.join(" / ") : "尚未形成"}`,
     keyChoices.length ? `最后的关键选择：\n${keyChoices.join("\n")}` : "",
-    "来自离线工具箱「程序员升级之路」"
+    "来自离线工具箱「程序员生涯模拟」"
   ].filter(Boolean).join("\n");
 }
 

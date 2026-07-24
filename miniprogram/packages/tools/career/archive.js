@@ -37,14 +37,14 @@ function archiveRunView(run, expandedIds) {
   const id = run.id;
   return {
     ...run,
-    endingTitle: run.endingTitle || "未抵达结局",
+    endingTitle: run.endingTitle || "尚未形成答案",
     stageTitle: run.stageTitle || "职业起点",
-    modeLabel: run.mode && run.mode.shortLabel || "自由生涯",
+    modeLabel: run.mode && run.mode.shortLabel || "自由模拟",
     personaTitle: run.persona && run.persona.title || "待编译新人",
     personaIcon: run.persona && run.persona.icon || "code",
     personaTone: run.persona && run.persona.tone || "muted",
     keywords: (Array.isArray(run.keywords) ? run.keywords : []).slice(0, 3),
-    statusLabel: run.status === "completed" ? "已抵达结局" : "中断存档",
+    statusLabel: run.status === "completed" ? "已形成答案" : "中断存档",
     choiceCount: Number(run.choiceCount || 0),
     displayDate: formatDate(run.completedAt || run.updatedAt || run.startedAt),
     finalStats: (Array.isArray(run.finalStats) ? run.finalStats : []).slice(0, 5).map(statView),
@@ -63,7 +63,7 @@ function progressView(progress) {
     items: (progress && Array.isArray(progress.items) ? progress.items : []).map((item, index) => ({
       ...item,
       number: String(index + 1).padStart(2, "0"),
-      displayTitle: item.unlocked ? item.title : "尚未解锁"
+      displayTitle: item.unlocked ? item.title : "尚未发现"
     }))
   };
 }

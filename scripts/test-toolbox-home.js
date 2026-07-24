@@ -6,10 +6,13 @@ const projectRoot = path.join(__dirname, "..");
 const pageRoot = path.join(projectRoot, "miniprogram", "pages", "index");
 const pageScriptPath = path.join(pageRoot, "index.js");
 const expectedTools = [
+  { label: "日期计算", url: "/packages/tools/date-calculator/index" },
+  { label: "单位换算", url: "/packages/tools/unit-converter/index" },
+  { label: "二维码生成", url: "/packages/tools/qr-generator/index" },
+  { label: "决策转盘", url: "/packages/tools/wheel/index" },
   { label: "AA分账", url: "/pages/ledger/index/index" },
   { label: "行程安排", url: "/pages/trip/index" },
   { label: "通用清单", url: "/pages/checklist/index" },
-  { label: "决策转盘", url: "/packages/tools/wheel/index" },
   { label: "程序员生涯模拟", url: "/packages/tools/career/index" }
 ];
 const expectedHeaderActions = [
@@ -35,7 +38,7 @@ assert(pageDefinition, "toolbox home should register a Page");
 assert.deepStrictEqual(
   pageDefinition.data.tools.map(({ label, url }) => ({ label, url })),
   expectedTools,
-  "tool list should contain the five requested destinations in order"
+  "tool list should contain the eight requested destinations in order"
 );
 assert.deepStrictEqual(
   pageDefinition.data.headerActions.map(({ label, url }) => ({ label, url })),
@@ -65,8 +68,7 @@ assert(wxmlSource.includes('wx:for="{{tools}}"'), "tools should render from the 
 assert(wxmlSource.includes('aria-role="button"'), "tool cards should retain accessible button semantics");
 assert(/grid-template-columns:\s*1fr\s+1fr/.test(wxssSource), "tool grid should keep two columns");
 assert(/grid-auto-rows:\s*184rpx/.test(wxssSource), "tool rows should have stable dimensions");
-assert(wxssSource.includes(".tool-card:last-child:nth-child(odd)"), "an odd final tool should span both columns");
-assert(wxssSource.includes("justify-self: stretch"), "the final native button should stretch across its grid area");
+assert.strictEqual(expectedTools.length % 2, 0, "the eight-tool home should fill the two-column grid");
 assert(/\.tool-card\s*\{[\s\S]*?border-radius:\s*8rpx/.test(wxssSource), "tool cards should use an 8rpx radius");
 assert.strictEqual(pageConfig.navigationBarTitleText, "工具箱");
 assert.strictEqual(pageConfig.usingComponents["ui-icon"], "/components/ui-icon/index");
@@ -75,4 +77,4 @@ assert.strictEqual(pageConfig.usingComponents["ui-icon"], "/components/ui-icon/i
   assert(!wxmlSource.includes(legacyText), `legacy dashboard content should not include ${legacyText}`);
 });
 
-console.log("toolbox home tests passed (5 tools, 2 header actions)");
+console.log("toolbox home tests passed (8 tools, 2 header actions)");

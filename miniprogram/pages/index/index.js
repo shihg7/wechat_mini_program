@@ -1,5 +1,33 @@
 const TOOLS = [
   {
+    id: "date-calculator",
+    label: "日期计算",
+    icon: "calendar",
+    tone: "blue",
+    url: "/packages/tools/date-calculator/index"
+  },
+  {
+    id: "unit-converter",
+    label: "单位换算",
+    icon: "ruler",
+    tone: "green",
+    url: "/packages/tools/unit-converter/index"
+  },
+  {
+    id: "qr-generator",
+    label: "二维码生成",
+    icon: "qr-code",
+    tone: "amber",
+    url: "/packages/tools/qr-generator/index"
+  },
+  {
+    id: "wheel",
+    label: "决策转盘",
+    icon: "wheel",
+    tone: "accent",
+    url: "/packages/tools/wheel/index"
+  },
+  {
     id: "ledger",
     label: "AA分账",
     icon: "receipt",
@@ -9,7 +37,7 @@ const TOOLS = [
   {
     id: "trip",
     label: "行程安排",
-    icon: "calendar",
+    icon: "plane",
     tone: "green",
     url: "/pages/trip/index"
   },
@@ -19,13 +47,6 @@ const TOOLS = [
     icon: "clipboard",
     tone: "amber",
     url: "/pages/checklist/index"
-  },
-  {
-    id: "wheel",
-    label: "决策转盘",
-    icon: "wheel",
-    tone: "accent",
-    url: "/packages/tools/wheel/index"
   },
   {
     id: "career",

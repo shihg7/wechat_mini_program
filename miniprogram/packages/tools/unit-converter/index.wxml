@@ -1,0 +1,71 @@
+<view class="page">
+  <view class="page-head">
+    <view class="eyebrow">CONVERT</view>
+    <view class="page-title">单位换算</view>
+  </view>
+
+  <scroll-view class="category-scroll" scroll-x enhanced show-scrollbar="{{false}}">
+    <view class="category-row">
+      <view
+        class="category-chip {{categoryId === item.id ? 'category-chip-active' : ''}}"
+        wx:for="{{categories}}"
+        wx:key="id"
+        data-category="{{item.id}}"
+        bindtap="selectCategory"
+      >{{item.name}}</view>
+    </view>
+  </scroll-view>
+
+  <view class="result-panel">
+    <view class="result-label">换算结果</view>
+    <view class="result-value {{result.length > 16 ? 'result-value-small' : ''}}">{{result || '—'}}</view>
+    <view class="result-unit">{{category.units[toIndex].name || ''}}</view>
+    <view class="result-error" wx:if="{{error}}">{{error}}</view>
+  </view>
+
+  <view class="convert-panel">
+    <view class="field-label">输入数值</view>
+    <input
+      class="value-input"
+      type="text"
+      maxlength="28"
+      value="{{inputValue}}"
+      bindinput="onInput"
+      placeholder="请输入数值"
+    />
+
+    <view class="unit-row">
+      <view class="unit-field">
+        <view class="field-label">从</view>
+        <picker range="{{category.units}}" range-key="name" value="{{fromIndex}}" bindchange="onFromUnitChange">
+          <view class="picker-field">
+            <text>{{category.units[fromIndex].name}}</text>
+            <ui-icon name="arrow-down" size="{{22}}" tone="muted" />
+          </view>
+        </picker>
+      </view>
+      <button class="swap-button" bindtap="swapUnits" aria-label="交换换算单位">
+        <ui-icon name="refresh" size="{{28}}" tone="blue" />
+      </button>
+      <view class="unit-field">
+        <view class="field-label">到</view>
+        <picker range="{{category.units}}" range-key="name" value="{{toIndex}}" bindchange="onToUnitChange">
+          <view class="picker-field">
+            <text>{{category.units[toIndex].name}}</text>
+            <ui-icon name="arrow-down" size="{{22}}" tone="muted" />
+          </view>
+        </picker>
+      </view>
+    </view>
+
+    <view class="category-note" wx:if="{{category.note}}">
+      <ui-icon name="alert" size="{{22}}" tone="amber" />
+      <text>{{category.note}}</text>
+    </view>
+  </view>
+
+  <button class="primary-button" bindtap="copyResult">
+    <ui-icon name="copy" size="{{25}}" tone="white" />
+    <text>复制换算结果</text>
+  </button>
+</view>

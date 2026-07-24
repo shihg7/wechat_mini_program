@@ -13,6 +13,9 @@ global.wx = {
 
 const root = path.join(__dirname, "..", "miniprogram", "packages", "tools");
 const toolPages = [
+  "date-calculator/index",
+  "unit-converter/index",
+  "qr-generator/index",
   "data/index",
   "help/index",
   "wheel/index",

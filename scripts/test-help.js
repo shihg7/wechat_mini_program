@@ -53,13 +53,16 @@ function allGuideBlocks() {
 
 function testHelpSearchAndSections() {
   const page = loadHelpPage();
-  const expectedIds = ["quick", "ledger", "trips", "checklists", "wheel", "career", "data", "faq"];
+  const expectedIds = ["quick", "date", "units", "qr", "ledger", "trips", "checklists", "wheel", "career", "data", "faq"];
   assert.deepStrictEqual(page.data.sections.map((section) => section.id), expectedIds);
   assert.strictEqual(page.data.sections.length, HELP_SECTIONS.length);
   assert.strictEqual(page.data.visibleSections[0].id, "quick");
   assert.strictEqual(page.data.visibleSections[0].expanded, true, "quick start should open initially");
 
   const searches = [
+    ["闰年", "date"],
+    ["KiB", "units"],
+    ["Wi-Fi", "qr"],
     ["三人分账", "ledger"],
     ["时间冲突", "trips"],
     ["旅行打包", "checklists"],
@@ -92,6 +95,9 @@ function testHelpContentSourceAndRoutes() {
 
   const expectedUrls = [
     "/pages/index/index",
+    "/packages/tools/date-calculator/index",
+    "/packages/tools/unit-converter/index",
+    "/packages/tools/qr-generator/index",
     "/pages/ledger/index/index",
     "/pages/trip/index",
     "/pages/checklist/index",
@@ -114,9 +120,9 @@ function testHelpContentSourceAndRoutes() {
     .flatMap((section) => section.blocks)
     .find((block) => block.type === "table" && block.headers[0] === "工具");
   assert(quickToolsTable, "quick start should include the tools overview");
-  assert.strictEqual(quickToolsTable.rows.length, 5, "quick start should list all five tools");
+  assert.strictEqual(quickToolsTable.rows.length, 8, "quick start should list all eight tools");
   assert(quickToolsTable.rows.some((row) => row[0] === "程序员生涯模拟"));
-  assert(serialized.includes("五个工具"), "help content should describe five tools");
+  assert(serialized.includes("八个工具"), "help content should describe eight tools");
   assert(serialized.includes("五类数据"), "help content should describe five data collections");
   assert(!serialized.includes("六个工具"), "retired six-tool wording should be removed");
   assert(!serialized.includes("酒店餐厅快评"), "retired quick ratings should not remain in help");

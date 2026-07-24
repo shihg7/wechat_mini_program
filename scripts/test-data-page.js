@@ -156,11 +156,11 @@ assert.strictEqual(page.data.localSummary.careerCount, 0);
 const dataPageDir = path.join(__dirname, "../miniprogram/packages/tools/data");
 const wxml = fs.readFileSync(path.join(dataPageDir, "index.wxml"), "utf8");
 const wxss = fs.readFileSync(path.join(dataPageDir, "index.wxss"), "utf8");
-assert(wxml.includes("包含五个工具的全部本地数据"));
+assert(wxml.includes("包含五类持久工具的全部本地数据"));
 assert(wxml.includes("兼容此前生成的 v1、v2 JSON 备份"));
 assert(wxml.includes("localSummary.careerCount"));
 assert(wxml.includes("preview.careerCount"));
-assert(wxml.includes("一次删除五个工具的全部内容"));
+assert(wxml.includes("一次删除五类持久工具的全部内容"));
 assert(!wxml.includes("localSummary.recordCount"));
 assert(wxss.includes("grid-template-columns: repeat(3, 1fr)"));
 

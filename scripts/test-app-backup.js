@@ -242,6 +242,14 @@ function testAtomicRollbackAcrossFiveStores() {
 
 function testValidationExportAndClear() {
   reset();
+  const transientKeys = ["dateCalculator", "unitConverter", "qrGenerator"];
+  transientKeys.forEach((key) => {
+    assert.strictEqual(
+      Object.prototype.hasOwnProperty.call(backupApi.buildBackup(), key),
+      false,
+      `${key} should not enter the v3 backup`
+    );
+  });
   assert.throws(() => backupApi.preflightBackup("{"), /有效的工具箱 JSON/);
   assert.throws(() => backupApi.preflightBackup({ ...emptyBackup(), app: "another-app" }), /不是当前工具箱/);
   assert.throws(() => backupApi.preflightBackup({ ...emptyBackup(), schemaVersion: 4 }), /仅支持工具箱备份 v1、v2 或 v3/);

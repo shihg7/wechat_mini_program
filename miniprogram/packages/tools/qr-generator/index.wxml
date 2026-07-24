@@ -1,0 +1,91 @@
+<view class="page">
+  <view class="page-head">
+    <view>
+      <view class="eyebrow">QR CODE</view>
+      <view class="page-title">二维码生成</view>
+    </view>
+    <view class="offline-badge">
+      <ui-icon name="shield" size="{{22}}" tone="green" />
+      <text>本地生成</text>
+    </view>
+  </view>
+
+  <view class="segmented">
+    <view class="segment {{mode === 'text' ? 'segment-active' : ''}}" data-mode="text" bindtap="switchMode">文字 / 网址</view>
+    <view class="segment {{mode === 'wifi' ? 'segment-active' : ''}}" data-mode="wifi" bindtap="switchMode">Wi-Fi</view>
+  </view>
+
+  <view class="qr-panel">
+    <canvas type="2d" id="qrCanvas" class="qr-canvas"></canvas>
+    <view class="qr-placeholder" wx:if="{{!hasQr}}">
+      <view class="placeholder-icon">
+        <ui-icon name="qr-code" size="{{52}}" tone="muted" />
+      </view>
+      <view class="placeholder-title">等待生成</view>
+      <view class="placeholder-text">填写内容后点击下方按钮</view>
+    </view>
+  </view>
+
+  <view class="form-panel" wx:if="{{mode === 'text'}}">
+    <view class="field-heading">
+      <text>二维码内容</text>
+      <text class="{{byteCount > 1000 ? 'count-danger' : ''}}">{{byteCount}} / 1000 字节</text>
+    </view>
+    <textarea
+      class="content-input"
+      maxlength="-1"
+      value="{{textContent}}"
+      bindinput="onTextInput"
+      placeholder="输入文字或粘贴网址"
+      auto-height="{{false}}"
+    ></textarea>
+  </view>
+
+  <view class="form-panel" wx:else>
+    <view class="field-label">Wi-Fi 名称</view>
+    <input class="text-input" value="{{ssid}}" bindinput="onSsidInput" placeholder="SSID" />
+    <view class="wifi-grid">
+      <view>
+        <view class="field-label">安全类型</view>
+        <picker range="{{securityOptions}}" range-key="name" value="{{securityIndex}}" bindchange="onSecurityChange">
+          <view class="picker-field">
+            <text>{{securityOptions[securityIndex].name}}</text>
+            <ui-icon name="arrow-down" size="{{22}}" tone="muted" />
+          </view>
+        </picker>
+      </view>
+      <view class="hidden-setting">
+        <view>
+          <view class="field-label">隐藏网络</view>
+          <view class="field-help">不广播名称</view>
+        </view>
+        <switch checked="{{hidden}}" bindchange="onHiddenChange" color="#176b68" />
+      </view>
+    </view>
+    <block wx:if="{{securityOptions[securityIndex].id !== 'nopass'}}">
+      <view class="field-label">Wi-Fi 密码</view>
+      <input class="text-input" password value="{{password}}" bindinput="onPasswordInput" placeholder="输入密码" />
+    </block>
+  </view>
+
+  <button class="generate-button" bindtap="generateQr" disabled="{{!canvasReady}}">
+    <ui-icon name="qr-code" size="{{26}}" tone="white" />
+    <text>{{canvasReady ? '生成二维码' : '正在准备画布'}}</text>
+  </button>
+
+  <view class="result-actions">
+    <button bindtap="copyContent" disabled="{{!hasQr}}">
+      <ui-icon name="copy" size="{{24}}" tone="{{hasQr ? 'blue' : 'muted'}}" />
+      <text>复制内容</text>
+    </button>
+    <button bindtap="saveImage" disabled="{{!hasQr}}">
+      <ui-icon name="download" size="{{24}}" tone="{{hasQr ? 'green' : 'muted'}}" />
+      <text>保存图片</text>
+    </button>
+  </view>
+
+  <view class="privacy-note">
+    <ui-icon name="shield" size="{{22}}" tone="green" />
+    <text>内容不会上传；退出页面后输入和 Wi-Fi 密码会被清除。</text>
+  </view>
+</view>

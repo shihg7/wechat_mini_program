@@ -1,0 +1,113 @@
+<view class="page">
+  <view class="page-head">
+    <view>
+      <view class="eyebrow">DATE</view>
+      <view class="page-title">日期计算</view>
+    </view>
+    <view class="today-chip">今天 {{today}}</view>
+  </view>
+
+  <view class="segmented" role="tablist">
+    <view
+      class="segment {{mode === item.id ? 'segment-active' : ''}}"
+      wx:for="{{modes}}"
+      wx:key="id"
+      data-mode="{{item.id}}"
+      bindtap="switchMode"
+      aria-role="tab"
+      aria-selected="{{mode === item.id}}"
+    >{{item.label}}</view>
+  </view>
+
+  <block wx:if="{{mode === 'interval'}}">
+    <view class="result-panel">
+      <view class="result-kicker">相隔</view>
+      <view class="result-number">{{interval.days}}</view>
+      <view class="result-unit">天</view>
+      <view class="result-detail">含首尾 {{interval.inclusiveDays}} 天 · {{interval.weeks}} 周 {{interval.remainingDays}} 天</view>
+    </view>
+    <view class="form-panel">
+      <view class="field-label">开始日期</view>
+      <picker mode="date" value="{{startDate}}" bindchange="onStartDateChange">
+        <view class="date-field">
+          <text>{{startDate}}</text>
+          <text class="field-meta">{{interval.startWeekday}}</text>
+        </view>
+      </picker>
+      <button class="icon-action" bindtap="swapIntervalDates" aria-label="交换开始和结束日期">
+        <ui-icon name="refresh" size="{{25}}" tone="blue" />
+        <text>交换日期</text>
+      </button>
+      <view class="field-label">结束日期</view>
+      <picker mode="date" value="{{endDate}}" bindchange="onEndDateChange">
+        <view class="date-field">
+          <text>{{endDate}}</text>
+          <text class="field-meta">{{interval.endWeekday}}</text>
+        </view>
+      </picker>
+    </view>
+  </block>
+
+  <block wx:elif="{{mode === 'offset'}}">
+    <view class="result-panel result-panel-green">
+      <view class="result-kicker">推算结果</view>
+      <view class="result-date">{{offsetResult || '等待输入'}}</view>
+      <view class="result-detail">{{offsetResult ? offsetCopy : '请输入完整天数'}}</view>
+    </view>
+    <view class="form-panel">
+      <view class="field-label">基准日期</view>
+      <picker mode="date" value="{{offsetBase}}" bindchange="onOffsetBaseChange">
+        <view class="date-field">{{offsetBase}}</view>
+      </picker>
+      <view class="inline-fields">
+        <view class="number-field">
+          <view class="field-label">天数</view>
+          <input type="number" maxlength="5" value="{{offsetAmount}}" bindinput="onOffsetAmountInput" />
+        </view>
+        <view class="direction-field">
+          <view class="field-label">方向</view>
+          <view class="mini-segmented">
+            <view class="{{offsetDirection === 'after' ? 'active' : ''}}" data-direction="after" bindtap="setOffsetDirection">之后</view>
+            <view class="{{offsetDirection === 'before' ? 'active' : ''}}" data-direction="before" bindtap="setOffsetDirection">之前</view>
+          </view>
+        </view>
+      </view>
+      <view class="field-label">计算方式</view>
+      <view class="choice-row">
+        <view class="choice {{offsetUnit === 'natural' ? 'choice-active' : ''}}" data-unit="natural" bindtap="setOffsetUnit">
+          <ui-icon name="calendar" size="{{24}}" tone="{{offsetUnit === 'natural' ? 'blue' : 'muted'}}" />
+          <text>自然日</text>
+        </view>
+        <view class="choice {{offsetUnit === 'workday' ? 'choice-active' : ''}}" data-unit="workday" bindtap="setOffsetUnit">
+          <ui-icon name="clock" size="{{24}}" tone="{{offsetUnit === 'workday' ? 'blue' : 'muted'}}" />
+          <text>工作日</text>
+        </view>
+      </view>
+      <view class="notice" wx:if="{{offsetUnit === 'workday'}}">仅排除周六、周日，不包含法定节假日。</view>
+    </view>
+  </block>
+
+  <block wx:else>
+    <view class="result-panel result-panel-amber">
+      <view class="result-kicker">{{countdown.state === 'past' ? '已经过去' : countdown.state === 'today' ? '就是今天' : '距离目标还有'}}</view>
+      <view class="result-number">{{countdown.days}}</view>
+      <view class="result-unit" wx:if="{{countdown.state !== 'today'}}">天</view>
+      <view class="result-detail">{{countdownTarget}} · {{countdown.weekday}}</view>
+    </view>
+    <view class="form-panel">
+      <view class="field-label">目标日期</view>
+      <picker mode="date" value="{{countdownTarget}}" bindchange="onCountdownTargetChange">
+        <view class="date-field">
+          <text>{{countdownTarget}}</text>
+          <text class="field-meta">{{countdown.weekday}}</text>
+        </view>
+      </picker>
+      <view class="notice">倒数日以设备当前日期 {{today}} 为基准。</view>
+    </view>
+  </block>
+
+  <button class="primary-button" bindtap="copyResult">
+    <ui-icon name="copy" size="{{25}}" tone="white" />
+    <text>复制结果</text>
+  </button>
+</view>

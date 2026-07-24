@@ -54,6 +54,13 @@ const TOOLS = [
     icon: "code",
     tone: "blue",
     url: "/packages/tools/career/index"
+  },
+  {
+    id: "huawei-sim",
+    label: "华子研发模拟",
+    icon: "shield",
+    tone: "accent",
+    url: "/packages/tools/huawei-sim/index"
   }
 ];
 

@@ -21,7 +21,8 @@ const toolPages = [
   "wheel/index",
   "career/index",
   "career/play",
-  "career/archive"
+  "career/archive",
+  "huawei-sim/index"
 ];
 const removedPages = ["cleanup", "demo", "insights", "story", "travel-map", "yearbook"];
 

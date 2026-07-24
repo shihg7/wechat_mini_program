@@ -1,0 +1,7 @@
+{
+  "navigationBarTitleText": "华子研发模拟",
+  "disableScroll": true,
+  "usingComponents": {
+    "ui-icon": "/components/ui-icon/index"
+  }
+}

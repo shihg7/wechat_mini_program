@@ -1,0 +1,304 @@
+<view class="hw-page">
+  <view class="hero">
+    <view class="hero-icon">
+      <ui-icon name="code" size="{{34}}" tone="white" />
+    </view>
+    <view class="hero-copy">
+      <view class="hero-kicker">UNOFFICIAL WORKPLACE SIM</view>
+      <view class="hero-title">华子研发模拟</view>
+      <view class="hero-subtitle">听懂黑话，也看见每个选择的代价</view>
+    </view>
+    <view class="offline-chip">纯离线</view>
+  </view>
+
+  <view class="tab-bar" aria-label="切换模拟和黑话词典">
+    <view
+      class="tab-item {{activeTab === 'simulation' ? 'tab-active' : ''}}"
+      data-tab="simulation"
+      bindtap="switchTab"
+      role="button"
+      aria-label="研发模拟"
+    >
+      <ui-icon name="play" size="{{24}}" tone="{{activeTab === 'simulation' ? 'accent' : 'muted'}}" />
+      <text>研发模拟</text>
+    </view>
+    <view
+      class="tab-item {{activeTab === 'glossary' ? 'tab-active' : ''}}"
+      data-tab="glossary"
+      bindtap="switchTab"
+      role="button"
+      aria-label="黑话词典"
+    >
+      <ui-icon name="book" size="{{24}}" tone="{{activeTab === 'glossary' ? 'accent' : 'muted'}}" />
+      <text>黑话词典</text>
+    </view>
+  </view>
+
+  <scroll-view
+    wx:if="{{activeTab === 'simulation'}}"
+    class="content-scroll"
+    scroll-y
+    enhanced
+    bounces="{{false}}"
+    show-scrollbar="{{false}}"
+  >
+    <view class="intro-screen" wx:if="{{screen === 'intro'}}">
+      <view class="disclaimer-band">
+        <ui-icon name="alert" size="{{26}}" tone="accent" />
+        <text>{{disclaimer}}</text>
+      </view>
+
+      <view class="content-counter">
+        <view class="counter-cell">
+          <text class="counter-value">{{contentStats.termCount}}</text>
+          <text class="counter-label">公开词条</text>
+        </view>
+        <view class="counter-cell">
+          <text class="counter-value">{{contentStats.eventCount}}</text>
+          <text class="counter-label">虚构情景</text>
+        </view>
+        <view class="counter-cell">
+          <text class="counter-value">{{contentStats.choicesPerRun}}</text>
+          <text class="counter-label">每次抉择</text>
+        </view>
+      </view>
+
+      <view class="intro-lead">
+        <view class="section-kicker">YOUR FIRST DAY</view>
+        <view class="intro-title">PBC 刚写完，TR 又来了</view>
+        <view class="intro-copy">四个阶段会随机抽取研发现场。交付、技术、能量与影响会共同形成你的最终画像。</view>
+      </view>
+
+      <view class="term-ribbon">
+        <view class="term-chip" wx:for="{{featuredTerms}}" wx:key="id">{{item.term}}</view>
+      </view>
+
+      <button class="primary-button icon-action" bindtap="startSimulation" aria-label="开始十二回合研发情景模拟">
+        <ui-icon name="play" size="{{27}}" tone="white" />
+        <text>开始情景模拟</text>
+      </button>
+
+      <view class="privacy-note icon-label">
+        <ui-icon name="shield" size="{{22}}" tone="green" />
+        <text>不写缓存，不进入备份，离开页面即结束</text>
+      </view>
+
+      <view class="source-section">
+        <view class="section-title">内容边界</view>
+        <view class="source-row" wx:for="{{sourceSummary}}" wx:key="*this">
+          <view class="source-dot"></view>
+          <text>{{item}}</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="run-screen" wx:elif="{{screen === 'run' && runView}}">
+      <view class="progress-band">
+        <view class="progress-top">
+          <view>
+            <view class="stage-title">{{runView.stageTitle}}</view>
+            <view class="stage-subtitle">{{runView.stageSubtitle}}</view>
+          </view>
+          <view class="progress-count">{{runView.eventNumber}} / {{runView.totalEvents}}</view>
+        </view>
+        <view class="progress-track">
+          <view class="progress-fill" style="width: {{runView.progress}}%;"></view>
+        </view>
+      </view>
+
+      <view class="stat-grid">
+        <view class="stat-cell" wx:for="{{runView.stats}}" wx:key="id">
+          <view class="stat-value">{{item.value}}</view>
+          <view class="stat-label">{{item.shortLabel}}</view>
+          <view class="stat-track">
+            <view class="stat-fill stat-fill-{{item.tone}}" style="width: {{item.value}}%;"></view>
+          </view>
+        </view>
+      </view>
+
+      <view class="event-panel">
+        <view class="event-meta">
+          <view class="term-badge">{{runView.term.term}}</view>
+          <view class="event-number">情景 {{runView.eventNumber}}</view>
+        </view>
+        <view class="event-title">{{runView.title}}</view>
+        <view class="event-situation">{{runView.situation}}</view>
+        <view class="plain-translation">
+          <view class="translation-label">人话翻译</view>
+          <view class="translation-copy">{{runView.term.plain}}</view>
+        </view>
+      </view>
+
+      <view class="choice-section" wx:if="{{!runView.isFeedback}}">
+        <view class="choice-heading">你会怎么处理？</view>
+        <view
+          class="choice-card"
+          wx:for="{{runView.choices}}"
+          wx:key="id"
+          data-id="{{item.id}}"
+          bindtap="chooseOption"
+          hover-class="choice-card-hover"
+          role="button"
+          aria-label="选项 {{item.mark}}，{{item.text}}"
+        >
+          <view class="choice-mark">{{item.mark}}</view>
+          <view class="choice-copy">
+            <text class="choice-text">{{item.text}}</text>
+            <view class="choice-tags">
+              <text class="choice-tag" wx:for="{{item.tags}}" wx:for-item="tag" wx:key="*this">{{tag}}</text>
+            </view>
+          </view>
+          <ui-icon name="chevron-right" size="{{25}}" tone="muted" />
+        </view>
+      </view>
+
+      <view class="feedback-panel" wx:else>
+        <view class="feedback-kicker">CHOICE LOCKED</view>
+        <view class="feedback-choice">{{runView.feedback.choiceText}}</view>
+        <view class="feedback-outcome">{{runView.feedback.outcome}}</view>
+        <view class="delta-list" wx:if="{{runView.feedback.deltas.length}}">
+          <view class="delta-item delta-{{item.direction}}" wx:for="{{runView.feedback.deltas}}" wx:key="id">
+            <text>{{item.label}}</text>
+            <text class="delta-value">{{item.text}}</text>
+          </view>
+        </view>
+        <button class="primary-button feedback-button icon-action" bindtap="continueSimulation">
+          <text>{{runView.continueLabel}}</text>
+          <ui-icon name="chevron-right" size="{{25}}" tone="white" />
+        </button>
+      </view>
+
+      <button class="text-button" bindtap="restartSimulation">重新抽一组情景</button>
+    </view>
+
+    <view class="result-screen" wx:elif="{{screen === 'result' && resultView}}">
+      <view class="result-hero">
+        <view class="result-icon">
+          <ui-icon name="{{resultView.persona.icon}}" size="{{42}}" tone="white" />
+        </view>
+        <view class="result-kicker">YOUR R&amp;D PROFILE</view>
+        <view class="result-title">{{resultView.persona.title}}</view>
+        <view class="result-subtitle">{{resultView.persona.subtitle}}</view>
+      </view>
+
+      <view class="result-description">{{resultView.persona.description}}</view>
+
+      <view class="result-stats">
+        <view class="result-stat" wx:for="{{resultView.stats}}" wx:key="id">
+          <view class="result-stat-top">
+            <text>{{item.label}}</text>
+            <text>{{item.value}}</text>
+          </view>
+          <view class="result-track">
+            <view class="stat-fill stat-fill-{{item.tone}}" style="width: {{item.value}}%;"></view>
+          </view>
+        </view>
+      </view>
+
+      <view class="keyword-row" wx:if="{{resultView.keywords.length}}">
+        <view class="keyword-chip" wx:for="{{resultView.keywords}}" wx:key="*this">{{item}}</view>
+      </view>
+
+      <view class="result-actions">
+        <button class="primary-button icon-action" bindtap="copyResult">
+          <ui-icon name="copy" size="{{25}}" tone="white" />
+          <text>复制模拟总结</text>
+        </button>
+        <button class="secondary-button icon-action" bindtap="restartSimulation">
+          <ui-icon name="refresh" size="{{24}}" tone="accent" />
+          <text>再模拟一次</text>
+        </button>
+      </view>
+
+      <view class="history-section">
+        <view class="section-title">你的现场记录 · {{resultView.choiceCount}} 次选择</view>
+        <view class="history-row" wx:for="{{resultView.history}}" wx:key="id">
+          <view class="history-index">{{item.index}}</view>
+          <view class="history-copy">
+            <view class="history-meta">{{item.term}} · {{item.eventTitle}}</view>
+            <view class="history-choice">{{item.choiceText}}</view>
+          </view>
+        </view>
+      </view>
+
+      <button class="text-button" bindtap="backToIntro">返回开场</button>
+    </view>
+
+    <view class="bottom-space"></view>
+  </scroll-view>
+
+  <scroll-view
+    wx:else
+    class="content-scroll dictionary-scroll"
+    scroll-y
+    enhanced
+    bounces="{{false}}"
+    show-scrollbar="{{false}}"
+  >
+    <view class="dictionary-head">
+      <view class="dictionary-title">黑话词典</view>
+      <view class="dictionary-copy">公开语境的通俗翻译，不是内部资料，也不是企业背书。</view>
+      <view class="search-box">
+        <ui-icon name="search" size="{{25}}" tone="muted" />
+        <input
+          class="search-input"
+          value="{{glossaryQuery}}"
+          placeholder="搜索 PBC、TR、打粮食……"
+          bindinput="onGlossaryInput"
+          confirm-type="search"
+          aria-label="搜索黑话词典"
+        />
+        <view class="clear-search icon-center" wx:if="{{glossaryQuery}}" bindtap="clearGlossarySearch" role="button" aria-label="清空搜索">
+          <ui-icon name="x" size="{{23}}" tone="muted" />
+        </view>
+      </view>
+    </view>
+
+    <scroll-view class="category-scroll" scroll-x enhanced show-scrollbar="{{false}}">
+      <view class="category-row">
+        <view
+          class="category-chip {{glossaryCategory === item.id ? 'category-active' : ''}}"
+          wx:for="{{glossaryCategories}}"
+          wx:key="id"
+          data-id="{{item.id}}"
+          bindtap="selectGlossaryCategory"
+          role="button"
+        >
+          {{item.label}}
+        </view>
+      </view>
+    </scroll-view>
+
+    <view class="result-count">找到 {{glossaryResults.length}} 个词条</view>
+
+    <view class="glossary-list" wx:if="{{glossaryResults.length}}">
+      <view class="glossary-card" wx:for="{{glossaryResults}}" wx:key="id">
+        <view class="glossary-top">
+          <view class="glossary-term">{{item.term}}</view>
+          <view class="source-badge source-{{item.sourceTone}}">{{item.sourceLabel}}</view>
+        </view>
+        <view class="glossary-plain">{{item.plain}}</view>
+        <view class="glossary-usage">{{item.usage}}</view>
+        <view
+          class="copy-term icon-label"
+          data-id="{{item.id}}"
+          bindtap="copyGlossaryTerm"
+          role="button"
+          aria-label="复制 {{item.term}} 词条"
+        >
+          <ui-icon name="copy" size="{{21}}" tone="blue" />
+          <text>复制解释</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="empty-state" wx:else>
+      <ui-icon name="search" size="{{38}}" tone="muted" />
+      <view class="empty-title">没有找到对应词条</view>
+      <view class="empty-copy">换一个缩写、中文词或分类试试。</view>
+    </view>
+
+    <view class="dictionary-disclaimer">{{disclaimer}}</view>
+    <view class="bottom-space"></view>
+  </scroll-view>
+</view>

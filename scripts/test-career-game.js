@@ -44,6 +44,28 @@ const runB = engine.createInitialRun({
 });
 assert.deepStrictEqual(runA.stageEventIds, runB.stageEventIds);
 assert.strictEqual(runA.stageEventIds.length, engine.EVENTS_PER_STAGE);
+assert.strictEqual(runA.schemaVersion, 2);
+assert.strictEqual(runA.mode, "free");
+assert.deepStrictEqual(runA.stageStartStats, engine.INITIAL_STATS);
+
+const dailyRunA = engine.createInitialRun({
+  id: "daily_a",
+  playerName: "小码",
+  seed: "career-daily-v1:2026-07-24",
+  mode: "daily",
+  challengeDate: "2026-07-24",
+  timestamp: "2026-07-24T00:00:00.000Z"
+});
+const dailyRunB = engine.createInitialRun({
+  id: "daily_b",
+  playerName: "小码",
+  seed: "career-daily-v1:2026-07-24",
+  mode: "daily",
+  challengeDate: "2026-07-24",
+  timestamp: "2026-07-24T08:00:00.000Z"
+});
+assert.deepStrictEqual(dailyRunA.stageEventIds, dailyRunB.stageEventIds);
+assert.strictEqual(dailyRunA.challengeDate, "2026-07-24");
 const stageTwoWithoutDocs = engine.buildStageEventIds(1, {
   ...runA,
   stageIndex: 1,
@@ -86,6 +108,23 @@ content.ENDINGS.forEach((ending) => {
   );
 });
 
+const upgradedLegacyRun = store.normalizeRun((() => {
+  const legacy = { ...runA, schemaVersion: 1 };
+  delete legacy.mode;
+  delete legacy.challengeDate;
+  delete legacy.stageStartStats;
+  return legacy;
+})());
+assert.strictEqual(upgradedLegacyRun.schemaVersion, 2);
+assert.strictEqual(upgradedLegacyRun.mode, "free");
+assert.deepStrictEqual(upgradedLegacyRun.stageStartStats, upgradedLegacyRun.stats);
+
+store.setRuns([]);
+const dailyStoredA = store.startRun("今日小码", { mode: "daily", challengeDate: "2026-07-24" });
+const dailyStoredB = store.restartRun("今日小码", { mode: "daily", challengeDate: "2026-07-24" });
+assert.strictEqual(dailyStoredA.mode, "daily");
+assert.strictEqual(dailyStoredB.seed, dailyStoredA.seed);
+assert.deepStrictEqual(dailyStoredB.stageEventIds, dailyStoredA.stageEventIds);
 store.setRuns([]);
 assert.throws(() => store.startRun("   ", "seed"), /昵称/);
 const started = store.startRun("  小码  ", "stable-seed");
@@ -94,6 +133,8 @@ assert.strictEqual(store.getActiveRun().id, started.id);
 let view = store.getCurrentView();
 assert.strictEqual(view.phase, "scene");
 assert.strictEqual(view.scene.choices.length >= 2, true);
+assert.strictEqual(view.persona.id, "uncompiled");
+assert.strictEqual(view.achievements.total, 12);
 
 const firstChoice = view.scene.choices[0];
 store.applyChoice(view.runId, view.scene.id, firstChoice.id);
@@ -114,6 +155,7 @@ assert.strictEqual(store.getRunById(interrupted.id).status, "interrupted");
 assert(store.getCareerArchive().some((run) => run.id === interrupted.id));
 
 let safety = 0;
+let chapterReportSeen = false;
 while (store.getActiveRun() && safety < 120) {
   const current = store.getCurrentView();
   if (current.phase === "scene") {
@@ -124,15 +166,26 @@ while (store.getActiveRun() && safety < 120) {
     }) || current.scene.choices[0];
     store.applyChoice(current.runId, current.scene.id, choice.id);
   } else {
+    if (current.phase === "chapter") {
+      chapterReportSeen = true;
+      assert(current.chapter.style.title);
+      assert.strictEqual(current.chapter.deltas.length, 5);
+      assert(current.chapter.nextTitle);
+    }
     store.continueRun(current.runId);
   }
   safety += 1;
 }
 assert(safety < 120, "a complete career should terminate");
+assert(chapterReportSeen, "a full run should expose chapter reports");
 const completed = store.getRuns().find((run) => run.status === "completed");
 assert(completed && completed.endingId);
 assert.strictEqual(completed.history.length, engine.TOTAL_EVENTS);
 assert.strictEqual(store.getEndingProgress().unlocked, 1);
+assert(store.getAchievementProgress().unlocked >= 3);
+const careerSummary = store.buildCareerSummary(completed.id);
+assert(careerSummary.includes(completed.playerName));
+assert(careerSummary.includes("职业画像"));
 
 store.setRuns([
   { ...started, id: "older_active", updatedAt: "2026-07-24T00:00:00.000Z", status: "active" },

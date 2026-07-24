@@ -41,7 +41,10 @@
           <text wx:if="{{activeRun.stageRank}}"> · {{activeRun.stageRank}}</text>
         </view>
         <view class="active-footer">
-          <view class="phase-chip">{{activeRun.phaseLabel}}</view>
+          <view class="active-meta-chips">
+            <view class="phase-chip">{{activeRun.phaseLabel}}</view>
+            <view class="mode-chip">{{activeRun.modeLabel}}</view>
+          </view>
           <button class="continue-button icon-action" bindtap="continueActive" aria-label="继续当前程序员生涯">
             <ui-icon name="play" size="{{25}}" tone="white" />
             <text>继续生涯</text>
@@ -51,15 +54,15 @@
 
       <view class="progress-band">
         <view class="progress-copy">
-          <view class="section-kicker">结局收集</view>
-          <view class="progress-title">已解锁 {{endingProgress.unlocked}} / {{endingProgress.total}}</view>
+          <view class="section-kicker">生涯收藏</view>
+          <view class="progress-title">{{endingProgress.unlocked}} 个结局 · {{achievementProgress.unlocked}} 项成就</view>
         </view>
         <view class="progress-side">
-          <view class="progress-track" aria-label="结局解锁进度 {{endingProgress.percent}}%">
-            <view class="progress-fill" style="width: {{endingProgress.percent}}%;"></view>
+          <view class="progress-track" aria-label="生涯收藏进度 {{collectionPercent}}%">
+            <view class="progress-fill" style="width: {{collectionPercent}}%;"></view>
           </view>
-          <view class="progress-link icon-label" bindtap="openArchive" role="button" aria-label="查看十二种结局">
-            <text>查看图鉴</text>
+          <view class="progress-link icon-label" bindtap="openArchive" role="button" aria-label="查看结局和成就图鉴">
+            <text>查看收藏</text>
             <ui-icon name="chevron-right" size="{{22}}" tone="blue" />
           </view>
         </view>
@@ -72,6 +75,27 @@
             <view class="section-title">开启一段新生涯</view>
           </view>
           <view class="nickname-count">{{nicknameCount}} / 12</view>
+        </view>
+        <view class="mode-switch" aria-label="选择游戏模式">
+          <view
+            class="mode-option {{startMode === item.id ? 'mode-active' : ''}}"
+            wx:for="{{modeOptions}}"
+            wx:key="id"
+            data-mode="{{item.id}}"
+            bindtap="selectStartMode"
+            role="button"
+            aria-label="{{item.title}}，{{item.subtitle}}"
+          >
+            <ui-icon name="{{item.icon}}" size="{{27}}" tone="{{startMode === item.id ? 'white' : 'blue'}}" />
+            <view>
+              <view class="mode-title">{{item.title}}</view>
+              <view class="mode-subtitle">{{item.subtitle}}</view>
+            </view>
+          </view>
+        </view>
+        <view class="mode-description icon-label">
+          <ui-icon name="{{startMode === 'daily' ? 'calendar' : 'sparkles'}}" size="{{22}}" tone="{{startMode === 'daily' ? 'amber' : 'green'}}" />
+          <text>{{startMode === "daily" ? dailyChallenge.description : "每次开局抽取新的种子事件，适合自由探索。"}}</text>
         </view>
         <view class="nickname-field">
           <ui-icon name="users" size="{{27}}" tone="muted" />
@@ -87,8 +111,8 @@
           />
         </view>
         <button class="start-button icon-action" loading="{{starting}}" bindtap="startNew" aria-label="开始新的程序员生涯">
-          <ui-icon name="zap" size="{{28}}" tone="white" />
-          <text>{{activeRun ? "重新开局" : "开始第一天"}}</text>
+          <ui-icon name="{{startMode === 'daily' ? 'calendar' : 'zap'}}" size="{{28}}" tone="white" />
+          <text>{{activeRun ? "重新开局" : (startMode === "daily" ? "接受今日命题" : "开始第一天")}}</text>
         </button>
         <view class="save-note icon-label">
           <ui-icon name="shield" size="{{22}}" tone="green" />
@@ -127,7 +151,7 @@
           <view class="recent-index">{{index + 1}}</view>
           <view class="recent-main">
             <view class="recent-title">{{item.endingTitle}}</view>
-            <view class="recent-meta">{{item.playerName}} · {{item.stageTitle}} · {{item.choiceCount}} 次选择</view>
+            <view class="recent-meta">{{item.playerName}} · {{item.modeLabel}} · {{item.personaTitle}}</view>
           </view>
           <view class="recent-date">{{item.displayDate}}</view>
           <ui-icon name="chevron-right" size="{{23}}" tone="muted" />

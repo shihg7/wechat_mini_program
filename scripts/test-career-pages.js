@@ -5,10 +5,12 @@ const path = require("path");
 const memory = {};
 const ui = {
   backCount: 0,
+  clipboards: [],
   modals: [],
   navigations: [],
   redirects: [],
-  toasts: []
+  toasts: [],
+  vibrations: []
 };
 
 function clone(value) {
@@ -27,6 +29,13 @@ global.wx = {
   },
   showModal(options) {
     ui.modals.push(options);
+  },
+  setClipboardData(options) {
+    ui.clipboards.push(options.data);
+    if (options.success) options.success();
+  },
+  vibrateShort(options) {
+    ui.vibrations.push(options && options.type);
   },
   navigateTo(options) {
     ui.navigations.push(options.url);
@@ -79,6 +88,8 @@ indexPage.onShow();
 assert.strictEqual(indexPage.data.loading, false);
 assert.strictEqual(indexPage.data.activeRun, null);
 assert.strictEqual(indexPage.data.endingProgress.total, 12);
+assert.strictEqual(indexPage.data.achievementProgress.total, 12);
+assert.strictEqual(indexPage.data.modeOptions.length, 2);
 
 indexPage.startNew();
 assert.strictEqual(ui.toasts.pop().title, "先输入你的昵称");
@@ -86,8 +97,11 @@ assert.strictEqual(ui.toasts.pop().title, "先输入你的昵称");
 indexPage.onNicknameInput({ detail: { value: " 小码同学 " } });
 indexPage.onNicknameBlur();
 assert.strictEqual(indexPage.data.nickname, "小码同学");
+indexPage.selectStartMode({ currentTarget: { dataset: { mode: "daily" } } });
+assert.strictEqual(indexPage.data.startMode, "daily");
 indexPage.startNew();
 assert.strictEqual(store.getActiveRun().playerName, "小码同学");
+assert.strictEqual(store.getActiveRun().mode, "daily");
 const firstRunId = store.getActiveRun().id;
 assert.strictEqual(
   ui.navigations.pop(),
@@ -97,6 +111,7 @@ assert.strictEqual(
 
 indexPage.onShow();
 assert.strictEqual(indexPage.data.activeRun.runId, firstRunId);
+assert(indexPage.data.activeRun.modeLabel.includes("挑战"));
 indexPage.continueActive();
 assert.strictEqual(ui.navigations.pop(), `/packages/tools/career/play?id=${firstRunId}`);
 indexPage.openArchive();
@@ -132,19 +147,31 @@ assert.strictEqual(
 );
 
 let guard = 0;
+let chapterViewSeen = false;
 while (playPage.data.view.phase !== "ending" && guard < 120) {
   if (playPage.data.view.phase === "scene") {
     const choiceId = playPage.data.view.scene.choices[0].id;
     playPage.chooseOption({ currentTarget: { dataset: { choiceId } } });
   } else {
+    if (playPage.data.view.phase === "chapter") {
+      chapterViewSeen = true;
+      assert.strictEqual(playPage.data.view.chapter.deltas.length, 5);
+      assert(playPage.data.view.chapter.style.title);
+    }
     playPage.advance();
   }
   guard += 1;
 }
 assert(guard < 120, "page interactions should reach an ending");
+assert(chapterViewSeen);
 assert.strictEqual(playPage.data.view.phase, "ending");
 assert.strictEqual(playPage.data.missing, false, "completed run must remain visible by run id");
 assert(store.getRunById(activeRun.id).endingId);
+assert(playPage.data.view.persona.title);
+assert(playPage.data.view.achievements.unlocked >= 3);
+playPage.copyCareerSummary();
+assert(ui.clipboards.at(-1).includes("程序员生涯"));
+assert(ui.toasts.at(-1).title.includes("已复制"));
 
 playPage.openArchive();
 assert.strictEqual(ui.navigations.pop(), "/packages/tools/career/archive");
@@ -165,10 +192,13 @@ assert.strictEqual(ui.redirects.pop(), "/packages/tools/career/index");
 const archivePage = loadPage("../miniprogram/packages/tools/career/archive.js");
 archivePage.onShow();
 assert.strictEqual(archivePage.data.progress.total, 12);
+assert.strictEqual(archivePage.data.achievements.total, 12);
 assert(archivePage.data.runs.length >= 2);
 const archiveId = archivePage.data.runs[0].id;
 archivePage.toggleRun({ currentTarget: { dataset: { id: archiveId } } });
 assert.strictEqual(archivePage.data.runs[0].expanded, true);
+archivePage.copyRunSummary({ currentTarget: { dataset: { id: archiveId } } });
+assert(ui.clipboards.at(-1).includes("职业画像"));
 archivePage.toggleRun({ currentTarget: { dataset: { id: archiveId } } });
 assert.strictEqual(archivePage.data.runs[0].expanded, false);
 
@@ -193,16 +223,31 @@ assert(indexWxml.includes("career-start-input"));
 assert(indexWxml.includes("start-button"));
 assert(indexWxml.includes("continue-button"));
 assert(indexWxml.includes("archive-button"));
+assert(indexWxml.includes("mode-option"));
 assert(playWxml.includes("fixed-status"));
 assert(playWxml.includes("story-scroll"));
 assert(playWxml.includes("fixed-actions"));
 assert(playWxml.includes("choice-button"));
+assert(playWxml.includes("choice-content"));
+assert(playWxml.includes("choice-count-{{view.scene.choices.length}}"));
+assert(playWxml.includes('aria-role="button"'));
 assert(playWxml.includes("advance-button"));
 assert(playWxml.includes("ending-archive-button"));
+assert(playWxml.includes("career-context"));
+assert(playWxml.includes("chapter-deltas"));
+assert(playWxml.includes("career-copy-button"));
 assert(archiveWxml.includes("ending-item"));
+assert(archiveWxml.includes("achievement-item"));
 assert(archiveWxml.includes("career-run-item"));
+assert(archiveWxml.includes("copy-summary-button"));
 assert(playWxss.includes("height: 100vh"));
 assert(playWxss.includes("overflow: hidden"));
+assert(playWxss.includes(".choice-content"));
+assert(playWxss.includes(".choice-count-3 .choice-button"));
+assert(playWxss.includes("align-self: stretch"));
+assert(playWxss.includes(".choice-button-hover"));
+assert(playWxss.includes("white-space: normal"));
+assert(!playWxss.includes("-webkit-line-clamp"));
 assert(!playWxss.includes("linear-gradient"));
 assert(!playWxss.includes("radial-gradient"));
 

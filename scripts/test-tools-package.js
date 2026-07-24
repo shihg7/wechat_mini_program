@@ -35,4 +35,8 @@ removedPages.forEach((pageName) => {
   assert(!fs.existsSync(path.join(root, pageName, "index.js")), `${pageName} should not remain in the tools package`);
 });
 
+const careerMeta = require(path.join(root, "utils", "careerGameMeta.js"));
+assert.strictEqual(careerMeta.getAchievementProgress([]).total, 12);
+assert.strictEqual(careerMeta.getDailyChallenge("2026-07-24").date, "2026-07-24");
+
 console.log(`tool package module smoke tests passed (${toolPages.length} pages)`);

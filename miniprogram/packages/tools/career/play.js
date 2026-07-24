@@ -70,6 +70,15 @@ function echoView(echo, index) {
   };
 }
 
+function safeVibrate(type = "light") {
+  if (!wx.vibrateShort) return;
+  try {
+    wx.vibrateShort({ type });
+  } catch (error) {
+    // Haptics are optional and must not block a choice.
+  }
+}
+
 function normalizeView(view) {
   if (!view) return null;
   const stage = view.stage || {};
@@ -80,6 +89,23 @@ function normalizeView(view) {
   return {
     ...view,
     phase,
+    mode: view.mode || { id: "free", label: "自由生涯", shortLabel: "自由生涯" },
+    persona: view.persona || {
+      id: "uncompiled",
+      title: "待编译新人",
+      description: "职业画像仍在形成",
+      icon: "code",
+      tone: "muted"
+    },
+    signal: view.signal || {
+      title: "职业信号",
+      text: "每一次选择都会留下痕迹",
+      icon: "sparkles",
+      tone: "blue"
+    },
+    keywords: (Array.isArray(view.keywords) ? view.keywords : []).slice(0, 3),
+    foreshadowCount: Math.max(0, Number(view.foreshadowCount || 0)),
+    foreshadowText: String(view.foreshadowText || ""),
     stage: {
       ...stage,
       index: stageIndex(stage),
@@ -103,7 +129,12 @@ function normalizeView(view) {
       deltas: (view.outcome && Array.isArray(view.outcome.deltas) ? view.outcome.deltas : []).map(deltaView),
       echoes: (view.outcome && Array.isArray(view.outcome.echoes) ? view.outcome.echoes : []).map(echoView)
     },
-    chapter: view.chapter || {},
+    chapter: {
+      ...(view.chapter || {}),
+      deltas: (view.chapter && Array.isArray(view.chapter.deltas) ? view.chapter.deltas : []).map(deltaView),
+      style: view.chapter && view.chapter.style || {},
+      turningPoint: view.chapter && view.chapter.turningPoint || null
+    },
     ending: view.ending || {}
   };
 }
@@ -159,6 +190,7 @@ Page({
     this.setData({ choosingId: choiceId });
     try {
       careerGameStore.applyChoice(view.runId, view.scene.id, choiceId);
+      safeVibrate("light");
       this.loadCurrentView();
     } catch (error) {
       this.setData({ choosingId: "" });
@@ -176,6 +208,7 @@ Page({
     this.setData({ advancing: true });
     try {
       careerGameStore.continueRun(view.runId);
+      safeVibrate(view.phase === "chapter" ? "medium" : "light");
       this.loadCurrentView();
     } catch (error) {
       this.setData({ advancing: false });
@@ -198,8 +231,15 @@ Page({
       success: (result) => {
         if (!result.confirm) return;
         try {
-          const run = careerGameStore.restartRun(playerName);
+          const options = this.data.view.mode && this.data.view.mode.id === "daily"
+            ? {
+              mode: "daily",
+              challengeDate: this.data.view.mode.challengeDate
+            }
+            : { mode: "free" };
+          const run = careerGameStore.restartRun(playerName, options);
           this.setData({ runId: run.id });
+          safeVibrate("medium");
           this.loadCurrentView();
         } catch (error) {
           wx.showToast({ title: error.message || "无法重新开局", icon: "none" });
@@ -210,6 +250,32 @@ Page({
 
   openArchive() {
     wx.navigateTo({ url: "/packages/tools/career/archive" });
+  },
+
+  copyCareerSummary() {
+    const runId = this.data.runId;
+    if (!runId) return;
+    try {
+      const summary = careerGameStore.buildCareerSummary(runId);
+      if (!wx.setClipboardData) {
+        wx.showModal({
+          title: "生涯总结",
+          content: summary,
+          showCancel: false
+        });
+        return;
+      }
+      wx.setClipboardData({
+        data: summary,
+        success: () => {
+          safeVibrate("light");
+          wx.showToast({ title: "生涯总结已复制", icon: "success" });
+        },
+        fail: () => wx.showToast({ title: "复制失败，请稍后重试", icon: "none" })
+      });
+    } catch (error) {
+      wx.showToast({ title: error.message || "暂时无法生成总结", icon: "none" });
+    }
   },
 
   returnToCareer() {

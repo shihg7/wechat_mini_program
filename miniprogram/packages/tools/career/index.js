@@ -34,6 +34,9 @@ function activeRunView(view) {
     phaseLabel: phaseLabel(view.phase),
     stageTitle: stage.title || "职业起点",
     stageRank: stage.rank || "",
+    modeLabel: view.mode && view.mode.shortLabel || "自由生涯",
+    personaTitle: view.persona && view.persona.title || "待编译新人",
+    personaTone: view.persona && view.persona.tone || "muted",
     progressText: `${Number(progress.current || 0)} / ${Number(progress.total || 0)}`,
     updatedText: view.status === "completed" ? "已完成" : "自动存档"
   };
@@ -45,6 +48,8 @@ function archiveRunView(run) {
     displayDate: formatDate(run.completedAt || run.updatedAt || run.startedAt),
     endingTitle: run.endingTitle || "未抵达结局",
     stageTitle: run.stageTitle || "职业起点",
+    modeLabel: run.mode && run.mode.shortLabel || "自由生涯",
+    personaTitle: run.persona && run.persona.title || "待编译新人",
     choiceCount: Number(run.choiceCount || 0)
   };
 }
@@ -59,6 +64,35 @@ function endingProgressView(progress) {
   };
 }
 
+function achievementProgressView(progress) {
+  const total = Math.max(1, Number(progress && progress.total || 12));
+  const unlocked = Math.min(total, Math.max(0, Number(progress && progress.unlocked || 0)));
+  return {
+    total,
+    unlocked,
+    percent: Math.round(unlocked / total * 100)
+  };
+}
+
+function modeOptionsView(dailyChallenge) {
+  return [
+    {
+      id: "free",
+      title: "自由生涯",
+      subtitle: "每次随机事件",
+      icon: "route"
+    },
+    {
+      id: "daily",
+      title: "今日挑战",
+      subtitle: `${dailyChallenge.shortLabel} 固定命运`,
+      icon: "calendar"
+    }
+  ];
+}
+
+const initialDailyChallenge = careerGameStore.getDailyChallenge();
+
 Page({
   data: {
     nickname: "",
@@ -66,6 +100,11 @@ Page({
     activeRun: null,
     recentRuns: [],
     endingProgress: endingProgressView(null),
+    achievementProgress: achievementProgressView(null),
+    collectionPercent: 0,
+    startMode: "free",
+    dailyChallenge: initialDailyChallenge,
+    modeOptions: modeOptionsView(initialDailyChallenge),
     loading: true,
     loadFailed: false,
     starting: false
@@ -79,7 +118,7 @@ Page({
     try {
       const currentView = careerGameStore.getCurrentView();
       const archive = careerGameStore.getCareerArchive();
-      const progress = careerGameStore.getEndingProgress();
+      const collection = careerGameStore.getCollectionProgress();
       const activeRun = activeRunView(currentView);
       const nickname = this.data.nickname || activeRun && activeRun.playerName || "";
       this.setData({
@@ -91,7 +130,9 @@ Page({
           .sort((left, right) => Number(new Date(right.updatedAt || right.completedAt || 0)) - Number(new Date(left.updatedAt || left.completedAt || 0)))
           .slice(0, 3)
           .map(archiveRunView),
-        endingProgress: endingProgressView(progress),
+        endingProgress: endingProgressView(collection.endings),
+        achievementProgress: achievementProgressView(collection.achievements),
+        collectionPercent: collection.percent,
         loading: false,
         loadFailed: false
       });
@@ -115,6 +156,13 @@ Page({
       nickname,
       nicknameCount: characterCount(nickname)
     });
+  },
+
+  selectStartMode(event) {
+    const mode = event.currentTarget.dataset.mode;
+    if (mode !== "free" && mode !== "daily") return;
+    this.setData({ startMode: mode });
+    if (wx.vibrateShort) wx.vibrateShort({ type: "light" });
   },
 
   continueActive() {
@@ -152,9 +200,12 @@ Page({
   beginRun(nickname, restart) {
     this.setData({ starting: true });
     try {
+      const options = this.data.startMode === "daily"
+        ? { mode: "daily", challengeDate: this.data.dailyChallenge.date }
+        : { mode: "free" };
       const run = restart
-        ? careerGameStore.restartRun(nickname)
-        : careerGameStore.startRun(nickname, Date.now());
+        ? careerGameStore.restartRun(nickname, options)
+        : careerGameStore.startRun(nickname, options);
       if (!careerGameStore.getCurrentView(run.id)) {
         throw new Error("新生涯没有正确建立");
       }

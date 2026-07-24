@@ -7,7 +7,9 @@ const {
   getEndingById,
   getEventById
 } = require("./careerGameContent");
+const careerMeta = require("./careerGameMeta");
 
+const RUN_SCHEMA_VERSION = 2;
 const EVENTS_PER_STAGE = 6;
 const POOL_EVENTS_PER_STAGE = 2;
 const TOTAL_EVENTS = STAGES.length * EVENTS_PER_STAGE;
@@ -180,6 +182,12 @@ function buildStageEventIds(stageIndex, run) {
 
 function ensureStageSequence(run) {
   const next = clone(run);
+  next.schemaVersion = RUN_SCHEMA_VERSION;
+  next.mode = careerMeta.normalizeMode(next.mode);
+  next.challengeDate = next.mode === careerMeta.MODE_DAILY
+    ? careerMeta.localDateKey(next.challengeDate || next.startedAt)
+    : "";
+  next.stageStartStats = normalizeStats(next.stageStartStats || next.stats);
   const stage = STAGES[next.stageIndex];
   const validIds = (next.stageEventIds || []).filter((eventId) => {
     const event = getEventById(eventId);
@@ -195,13 +203,25 @@ function ensureStageSequence(run) {
   return next;
 }
 
-function createInitialRun({ id, playerName, seed, timestamp }) {
+function createInitialRun({
+  id,
+  playerName,
+  seed,
+  timestamp,
+  mode = careerMeta.MODE_FREE,
+  challengeDate = ""
+}) {
   const startedAt = String(timestamp || new Date().toISOString());
+  const normalizedMode = careerMeta.normalizeMode(mode);
   const run = {
-    schemaVersion: 1,
+    schemaVersion: RUN_SCHEMA_VERSION,
     id: String(id),
     playerName: String(playerName),
     seed: String(seed),
+    mode: normalizedMode,
+    challengeDate: normalizedMode === careerMeta.MODE_DAILY
+      ? careerMeta.localDateKey(challengeDate || startedAt)
+      : "",
     status: "active",
     stageIndex: 0,
     stageEventIds: [],
@@ -209,6 +229,7 @@ function createInitialRun({ id, playerName, seed, timestamp }) {
     currentSceneId: "",
     phase: "scene",
     stats: normalizeStats(INITIAL_STATS),
+    stageStartStats: normalizeStats(INITIAL_STATS),
     flags: {},
     pendingEffects: [],
     history: [],
@@ -326,13 +347,9 @@ function continueRun(sourceRun, timestamp = new Date().toISOString()) {
       const ending = resolveEnding(run);
       return completeWithEnding(run, ending.id, timestamp);
     } else {
-      const stage = STAGES[run.stageIndex];
       run.phase = "chapter";
       run.currentSceneId = "";
-      run.chapterSummary = {
-        title: `${stage.title}完成`,
-        summary: `你走完了“${stage.rank}”阶段。没有哪次成长是免费的，好在代码和人都还在继续运行。`
-      };
+      run.chapterSummary = careerMeta.getStageReport(run, run.stageIndex);
     }
   } else if (run.phase === "chapter") {
     run.stageIndex += 1;
@@ -340,6 +357,7 @@ function continueRun(sourceRun, timestamp = new Date().toISOString()) {
     run.eventCursor = 0;
     run.currentSceneId = run.stageEventIds[0] || "";
     run.phase = "scene";
+    run.stageStartStats = normalizeStats(run.stats);
     run.chapterSummary = null;
     run.lastOutcome = null;
   }
@@ -373,11 +391,21 @@ function buildView(sourceRun) {
   const event = run.phase === "scene" ? getEventById(run.currentSceneId) : null;
   const ending = run.endingId ? getEndingById(run.endingId) : null;
   const choiceCount = run.history.length;
+  const persona = careerMeta.getPersona(run);
+  const signal = careerMeta.getCareerSignal(run);
   return {
     runId: run.id,
     playerName: run.playerName,
     status: run.status,
     phase: run.phase,
+    mode: careerMeta.getModeInfo(run),
+    persona,
+    signal,
+    keywords: careerMeta.getTopKeywords(run, 3),
+    foreshadowCount: (run.pendingEffects || []).length,
+    foreshadowText: (run.pendingEffects || []).length
+      ? `${run.pendingEffects.length} 个选择仍在发酵`
+      : "当前没有未结算的远期后果",
     stage: stage ? {
       id: stage.id,
       index: stage.index,
@@ -397,6 +425,8 @@ function buildView(sourceRun) {
     },
     scene: event ? {
       id: event.id,
+      kind: event.kind,
+      kindLabel: event.kind === "pool" ? "命运支线" : "职业主线",
       title: event.title,
       body: event.body,
       choices: getAvailableChoices(event, run).map((choice) => ({
@@ -428,6 +458,7 @@ module.exports = {
   EVENTS_PER_STAGE,
   INITIAL_STATS,
   POOL_EVENTS_PER_STAGE,
+  RUN_SCHEMA_VERSION,
   TOTAL_EVENTS,
   applyEffects,
   buildStageEventIds,

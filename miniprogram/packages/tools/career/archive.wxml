@@ -55,6 +55,32 @@
         </view>
       </view>
 
+      <view class="achievement-section">
+        <view class="section-heading">
+          <view>
+            <view class="section-kicker">12 ACHIEVEMENTS</view>
+            <view class="section-title">职业成就</view>
+          </view>
+          <view class="achievement-count">{{achievements.unlocked}} / {{achievements.total}}</view>
+        </view>
+        <view class="achievement-progress">
+          <view class="achievement-progress-fill" style="width: {{achievements.percent}}%;"></view>
+        </view>
+        <view class="achievement-grid">
+          <view class="achievement-card achievement-item {{item.unlocked ? 'unlocked' : 'locked'}}" wx:for="{{achievements.items}}" wx:key="id">
+            <view class="achievement-topline">
+              <view class="achievement-icon">
+                <ui-icon name="{{item.icon}}" size="{{25}}" tone="{{item.unlocked ? item.tone : 'muted'}}" />
+              </view>
+              <view class="achievement-number">{{item.number}}</view>
+            </view>
+            <view class="achievement-title">{{item.title}}</view>
+            <view class="achievement-hint">{{item.hint}}</view>
+            <view class="achievement-state">{{item.progressText}}</view>
+          </view>
+        </view>
+      </view>
+
       <view class="runs-section">
         <view class="section-heading">
           <view>
@@ -83,7 +109,7 @@
             <view class="run-number">{{index + 1}}</view>
             <view class="run-head-main">
               <view class="run-ending">{{item.endingTitle}}</view>
-              <view class="run-meta">{{item.playerName}} · {{item.displayDate}}</view>
+              <view class="run-meta">{{item.playerName}} · {{item.modeLabel}} · {{item.displayDate}}</view>
             </view>
             <ui-icon name="chevron-right" size="{{25}}" tone="muted" />
           </view>
@@ -92,6 +118,16 @@
             <view><text>关键选择</text><text>{{item.choiceCount}} 次</text></view>
           </view>
           <view class="run-detail" wx:if="{{item.expanded}}">
+            <view class="run-persona">
+              <ui-icon name="{{item.personaIcon}}" size="{{29}}" tone="{{item.personaTone}}" />
+              <view>
+                <view class="detail-label">职业画像 · {{item.statusLabel}}</view>
+                <view class="run-persona-title">{{item.personaTitle}}</view>
+              </view>
+              <view class="run-keywords" wx:if="{{item.keywords.length}}">
+                <text wx:for="{{item.keywords}}" wx:key="*this">#{{item}}</text>
+              </view>
+            </view>
             <view class="detail-label">最终属性</view>
             <view class="final-stats">
               <view class="final-stat" wx:for="{{item.finalStats}}" wx:for-item="stat" wx:key="key">
@@ -108,6 +144,15 @@
                 <view class="choice-outcome" wx:if="{{choice.outcome}}">{{choice.outcome}}</view>
               </view>
             </view>
+            <button
+              class="copy-summary-button icon-action"
+              data-id="{{item.id}}"
+              catchtap="copyRunSummary"
+              aria-label="复制 {{item.playerName}} 的生涯总结"
+            >
+              <ui-icon name="copy" size="{{24}}" tone="blue" />
+              <text>复制这段生涯总结</text>
+            </button>
           </view>
         </view>
       </view>

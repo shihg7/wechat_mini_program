@@ -1,9 +1,10 @@
 const { createId } = require("../../../utils/id");
 const content = require("./careerGameContent");
 const engine = require("./careerGameEngine");
+const careerMeta = require("./careerGameMeta");
 
 const STORAGE_KEY = "toolbox_career_runs";
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = engine.RUN_SCHEMA_VERSION;
 const MAX_NAME_LENGTH = 12;
 const STATUSES = ["active", "completed", "interrupted"];
 const PHASES = ["scene", "outcome", "chapter", "ending"];
@@ -48,6 +49,20 @@ function normalizeHistory(items) {
   })).filter((entry) => entry.eventId && entry.choiceId);
 }
 
+function deriveStageStartStats(input, stats, stageIndex, history) {
+  if (input.stageStartStats && typeof input.stageStartStats === "object") {
+    return engine.normalizeStats(input.stageStartStats);
+  }
+  const stage = content.STAGES[stageIndex];
+  const approximate = { ...stats };
+  (history || []).filter((entry) => stage && entry.stageId === stage.id).forEach((entry) => {
+    Object.keys(entry.deltas || {}).forEach((key) => {
+      approximate[key] = Number(approximate[key] || 0) - Number(entry.deltas[key] || 0);
+    });
+  });
+  return engine.normalizeStats(approximate);
+}
+
 function normalizeRun(input = {}) {
   if (!input || typeof input !== "object" || Array.isArray(input)) throw new Error("生涯记录格式无效");
   const id = String(input.id || "").trim();
@@ -57,21 +72,30 @@ function normalizeRun(input = {}) {
   const phase = PHASES.indexOf(input.phase) >= 0
     ? input.phase
     : (status === "completed" ? "ending" : "scene");
+  const stageIndex = Math.max(0, Math.min(content.STAGES.length - 1, Number(input.stageIndex) || 0));
+  const stats = engine.normalizeStats(input.stats);
+  const history = normalizeHistory(input.history);
+  const mode = careerMeta.normalizeMode(input.mode);
   const run = {
     schemaVersion: SCHEMA_VERSION,
     id,
     playerName: cleanName(input.playerName),
     seed: String(input.seed == null ? id : input.seed),
+    mode,
+    challengeDate: mode === careerMeta.MODE_DAILY
+      ? careerMeta.localDateKey(input.challengeDate || startedAt)
+      : "",
     status,
-    stageIndex: Math.max(0, Math.min(content.STAGES.length - 1, Number(input.stageIndex) || 0)),
+    stageIndex,
     stageEventIds: (Array.isArray(input.stageEventIds) ? input.stageEventIds : []).map(String),
     eventCursor: Math.max(0, Number(input.eventCursor) || 0),
     currentSceneId: String(input.currentSceneId || ""),
     phase,
-    stats: engine.normalizeStats(input.stats),
+    stats,
+    stageStartStats: deriveStageStartStats(input, stats, stageIndex, history),
     flags: engine.normalizeFlags(input.flags),
     pendingEffects: normalizePendingEffects(input.pendingEffects),
-    history: normalizeHistory(input.history),
+    history,
     lastOutcome: clone(input.lastOutcome || null),
     chapterSummary: clone(input.chapterSummary || null),
     endingId: String(input.endingId || ""),
@@ -79,6 +103,9 @@ function normalizeRun(input = {}) {
     updatedAt: String(input.updatedAt || startedAt),
     completedAt: String(input.completedAt || "")
   };
+  if (run.phase === "chapter" && (!run.chapterSummary || !run.chapterSummary.style)) {
+    run.chapterSummary = careerMeta.getStageReport(run, run.stageIndex);
+  }
   if (run.status === "completed") {
     run.phase = "ending";
     run.currentSceneId = "";
@@ -151,23 +178,50 @@ function createSeed() {
   return `${Date.now()}_${Math.floor(Math.random() * 1000000)}`;
 }
 
-function startRun(playerName, seed) {
+function normalizeStartOptions(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return {
+      mode: careerMeta.MODE_FREE,
+      challengeDate: "",
+      seed: value == null ? createSeed() : value
+    };
+  }
+  const mode = careerMeta.normalizeMode(value.mode);
+  if (mode === careerMeta.MODE_DAILY) {
+    const challenge = careerMeta.getDailyChallenge(value.challengeDate || new Date());
+    return {
+      mode,
+      challengeDate: challenge.date,
+      seed: value.seed == null ? challenge.seed : value.seed
+    };
+  }
+  return {
+    mode,
+    challengeDate: "",
+    seed: value.seed == null ? createSeed() : value.seed
+  };
+}
+
+function startRun(playerName, options) {
   const runs = getRuns().map((run) => (
     run.status === "active" ? { ...run, status: "interrupted", updatedAt: nowIso() } : run
   ));
   const timestamp = nowIso();
+  const startOptions = normalizeStartOptions(options);
   const run = engine.createInitialRun({
     id: createId("career"),
     playerName: cleanName(playerName),
-    seed: seed == null ? createSeed() : seed,
+    seed: startOptions.seed,
+    mode: startOptions.mode,
+    challengeDate: startOptions.challengeDate,
     timestamp
   });
   setRuns([run].concat(runs));
   return getRunById(run.id);
 }
 
-function restartRun(playerName, seed) {
-  return startRun(playerName, seed);
+function restartRun(playerName, options) {
+  return startRun(playerName, options);
 }
 
 function applyChoice(runId, sceneId, choiceId) {
@@ -184,7 +238,16 @@ function continueRun(runId) {
 
 function getCurrentView(runId) {
   const run = runId ? getRunById(runId) : getActiveRun();
-  return run ? engine.buildView(run) : null;
+  if (!run) return null;
+  const achievements = getAchievementProgress();
+  return {
+    ...engine.buildView(run),
+    achievements: {
+      total: achievements.total,
+      unlocked: achievements.unlocked,
+      percent: achievements.percent
+    }
+  };
 }
 
 function mapFinalStats(run) {
@@ -216,6 +279,9 @@ function getCareerArchive() {
         id: run.id,
         playerName: run.playerName,
         status: run.status,
+        mode: careerMeta.getModeInfo(run),
+        persona: careerMeta.getPersona(run),
+        keywords: careerMeta.getTopKeywords(run, 3),
         endingId: run.endingId,
         endingTitle: ending ? ending.title : "未完成的生涯",
         stageTitle: stage ? stage.title : "",
@@ -247,6 +313,31 @@ function getEndingProgress() {
   };
 }
 
+function getAchievementProgress() {
+  return careerMeta.getAchievementProgress(getRuns());
+}
+
+function getCollectionProgress() {
+  const endings = getEndingProgress();
+  const achievements = getAchievementProgress();
+  const total = endings.total + achievements.total;
+  const unlocked = endings.unlocked + achievements.unlocked;
+  return {
+    endings,
+    achievements,
+    total,
+    unlocked,
+    percent: Math.round(unlocked / Math.max(1, total) * 100)
+  };
+}
+
+function buildCareerSummary(runId) {
+  const run = getRunById(runId);
+  if (!run) throw new Error("找不到这段生涯");
+  const ending = content.getEndingById(run.endingId);
+  return careerMeta.buildCareerSummary(run, ending && ending.title);
+}
+
 module.exports = {
   MAX_NAME_LENGTH,
   PHASES,
@@ -254,10 +345,14 @@ module.exports = {
   STATUSES,
   STORAGE_KEY,
   applyChoice,
+  buildCareerSummary,
   continueRun,
   getActiveRun,
+  getAchievementProgress,
   getCareerArchive,
+  getCollectionProgress,
   getCurrentView,
+  getDailyChallenge: careerMeta.getDailyChallenge,
   getEndingProgress,
   getRunById,
   getRuns,

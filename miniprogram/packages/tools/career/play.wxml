@@ -20,6 +20,7 @@
         <view class="progress-copy">
           <text>第 {{view.progress.current}} / {{view.progress.total}} 个抉择</text>
           <text class="chapter-progress">本阶段 {{view.progress.chapterCurrent}} / {{view.progress.chapterTotal}}</text>
+          <text class="run-mode">{{view.mode.shortLabel}}</text>
         </view>
         <view class="progress-track" aria-label="本局进度 {{view.progress.percent}}%">
           <view class="progress-fill" style="width: {{view.progress.percent}}%;"></view>
@@ -49,78 +50,139 @@
 
     <scroll-view class="story-scroll" scroll-y enhanced show-scrollbar="{{false}}" scroll-top="{{scrollTop}}">
       <view class="story-content">
+        <view class="career-context">
+          <view class="persona-mark tone-context-{{view.persona.tone}}">
+            <ui-icon name="{{view.persona.icon}}" size="{{23}}" tone="{{view.persona.tone}}" />
+          </view>
+          <view class="persona-copy">
+            <view class="persona-kicker">当前职业画像</view>
+            <view class="persona-title">{{view.persona.title}}</view>
+          </view>
+          <view class="keyword-row" wx:if="{{view.keywords.length}}">
+            <text wx:for="{{view.keywords}}" wx:key="*this">{{item}}</text>
+          </view>
+        </view>
+
         <block wx:if="{{view.phase === 'scene'}}">
-          <view class="phase-label">正在发生</view>
-          <view class="story-title">{{view.scene.title}}</view>
-          <text class="story-body" user-select>{{view.scene.body}}</text>
+          <view class="phase-panel">
+            <view class="phase-topline">
+              <view class="phase-label">正在发生</view>
+              <view class="event-kind">{{view.scene.kindLabel}}</view>
+            </view>
+            <view class="story-title">{{view.scene.title}}</view>
+            <text class="story-body" user-select>{{view.scene.body}}</text>
+          </view>
         </block>
 
         <block wx:elif="{{view.phase === 'outcome'}}">
-          <view class="phase-label outcome-label">选择的回声</view>
-          <view class="story-title">事情开始有了变化</view>
-          <text class="story-body" user-select>{{view.outcome.text}}</text>
-          <view class="delta-list" wx:if="{{view.outcome.deltas.length}}">
-            <view class="delta-item {{item.direction}}" wx:for="{{view.outcome.deltas}}" wx:key="key">
-              <text>{{item.label}}</text>
-              <text class="delta-value">{{item.displayValue}}</text>
+          <view class="phase-panel">
+            <view class="phase-label outcome-label">选择的回声</view>
+            <view class="story-title">事情开始有了变化</view>
+            <text class="story-body" user-select>{{view.outcome.text}}</text>
+            <view class="delta-list" wx:if="{{view.outcome.deltas.length}}">
+              <view class="delta-item {{item.direction}}" wx:for="{{view.outcome.deltas}}" wx:key="key">
+                <text>{{item.label}}</text>
+                <text class="delta-value">{{item.displayValue}}</text>
+              </view>
             </view>
-          </view>
-          <view class="echo-list" wx:if="{{view.outcome.echoes.length}}">
-            <view class="echo-row" wx:for="{{view.outcome.echoes}}" wx:key="id">
-              <ui-icon name="zap" size="{{21}}" tone="amber" />
-              <text>{{item.text}}</text>
+            <view class="echo-list" wx:if="{{view.outcome.echoes.length}}">
+              <view class="echo-row" wx:for="{{view.outcome.echoes}}" wx:key="id">
+                <ui-icon name="zap" size="{{21}}" tone="amber" />
+                <text>{{item.text}}</text>
+              </view>
+            </view>
+            <view class="career-signal signal-{{view.signal.tone}}">
+              <ui-icon name="{{view.signal.icon}}" size="{{25}}" tone="{{view.signal.tone}}" />
+              <view>
+                <view class="signal-title">{{view.signal.title}}</view>
+                <view class="signal-copy">{{view.signal.text}}</view>
+              </view>
             </view>
           </view>
         </block>
 
         <block wx:elif="{{view.phase === 'chapter'}}">
-          <view class="phase-label chapter-label">阶段完成</view>
-          <view class="story-title">{{view.chapter.title}}</view>
-          <text class="story-body" user-select>{{view.chapter.summary}}</text>
-          <view class="chapter-stamp">
-            <ui-icon name="check" size="{{30}}" tone="green" />
-            <text>这段经历已写入生涯档案</text>
+          <view class="phase-panel">
+            <view class="phase-label chapter-label">阶段复盘</view>
+            <view class="story-title">{{view.chapter.title}}</view>
+            <text class="story-body" user-select>{{view.chapter.summary}}</text>
+            <view class="chapter-style">
+              <view class="style-kicker">本章路线</view>
+              <view class="style-title">{{view.chapter.style.title}}</view>
+              <view class="style-copy">{{view.chapter.style.description}}</view>
+            </view>
+            <view class="chapter-deltas">
+              <view class="chapter-delta {{item.direction}}" wx:for="{{view.chapter.deltas}}" wx:key="key">
+                <text>{{item.label}}</text>
+                <text>{{item.displayValue}}</text>
+              </view>
+            </view>
+            <view class="turning-point" wx:if="{{view.chapter.turningPoint}}">
+              <view class="turning-kicker">关键转折</view>
+              <view>{{view.chapter.turningPoint.eventTitle}} · {{view.chapter.turningPoint.choiceText}}</view>
+            </view>
+            <view class="chapter-stamp">
+              <ui-icon name="clock" size="{{28}}" tone="{{view.chapter.pendingCount ? 'amber' : 'green'}}" />
+              <text>{{view.chapter.pendingCount ? view.chapter.pendingCount + " 个选择仍在未来等待结算" : "本章选择已全部结算"}}</text>
+            </view>
           </view>
         </block>
 
         <block wx:elif="{{view.phase === 'ending'}}">
-          <view class="phase-label ending-label">职业答案</view>
-          <view class="ending-number">ENDING · {{view.ending.id}}</view>
-          <view class="story-title ending-title">{{view.ending.title}}</view>
-          <text class="story-body" user-select>{{view.ending.summary}}</text>
-          <view class="ending-hint" wx:if="{{view.ending.hint}}">
-            <ui-icon name="sparkles" size="{{25}}" tone="amber" />
-            <text>{{view.ending.hint}}</text>
+          <view class="phase-panel">
+            <view class="phase-label ending-label">职业答案</view>
+            <view class="ending-number">ENDING · {{view.ending.id}}</view>
+            <view class="story-title ending-title">{{view.ending.title}}</view>
+            <text class="story-body" user-select>{{view.ending.summary}}</text>
+            <view class="final-persona">
+              <ui-icon name="{{view.persona.icon}}" size="{{33}}" tone="{{view.persona.tone}}" />
+              <view>
+                <view class="final-persona-kicker">你的职业画像</view>
+                <view class="final-persona-title">{{view.persona.title}}</view>
+                <view class="final-persona-copy">{{view.persona.description}}</view>
+              </view>
+            </view>
+            <view class="ending-keywords" wx:if="{{view.keywords.length}}">
+              <text wx:for="{{view.keywords}}" wx:key="*this">#{{item}}</text>
+            </view>
+            <view class="ending-hint" wx:if="{{view.ending.hint}}">
+              <ui-icon name="sparkles" size="{{25}}" tone="amber" />
+              <text>{{view.ending.hint}}</text>
+            </view>
           </view>
         </block>
       </view>
     </scroll-view>
 
-    <view class="fixed-actions phase-{{view.phase}}">
+    <view class="fixed-actions phase-{{view.phase}} choice-count-{{view.scene.choices.length}}">
       <block wx:if="{{view.phase === 'scene'}}">
         <view class="action-heading">
           <text>你会怎么做？</text>
           <text>{{view.scene.choices.length}} 个选择</text>
         </view>
         <view class="choice-list">
-          <button
-            class="choice-button {{choosingId === item.id ? 'choosing' : ''}}"
+          <view
+            class="choice-button {{choosingId ? 'disabled' : ''}} {{choosingId === item.id ? 'choosing' : ''}}"
             wx:for="{{view.scene.choices}}"
             wx:key="id"
-            disabled="{{!!choosingId}}"
             data-choice-id="{{item.id}}"
             bindtap="chooseOption"
+            hover-class="choice-button-hover"
+            aria-role="button"
+            aria-disabled="{{!!choosingId}}"
             aria-label="选择：{{item.text}}"
           >
             <view class="choice-main">
               <view class="choice-number">{{index + 1}}</view>
-              <text class="choice-text">{{item.text}}</text>
-            </view>
-            <view class="choice-tags" wx:if="{{item.tags.length}}">
-              <text wx:for="{{item.tags}}" wx:for-item="tag" wx:key="*this">{{tag}}</text>
+              <view class="choice-content">
+                <text class="choice-text">{{item.text}}</text>
+                <view class="choice-tags" wx:if="{{item.tags.length}}">
+                  <text wx:for="{{item.tags}}" wx:for-item="tag" wx:key="*this">{{tag}}</text>
+                </view>
+              </view>
             </view>
             <ui-icon name="chevron-right" size="{{23}}" tone="muted" />
-          </button>
+          </view>
         </view>
       </block>
 
@@ -129,7 +191,7 @@
           <ui-icon name="check" size="{{31}}" tone="green" />
           <view>
             <view class="feedback-title">选择已保存</view>
-            <view class="feedback-copy">远期影响会在未来某个时刻出现</view>
+            <view class="feedback-copy">{{view.foreshadowText}}</view>
           </view>
         </view>
         <button class="primary-action advance-button icon-action" loading="{{advancing}}" bindtap="advance" aria-label="接受结果并继续下一段剧情">
@@ -143,7 +205,7 @@
           <ui-icon name="chart" size="{{31}}" tone="blue" />
           <view>
             <view class="feedback-title">准备进入下一阶段</view>
-            <view class="feedback-copy">新的身份会带来新的难题</view>
+            <view class="feedback-copy">下一站：{{view.chapter.nextTitle}}</view>
           </view>
         </view>
         <button class="primary-action chapter-action advance-button icon-action" loading="{{advancing}}" bindtap="advance" aria-label="进入下一职业阶段">
@@ -158,10 +220,16 @@
           <ui-icon name="refresh" size="{{27}}" tone="white" />
           <text>再走一条路线</text>
         </button>
-        <button class="secondary-action ending-archive-button icon-action" bindtap="openArchive" aria-label="查看生涯档案和十二种结局">
-          <ui-icon name="book" size="{{26}}" tone="blue" />
-          <text>查看生涯档案</text>
-        </button>
+        <view class="ending-secondary-row">
+          <button class="secondary-action career-copy-button icon-action" bindtap="copyCareerSummary" aria-label="复制本局生涯总结">
+            <ui-icon name="copy" size="{{25}}" tone="blue" />
+            <text>复制总结</text>
+          </button>
+          <button class="secondary-action ending-archive-button icon-action" bindtap="openArchive" aria-label="查看生涯档案和十二种结局">
+            <ui-icon name="book" size="{{25}}" tone="blue" />
+            <text>生涯档案</text>
+          </button>
+        </view>
       </block>
     </view>
   </block>

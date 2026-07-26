@@ -61,9 +61,9 @@ function testSeenEventsAndCompletionAreTrackedSafely() {
   store.markEventSeen(firstId);
   const progress = store.getProgress();
   assert.deepStrictEqual(progress.seenEventIds, [firstId, secondId]);
-  assert.strictEqual(progress.eventUsage[firstId], 2);
+  assert.strictEqual(progress.eventUsage[firstId], 1, "repeat display writes in one run must be idempotent");
   assert.strictEqual(progress.eventUsage[secondId], 1);
-  assert.deepStrictEqual(progress.recentEventIds.slice(0, 2), [firstId, secondId]);
+  assert.deepStrictEqual(progress.recentEventIds.slice(0, 2), [secondId, firstId]);
 
   store.recordRunCompleted("run-one");
   store.recordRunCompleted("run-one");
@@ -73,16 +73,22 @@ function testSeenEventsAndCompletionAreTrackedSafely() {
   assert.deepStrictEqual(completed.completedRunKeys, ["run-two", "run-one"]);
   const selection = store.getSelectionProfile(completed);
   assert.strictEqual(selection.runNumber, 3);
-  assert.strictEqual(selection.eventUsage[firstId], 2);
-  assert.deepStrictEqual(selection.recentEventIds.slice(0, 2), [firstId, secondId]);
+  assert.strictEqual(selection.eventUsage[firstId], 1);
+  assert.deepStrictEqual(selection.recentEventIds.slice(0, 2), [secondId, firstId]);
 }
 
 function testClearProgress() {
   reset();
   store.markEventSeen(EVENTS[0].id);
-  assert(memory[store.STORAGE_KEY]);
+  assert(memory.toolbox_simulation_stats);
+  assert.strictEqual(memory[store.STORAGE_KEY], undefined);
   store.clearProgress();
   assert.strictEqual(memory[store.STORAGE_KEY], undefined);
+  assert.strictEqual(
+    memory.toolbox_simulation_stats.simulators.huawei,
+    undefined,
+    "the compatibility adapter should clear the shared Huawei domain"
+  );
   assert.strictEqual(store.getProgress().seenEventIds.length, 0);
 }
 

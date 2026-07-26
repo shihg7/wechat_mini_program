@@ -415,6 +415,68 @@ page {
   text-align: center;
 }
 
+.exploration-band {
+  display: flex;
+  align-items: center;
+  gap: 14rpx;
+  margin-top: 16rpx;
+  padding: 18rpx 20rpx;
+  border: 1rpx solid #cfe2dc;
+  border-radius: 8rpx;
+  background: #f0f7f4;
+}
+
+.exploration-icon {
+  display: flex;
+  width: 48rpx;
+  height: 48rpx;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8rpx;
+  background: #dceee7;
+}
+
+.exploration-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.exploration-title {
+  color: #173d38;
+  font-size: 22rpx;
+  font-weight: 850;
+  line-height: 31rpx;
+}
+
+.exploration-copy {
+  margin-top: 3rpx;
+  color: #55716c;
+  font-size: 18rpx;
+  line-height: 27rpx;
+}
+
+.exploration-track {
+  height: 8rpx;
+  margin-top: 10rpx;
+  overflow: hidden;
+  border-radius: 4rpx;
+  background: #d4e4df;
+}
+
+.exploration-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: #23806f;
+}
+
+.exploration-percent {
+  flex-shrink: 0;
+  color: #176b68;
+  font-size: 22rpx;
+  font-weight: 900;
+}
+
 .recent-empty {
   justify-content: flex-start;
   gap: 16rpx;

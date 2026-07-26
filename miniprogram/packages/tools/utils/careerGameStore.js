@@ -2,6 +2,8 @@ const { createId } = require("../../../utils/id");
 const content = require("./careerGameContent");
 const engine = require("./careerGameEngine");
 const careerMeta = require("./careerGameMeta");
+const simulationStatsStore = require("./simulationStatsStore");
+const simulationStatsMigration = require("./simulationStatsMigration");
 
 const STORAGE_KEY = "toolbox_career_runs";
 const SCHEMA_VERSION = engine.RUN_SCHEMA_VERSION;
@@ -85,6 +87,7 @@ function normalizeRun(input = {}) {
     challengeDate: mode === careerMeta.MODE_DAILY
       ? careerMeta.localDateKey(input.challengeDate || startedAt)
       : "",
+    runNumber: Math.max(1, Number(input.runNumber) || 1),
     status,
     stageIndex,
     stageEventIds: (Array.isArray(input.stageEventIds) ? input.stageEventIds : []).map(String),
@@ -130,11 +133,17 @@ function compareRuns(left, right) {
 
 function getRuns() {
   const raw = wx.getStorageSync(STORAGE_KEY);
-  return (Array.isArray(raw) ? raw : [])
+  const runs = (Array.isArray(raw) ? raw : [])
     .map(normalizeStoredRun)
     .filter(Boolean)
     .sort(compareRuns)
     .map(clone);
+  try {
+    simulationStatsMigration.ensureCareerStats(runs);
+  } catch (error) {
+    // Exploration statistics are optional and must never block local career saves.
+  }
+  return runs;
 }
 
 function setRuns(items) {
@@ -202,22 +211,70 @@ function normalizeStartOptions(value) {
   };
 }
 
+function getSelectionProfile() {
+  try {
+    return simulationStatsStore.getSelectionProfile(
+      simulationStatsMigration.CAREER_ID,
+      content.EVENTS.map((event) => event.id)
+    );
+  } catch (error) {
+    return {
+      runNumber: 1,
+      completedRuns: 0,
+      eventUsage: {},
+      lastShownRuns: {},
+      recentEventIds: []
+    };
+  }
+}
+
+function recordShown(run) {
+  if (!run || run.status !== "active" || run.phase !== "scene" || !run.currentSceneId) return;
+  try {
+    simulationStatsStore.recordEventShown(
+      simulationStatsMigration.CAREER_ID,
+      run.id,
+      run.currentSceneId
+    );
+  } catch (error) {
+    // Exploration statistics are optional.
+  }
+}
+
+function recordCompleted(run) {
+  if (!run || run.status !== "completed") return;
+  try {
+    simulationStatsStore.recordRunCompleted(simulationStatsMigration.CAREER_ID, run.id);
+  } catch (error) {
+    // Exploration statistics are optional.
+  }
+}
+
 function startRun(playerName, options) {
   const runs = getRuns().map((run) => (
     run.status === "active" ? { ...run, status: "interrupted", updatedAt: nowIso() } : run
   ));
   const timestamp = nowIso();
   const startOptions = normalizeStartOptions(options);
+  const selectionProfile = getSelectionProfile();
   const run = engine.createInitialRun({
     id: createId("career"),
     playerName: cleanName(playerName),
     seed: startOptions.seed,
     mode: startOptions.mode,
     challengeDate: startOptions.challengeDate,
+    selectionProfile,
     timestamp
   });
   setRuns([run].concat(runs));
-  return getRunById(run.id);
+  const saved = getRunById(run.id);
+  try {
+    simulationStatsStore.recordRunStarted(simulationStatsMigration.CAREER_ID, saved.id);
+  } catch (error) {
+    // Exploration statistics are optional.
+  }
+  recordShown(saved);
+  return saved;
 }
 
 function restartRun(playerName, options) {
@@ -227,26 +284,61 @@ function restartRun(playerName, options) {
 function applyChoice(runId, sceneId, choiceId) {
   const run = getRunById(runId);
   if (!run) throw new Error("找不到这段生涯");
-  return updateRun(run.id, engine.resolveChoice(run, sceneId, choiceId, nowIso()));
+  const saved = updateRun(run.id, engine.resolveChoice(run, sceneId, choiceId, nowIso()));
+  try {
+    simulationStatsStore.recordEventAnswered(
+      simulationStatsMigration.CAREER_ID,
+      saved.id,
+      sceneId
+    );
+  } catch (error) {
+    // Exploration statistics are optional.
+  }
+  recordCompleted(saved);
+  return saved;
 }
 
 function continueRun(runId) {
   const run = getRunById(runId);
   if (!run) throw new Error("找不到这段生涯");
-  return updateRun(run.id, engine.continueRun(run, nowIso()));
+  const saved = updateRun(
+    run.id,
+    engine.continueRun(run, nowIso(), getSelectionProfile())
+  );
+  recordShown(saved);
+  recordCompleted(saved);
+  return saved;
 }
 
 function getCurrentView(runId) {
   const run = runId ? getRunById(runId) : getActiveRun();
   if (!run) return null;
+  recordShown(run);
   const achievements = getAchievementProgress();
+  const exploration = getExplorationSummary();
+  const runExploration = getRunExploration(run.id);
   return {
     ...engine.buildView(run),
     achievements: {
       total: achievements.total,
       unlocked: achievements.unlocked,
       percent: achievements.percent
-    }
+    },
+    exploration: {
+      completedRuns: exploration.completedRuns,
+      seenEventCount: exploration.seenEventCount,
+      totalEventCount: exploration.totalEventCount,
+      percent: Math.round(
+        exploration.seenEventCount / Math.max(1, exploration.totalEventCount || content.EVENTS.length) * 100
+      )
+    },
+    runExploration: runExploration ? {
+      newCount: runExploration.newCount,
+      repeatCount: runExploration.repeatCount,
+      shownCount: runExploration.shownCount,
+      newRate: Math.round(runExploration.newCount / Math.max(1, runExploration.shownCount) * 100),
+      currentIsNew: runExploration.newEventIds.includes(run.currentSceneId)
+    } : null
   };
 }
 
@@ -318,17 +410,44 @@ function getAchievementProgress() {
 }
 
 function getEventDiscoveryProgress() {
-  const discoveredIds = new Set();
-  getRuns().forEach((run) => {
-    (Array.isArray(run.history) ? run.history : []).forEach((entry) => {
-      if (content.getEventById(entry.eventId)) discoveredIds.add(entry.eventId);
-    });
-  });
+  getRuns();
+  const summary = getExplorationSummary();
   return {
     total: content.EVENTS.length,
-    unlocked: discoveredIds.size,
-    percent: Math.round(discoveredIds.size / Math.max(1, content.EVENTS.length) * 100)
+    unlocked: summary.seenEventCount,
+    percent: Math.round(summary.seenEventCount / Math.max(1, content.EVENTS.length) * 100)
   };
+}
+
+function getExplorationSummary() {
+  try {
+    return simulationStatsStore.getExplorationSummary(
+      simulationStatsMigration.CAREER_ID,
+      content.EVENTS.map((event) => event.id)
+    );
+  } catch (error) {
+    return {
+      startedRuns: 0,
+      completedRuns: 0,
+      seenEventCount: 0,
+      totalEventCount: content.EVENTS.length,
+      shownCount: 0,
+      answeredCount: 0,
+      recentEventIds: [],
+      latestRun: null
+    };
+  }
+}
+
+function getRunExploration(runId) {
+  try {
+    return simulationStatsStore.getRunSummary(
+      simulationStatsMigration.CAREER_ID,
+      runId
+    );
+  } catch (error) {
+    return null;
+  }
 }
 
 function getContentStats() {
@@ -378,6 +497,8 @@ module.exports = {
   getDailyChallenge: careerMeta.getDailyChallenge,
   getEndingProgress,
   getEventDiscoveryProgress,
+  getExplorationSummary,
+  getRunExploration,
   getRunById,
   getRuns,
   normalizeRun,

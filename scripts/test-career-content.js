@@ -1,6 +1,9 @@
 const assert = require("assert");
 
 const content = require("../miniprogram/packages/tools/utils/careerGameContent");
+const {
+  TRIPLE_EXPANSION_EVENTS
+} = require("../miniprogram/packages/tools/utils/careerGameTripleExpansion");
 
 const {
   STAT_KEYS,
@@ -79,9 +82,9 @@ STAT_KEYS.forEach((key) => {
 
 const summary = validateContent();
 assert.strictEqual(summary.stageCount, 6);
-assert.strictEqual(summary.eventCount, 120);
+assert.strictEqual(summary.eventCount, 360);
 assert.strictEqual(summary.endingCount, 12);
-assert(summary.choiceCount >= 330);
+assert(summary.choiceCount >= 1075);
 assert(summary.pendingEffectCount >= 25);
 
 assert.strictEqual(STAGES.length, 6);
@@ -103,15 +106,28 @@ STAGES.forEach((stage, index) => {
   stageIds.add(stage.id);
   assert(stage.title && stage.rank && stage.subtitle && stage.illustration);
   assert.strictEqual(stage.coreEventIds.length, 4);
-  assert.strictEqual(stage.poolEventIds.length, 16);
+  assert.strictEqual(stage.poolEventIds.length, 56);
   stage.coreEventIds.concat(stage.poolEventIds).forEach((eventId) => {
     assert(!referencedEventIds.has(eventId), `duplicate event reference ${eventId}`);
     referencedEventIds.add(eventId);
   });
 });
 
-assert.strictEqual(EVENTS.length, 120);
-assert.strictEqual(referencedEventIds.size, 120);
+assert.strictEqual(EVENTS.length, 360);
+assert.strictEqual(referencedEventIds.size, 360);
+assert.strictEqual(TRIPLE_EXPANSION_EVENTS.length, 240);
+STAGES.forEach((stage) => {
+  assert.strictEqual(
+    TRIPLE_EXPANSION_EVENTS.filter((item) => item.stageId === stage.id).length,
+    40,
+    `${stage.id} should receive 40 newly expanded events`
+  );
+});
+assert(
+  TRIPLE_EXPANSION_EVENTS.filter((item) => item.choices.some((choice) => choice.tags.includes("复合冲突"))).length >= 80,
+  "the expanded pool should include substantial fictional dramatic conflict"
+);
+assert(TRIPLE_EXPANSION_EVENTS.every((item) => item.choices.length === 3));
 const eventIds = new Set();
 const choiceIds = new Set();
 const pendingIds = new Set();

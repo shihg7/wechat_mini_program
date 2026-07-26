@@ -6,6 +6,7 @@ const {
   STAT_KEYS,
   STAT_META
 } = require("./huaweiSimContent");
+const { selectAdaptiveEvents } = require("./adaptiveEventSelector");
 
 const EVENTS_PER_STAGE = 3;
 const TOTAL_EVENTS = STAGES.length * EVENTS_PER_STAGE;
@@ -82,6 +83,12 @@ function normalizeSelectionProfile(options = {}) {
   return {
     runNumber: Math.max(1, Math.floor(Number(options.runNumber) || 1)),
     eventUsage,
+    lastShownRuns: Object.keys(options.lastShownRuns || {}).reduce((result, id) => {
+      if (!EVENTS.some((item) => item.id === id)) return result;
+      const runNumber = Math.max(0, Math.floor(Number(options.lastShownRuns[id]) || 0));
+      if (runNumber) result[id] = runNumber;
+      return result;
+    }, {}),
     recentEventIds: new Set(
       (Array.isArray(options.recentEventIds) ? options.recentEventIds : [])
         .map((item) => String(item || ""))
@@ -93,51 +100,27 @@ function eventUsage(profile, eventId) {
   return Number(profile.eventUsage[eventId] || 0);
 }
 
-function orderUsedEvents(items, seed, profile) {
-  return items
-    .map((item) => ({
-      item,
-      usage: eventUsage(profile, item.id),
-      tieBreaker: hashSeed(`${seed}:${item.id}`)
-    }))
-    .sort((left, right) => left.usage - right.usage || left.tieBreaker - right.tieBreaker)
-    .map((entry) => entry.item);
-}
-
-function orderStageCandidates(candidates, seed, profile) {
-  const newlyUnlocked = [];
-  const unseen = [];
-  const used = [];
-  const recentlyUsed = [];
-  candidates.forEach((item) => {
-    const usage = eventUsage(profile, item.id);
-    if (usage === 0 && profile.runNumber > 1 && Number(item.unlockRun || 1) === profile.runNumber) {
-      newlyUnlocked.push(item);
-    } else if (usage === 0) {
-      unseen.push(item);
-    } else if (profile.recentEventIds.has(item.id)) {
-      recentlyUsed.push(item);
-    } else {
-      used.push(item);
-    }
-  });
-  return []
-    .concat(seededShuffle(newlyUnlocked, `${seed}:newly-unlocked`))
-    .concat(seededShuffle(unseen, `${seed}:unseen`))
-    .concat(orderUsedEvents(used, `${seed}:used`, profile))
-    .concat(orderUsedEvents(recentlyUsed, `${seed}:recent`, profile));
-}
-
 function buildEventIds(seed, options = {}) {
   const profile = normalizeSelectionProfile(options);
   return STAGES.flatMap((stage) => {
-    const candidates = EVENTS.filter((item) => (
-      item.stageId === stage.id
-      && Number(item.unlockRun || 1) <= profile.runNumber
-    ));
-    return orderStageCandidates(candidates, `${seed}:${stage.id}`, profile)
-      .slice(0, EVENTS_PER_STAGE)
-      .map((item) => item.id);
+    const result = selectAdaptiveEvents({
+      candidates: EVENTS.filter((item) => item.stageId === stage.id).map((item) => ({
+        ...item,
+        role: item.replayOnly ? "rare" : "branch",
+        unlockRun: Math.max(1, Number(item.unlockRun) || 1),
+        cooldownRuns: 2
+      })),
+      count: EVENTS_PER_STAGE,
+      seed: `${seed}:${stage.id}`,
+      stageId: stage.id,
+      runNumber: profile.runNumber,
+      profile: {
+        eventUsage: profile.eventUsage,
+        lastShownRuns: profile.lastShownRuns,
+        recentEventIds: Array.from(profile.recentEventIds)
+      }
+    });
+    return result.eventIds;
   });
 }
 

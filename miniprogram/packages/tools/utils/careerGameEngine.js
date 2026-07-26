@@ -8,6 +8,7 @@ const {
   getEventById
 } = require("./careerGameContent");
 const careerMeta = require("./careerGameMeta");
+const { selectAdaptiveEvents } = require("./adaptiveEventSelector");
 
 const RUN_SCHEMA_VERSION = 2;
 const EVENTS_PER_STAGE = 6;
@@ -173,20 +174,50 @@ function selectPoolEventIds(stage, run) {
     .map((event) => event.id);
 }
 
-function buildStageEventIds(stageIndex, run) {
+function adaptiveCandidate(event) {
+  return {
+    ...event,
+    role: event.kind === "core" ? "anchor" : (event.role || "branch"),
+    unlockRun: Math.max(1, Number(event.unlockRun) || 1),
+    cooldownRuns: Math.max(1, Number(event.cooldownRuns) || 1),
+    familyId: String(event.familyId || "")
+  };
+}
+
+function buildStageEventIds(stageIndex, run, selectionProfile) {
   const stage = STAGES[stageIndex];
   if (!stage) return [];
+  if (run.mode !== careerMeta.MODE_DAILY && selectionProfile) {
+    const runNumber = Math.max(1, Number(selectionProfile.runNumber || run.runNumber) || 1);
+    const result = selectAdaptiveEvents({
+      candidates: stage.coreEventIds.concat(stage.poolEventIds)
+        .map(getEventById)
+        .filter(Boolean)
+        .map(adaptiveCandidate),
+      count: EVENTS_PER_STAGE,
+      seed: `${run.seed}:${stage.id}:${runNumber}`,
+      stageId: stage.id,
+      runNumber,
+      profile: selectionProfile,
+      roleQuotas: runNumber === 1
+        ? { anchor: 4, branch: 2, rare: 0 }
+        : { anchor: 1, branch: 5, rare: 0 },
+      matchesRequirements: (requirements) => matchesRequirements(requirements, run)
+    });
+    if (result.eventIds.length === EVENTS_PER_STAGE) return result.eventIds;
+  }
   const core = (stage.coreEventIds || []).slice(0, EVENTS_PER_STAGE - POOL_EVENTS_PER_STAGE);
   return core.concat(selectPoolEventIds(stage, run)).slice(0, EVENTS_PER_STAGE);
 }
 
-function ensureStageSequence(run) {
+function ensureStageSequence(run, selectionProfile) {
   const next = clone(run);
   next.schemaVersion = RUN_SCHEMA_VERSION;
   next.mode = careerMeta.normalizeMode(next.mode);
   next.challengeDate = next.mode === careerMeta.MODE_DAILY
     ? careerMeta.localDateKey(next.challengeDate || next.startedAt)
     : "";
+  next.runNumber = Math.max(1, Number(next.runNumber || selectionProfile && selectionProfile.runNumber) || 1);
   next.stageStartStats = normalizeStats(next.stageStartStats || next.stats);
   const stage = STAGES[next.stageIndex];
   const validIds = (next.stageEventIds || []).filter((eventId) => {
@@ -195,7 +226,7 @@ function ensureStageSequence(run) {
   });
   next.stageEventIds = validIds.length === EVENTS_PER_STAGE
     ? validIds
-    : buildStageEventIds(next.stageIndex, next);
+    : buildStageEventIds(next.stageIndex, next, selectionProfile);
   next.eventCursor = clamp(Number(next.eventCursor) || 0, 0, Math.max(next.stageEventIds.length - 1, 0));
   if (next.status === "active" && next.phase !== "ending") {
     next.currentSceneId = next.stageEventIds[next.eventCursor] || "";
@@ -209,7 +240,8 @@ function createInitialRun({
   seed,
   timestamp,
   mode = careerMeta.MODE_FREE,
-  challengeDate = ""
+  challengeDate = "",
+  selectionProfile = null
 }) {
   const startedAt = String(timestamp || new Date().toISOString());
   const normalizedMode = careerMeta.normalizeMode(mode);
@@ -222,6 +254,7 @@ function createInitialRun({
     challengeDate: normalizedMode === careerMeta.MODE_DAILY
       ? careerMeta.localDateKey(challengeDate || startedAt)
       : "",
+    runNumber: Math.max(1, Number(selectionProfile && selectionProfile.runNumber) || 1),
     status: "active",
     stageIndex: 0,
     stageEventIds: [],
@@ -240,7 +273,7 @@ function createInitialRun({
     updatedAt: startedAt,
     completedAt: ""
   };
-  return ensureStageSequence(run);
+  return ensureStageSequence(run, selectionProfile);
 }
 
 function schedulePendingEffects(run, effects) {
@@ -334,7 +367,7 @@ function resolveEnding(run) {
   return sorted.find((ending) => matchesRequirements(ending.requirements, run)) || sorted[sorted.length - 1];
 }
 
-function continueRun(sourceRun, timestamp = new Date().toISOString()) {
+function continueRun(sourceRun, timestamp = new Date().toISOString(), selectionProfile = null) {
   const run = ensureStageSequence(sourceRun);
   if (run.status !== "active") return run;
   if (run.phase === "outcome") {
@@ -353,7 +386,7 @@ function continueRun(sourceRun, timestamp = new Date().toISOString()) {
     }
   } else if (run.phase === "chapter") {
     run.stageIndex += 1;
-    run.stageEventIds = buildStageEventIds(run.stageIndex, run);
+    run.stageEventIds = buildStageEventIds(run.stageIndex, run, selectionProfile);
     run.eventCursor = 0;
     run.currentSceneId = run.stageEventIds[0] || "";
     run.phase = "scene";
@@ -362,7 +395,7 @@ function continueRun(sourceRun, timestamp = new Date().toISOString()) {
     run.lastOutcome = null;
   }
   run.updatedAt = timestamp;
-  return ensureStageSequence(run);
+  return ensureStageSequence(run, selectionProfile);
 }
 
 function statView(stats) {

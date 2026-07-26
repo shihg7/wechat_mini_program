@@ -351,6 +351,23 @@ page {
   justify-content: space-between;
 }
 
+.event-badges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8rpx;
+}
+
+.novelty-badge {
+  padding: 5rpx 9rpx;
+  border-radius: 5rpx;
+  background: #dceee7;
+  color: #176b68;
+  font-size: 16rpx;
+  font-weight: 850;
+}
+
 .event-kind {
   color: #7b8493;
   font-size: 17rpx;
@@ -626,6 +643,46 @@ page {
 .ending-hint {
   border-left-color: #e6af2e;
   color: #7a5917;
+}
+
+.run-exploration {
+  display: flex;
+  align-items: center;
+  gap: 13rpx;
+  margin-top: 16rpx;
+  padding: 17rpx 18rpx;
+  border: 1rpx solid #cfe2dc;
+  border-radius: 8rpx;
+  background: #f0f7f4;
+}
+
+.run-exploration-icon {
+  display: flex;
+  width: 46rpx;
+  height: 46rpx;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 7rpx;
+  background: #dceee7;
+}
+
+.run-exploration-copy {
+  min-width: 0;
+}
+
+.run-exploration-title {
+  color: #173d38;
+  font-size: 22rpx;
+  font-weight: 850;
+  line-height: 30rpx;
+}
+
+.run-exploration-detail {
+  margin-top: 3rpx;
+  color: #55716c;
+  font-size: 18rpx;
+  line-height: 27rpx;
 }
 
 .fixed-actions {

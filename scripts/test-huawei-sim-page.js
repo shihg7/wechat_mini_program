@@ -65,7 +65,7 @@ function testMainFlow() {
   const page = createPage();
   assert.strictEqual(page.data.screen, "intro");
   assert(page.data.contentStats.termCount >= 48);
-  assert(page.data.contentStats.eventCount >= 64);
+  assert.strictEqual(page.data.contentStats.eventCount, 192);
   assert.strictEqual(page.data.contentStats.choicesPerRun, 15);
   assert.strictEqual(page.data.contentStats.replayEventCount, 10);
   assert.strictEqual(page.data.exploration.isFirstVisit, true);
@@ -108,7 +108,8 @@ function testMainFlow() {
   assert.strictEqual(page.data.screen, "intro");
   assert.strictEqual(page.run, null);
   assert.strictEqual(page.data.exploration.completedRuns, 1);
-  assert(storage.toolbox_huawei_sim_progress, "lightweight exploration progress should survive leaving the run");
+  assert(storage.toolbox_simulation_stats, "shared exploration statistics should survive leaving the run");
+  assert.strictEqual(storage.toolbox_huawei_sim_progress, undefined, "legacy progress storage should be retired");
 }
 
 function testGlossaryFlow() {
@@ -148,8 +149,10 @@ function testTemplateAndStyleGuards() {
   assert(wxml.includes("五个阶段"));
   assert(wxml.includes("十五回合"));
   assert(wxml.includes('class="exploration-band"'));
-  assert(wxml.includes("只保存已见题进度"));
+  assert(wxml.includes("具体选择和结果不落盘"));
   assert(wxml.includes('class="result-exploration"'));
+  assert(wxml.includes("{{resultProfileKicker}}"));
+  assert(!wxml.includes("R&amp;D"), "the result kicker must not render an escaped entity literally");
   assert(!wxml.includes("不写缓存"));
   assert(!wxml.includes("四个阶段"));
   assert(!wxml.includes("十二回合"));

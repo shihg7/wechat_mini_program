@@ -47,6 +47,7 @@ const FLAG_KEYS = Object.freeze([
 
 const CONDITION_OPERATORS = Object.freeze(["gte", "lte", "eq", "truthy"]);
 const EXPANDED_POOL_EVENTS = require("./careerGameExpansion");
+const { TRIPLE_EXPANSION_EVENTS } = require("./careerGameTripleExpansion");
 const EXPECTED_ENDING_TITLES = Object.freeze([
   "首席架构师",
   "技术负责人",
@@ -939,6 +940,12 @@ EXPANDED_POOL_EVENTS.forEach((item) => {
   stage.pool.push(item);
 });
 
+TRIPLE_EXPANSION_EVENTS.forEach((item) => {
+  const stage = STAGE_CONTENT_BY_ID[item.stageId];
+  if (!stage) throw new Error(`Triple-expanded career event ${item.id} references unknown stage ${item.stageId}`);
+  stage.pool.push(item);
+});
+
 const EVENT_RULES = {
   s2_p1_docs: {
     priority: 20,
@@ -1266,7 +1273,7 @@ function validateContent(overrides = {}) {
   if (Object.keys(statMeta).some((key) => !statKeys.has(key))) fail("STAT_META contains an unknown stat");
 
   if (!Array.isArray(stages) || stages.length !== 6) fail("exactly 6 stages are required");
-  if (!Array.isArray(events) || events.length !== 120) fail("exactly 120 events are required");
+  if (!Array.isArray(events) || events.length !== 360) fail("exactly 360 events are required");
   if (!Array.isArray(endings) || endings.length !== 12) fail("exactly 12 endings are required");
 
   const stageIds = new Set();
@@ -1283,8 +1290,8 @@ function validateContent(overrides = {}) {
     if (!Array.isArray(stage.coreEventIds) || stage.coreEventIds.length !== 4) {
       fail(`stage ${stage.id} must have 4 core events`);
     }
-    if (!Array.isArray(stage.poolEventIds) || stage.poolEventIds.length !== 16) {
-      fail(`stage ${stage.id} must have 16 pool events`);
+    if (!Array.isArray(stage.poolEventIds) || stage.poolEventIds.length !== 56) {
+      fail(`stage ${stage.id} must have 56 pool events`);
     }
     stage.coreEventIds.concat(stage.poolEventIds).forEach((eventId) => {
       if (referencedEventIds.has(eventId)) fail(`event reference ${eventId} is duplicated`);

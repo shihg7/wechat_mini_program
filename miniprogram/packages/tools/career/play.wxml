@@ -67,7 +67,10 @@
           <view class="phase-panel">
             <view class="phase-topline">
               <view class="phase-label">正在发生</view>
-              <view class="event-kind">{{view.scene.kindLabel}}</view>
+              <view class="event-badges">
+                <view class="novelty-badge" wx:if="{{view.runExploration.currentIsNew}}">首次遇见</view>
+                <view class="event-kind">{{view.scene.kindLabel}}</view>
+              </view>
             </view>
             <view class="story-title">{{view.scene.title}}</view>
             <text class="story-body" user-select>{{view.scene.body}}</text>
@@ -148,6 +151,13 @@
             <view class="ending-hint" wx:if="{{view.ending.hint}}">
               <ui-icon name="sparkles" size="{{25}}" tone="amber" />
               <text>{{view.ending.hint}}</text>
+            </view>
+            <view class="run-exploration">
+              <view class="run-exploration-icon"><ui-icon name="route" size="{{27}}" tone="green" /></view>
+              <view class="run-exploration-copy">
+                <view class="run-exploration-title">本轮遇见 {{view.runExploration.newCount}} 个新事件</view>
+                <view class="run-exploration-detail">新题率 {{view.runExploration.newRate}}% · 总发现 {{view.exploration.seenEventCount}} / {{view.exploration.totalEventCount}}</view>
+              </view>
             </view>
           </view>
         </block>

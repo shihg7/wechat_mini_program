@@ -1,4 +1,5 @@
 const DISCLAIMER = "非官方情景模拟。术语整理自公开资料；标记为“网络职场叙事”的内容来自二手公开报道，仅作虚构复合素材，不代表已证实制度、普遍经历或任何真实员工。";
+const TRIPLE_EXPANSION_EVENTS = require("./huaweiSimTripleExpansion");
 
 const STAT_META = {
   delivery: { label: "交付信用", shortLabel: "交付", tone: "blue" },
@@ -935,6 +936,8 @@ const EVENTS = [
       choice("selection-tear", "当众撕掉材料并攻击主持人，拒绝听取任何后续流程说明。", "你清楚表达了拒绝，也同时失去了继续收集信息和谈条件的空间。", { energy: 3, influence: -13, delivery: -5 }, ["对抗", "失控"])
     ])
 ];
+
+EVENTS.push(...TRIPLE_EXPANSION_EVENTS);
 
 const PERSONAS = [
   {

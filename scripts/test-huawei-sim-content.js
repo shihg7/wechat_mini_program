@@ -10,6 +10,7 @@ const {
   STAGES,
   STAT_KEYS
 } = require("../miniprogram/packages/tools/utils/huaweiSimContent");
+const TRIPLE_EXPANSION_EVENTS = require("../miniprogram/packages/tools/utils/huaweiSimTripleExpansion");
 
 function assertUnique(items, label) {
   assert.strictEqual(new Set(items).size, items.length, `${label} should be unique`);
@@ -21,7 +22,13 @@ assert(DISCLAIMER.includes("不代表"));
 assert.strictEqual(STAT_KEYS.length, 4);
 assert.strictEqual(STAGES.length, 5);
 assert(GLOSSARY.length >= 48, "glossary should provide a substantial public-term collection");
-assert(EVENTS.length >= 64, "scenario pool should provide varied fictional encounters");
+assert.strictEqual(EVENTS.length, 192, "scenario pool should triple to 192 fictional encounters");
+assert.strictEqual(TRIPLE_EXPANSION_EVENTS.length, 128);
+assert.strictEqual(
+  TRIPLE_EXPANSION_EVENTS.filter((item) => item.situation.startsWith("【虚构复合情景】")).length,
+  45,
+  "the expansion should preserve its explicitly fictional dramatic scenarios"
+);
 assert(PERSONAS.length >= 8, "simulation should offer varied result profiles");
 assert(SOURCE_SUMMARY.length >= 4, "source boundary should be visible in the product");
 
@@ -104,7 +111,14 @@ assertUnique(allChoiceIds, "qualified choice ids");
 
 STAGES.forEach((stage) => {
   const count = EVENTS.filter((item) => item.stageId === stage.id).length;
-  assert(count >= 10, `${stage.id} should have at least ten candidate encounters`);
+  const expectedCounts = {
+    onboarding: 38,
+    release: 39,
+    frontline: 40,
+    crossroad: 38,
+    performance: 37
+  };
+  assert.strictEqual(count, expectedCounts[stage.id], `${stage.id} should expose the expected expanded pool`);
   const replayCount = EVENTS.filter((item) => item.stageId === stage.id && item.replayOnly).length;
   assert.strictEqual(replayCount, 2, `${stage.id} should add two second-run encounters`);
 });

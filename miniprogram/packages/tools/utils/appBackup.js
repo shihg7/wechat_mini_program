@@ -4,6 +4,8 @@ const ledgerStore = require("../../../utils/tripLedgerStore");
 const wheelStore = require("./wheelStore");
 const careerGameStore = require("./careerGameStore");
 const huaweiSimProgressStore = require("./huaweiSimProgressStore");
+const simulationStatsStore = require("./simulationStatsStore");
+const simulationStatsMigration = require("./simulationStatsMigration");
 
 const APP_ID = "local-toolbox-miniprogram";
 const SCHEMA_VERSION = 3;
@@ -206,6 +208,7 @@ function applyBackup(source, mode = "merge") {
       result[`${collection.key}Skipped`] = next.skipped;
       result[`${collection.key}Count`] = next.items.length;
     });
+    simulationStatsMigration.rebuildCareerStats(careerGameStore.getRuns());
   } catch (error) {
     COLLECTIONS.forEach((collection) => {
       try {
@@ -230,6 +233,8 @@ function exportFullBackup() {
 function resetAllData() {
   COLLECTIONS.forEach((collection) => collection.set([]));
   huaweiSimProgressStore.clearProgress();
+  simulationStatsStore.clearAllStats();
+  if (wx.removeStorageSync) wx.removeStorageSync(simulationStatsMigration.LEGACY_HUAWEI_STORAGE_KEY);
   if (wx.removeStorageSync) wx.removeStorageSync(LAST_BACKUP_KEY);
   else wx.setStorageSync(LAST_BACKUP_KEY, undefined);
 }

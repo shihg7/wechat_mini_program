@@ -94,7 +94,7 @@
 
       <view class="privacy-note icon-label">
         <ui-icon name="shield" size="{{22}}" tone="green" />
-        <text>只保存已见题进度；具体选择和结果不落盘、不进入备份</text>
+        <text>只保存题目展示与完成次数；具体选择和结果不落盘、不进入备份</text>
       </view>
 
       <view class="source-section">
@@ -195,7 +195,7 @@
         <view class="result-icon">
           <ui-icon name="{{resultView.persona.icon}}" size="{{42}}" tone="white" />
         </view>
-        <view class="result-kicker">YOUR R&amp;D PROFILE</view>
+        <view class="result-kicker">{{resultProfileKicker}}</view>
         <view class="result-title">{{resultView.persona.title}}</view>
         <view class="result-subtitle">{{resultView.persona.subtitle}}</view>
       </view>
@@ -222,7 +222,7 @@
         <view class="result-exploration-top">
           <view>
             <view class="result-exploration-kicker">本轮内容探索</view>
-            <view class="result-exploration-title">遇见 {{resultView.exploration.newCount}} 个新情景</view>
+            <view class="result-exploration-title">遇见 {{resultView.exploration.newCount}} 个新情景 · 新题率 {{resultView.exploration.newRate}}%</view>
           </view>
           <view class="result-exploration-count">{{resultView.exploration.seenCount}} / {{resultView.exploration.totalCount}}</view>
         </view>

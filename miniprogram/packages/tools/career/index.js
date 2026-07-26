@@ -74,6 +74,17 @@ function achievementProgressView(progress) {
   };
 }
 
+function explorationView(summary) {
+  const total = Math.max(1, Number(summary && summary.totalEventCount || 120));
+  const seen = Math.min(total, Math.max(0, Number(summary && summary.seenEventCount || 0)));
+  return {
+    completedRuns: Math.max(0, Number(summary && summary.completedRuns || 0)),
+    percent: Math.round(seen / total * 100),
+    seen,
+    total
+  };
+}
+
 function modeOptionsView(dailyChallenge) {
   return [
     {
@@ -102,6 +113,7 @@ Page({
     recentRuns: [],
     endingProgress: endingProgressView(null),
     achievementProgress: achievementProgressView(null),
+    exploration: explorationView(null),
     collectionPercent: 0,
     startMode: "free",
     dailyChallenge: initialDailyChallenge,
@@ -121,6 +133,7 @@ Page({
       const currentView = careerGameStore.getCurrentView();
       const archive = careerGameStore.getCareerArchive();
       const collection = careerGameStore.getCollectionProgress();
+      const exploration = careerGameStore.getExplorationSummary();
       const activeRun = activeRunView(currentView);
       const nickname = this.data.nickname || activeRun && activeRun.playerName || "";
       this.setData({
@@ -134,6 +147,7 @@ Page({
           .map(archiveRunView),
         endingProgress: endingProgressView(collection.endings),
         achievementProgress: achievementProgressView(collection.achievements),
+        exploration: explorationView(exploration),
         collectionPercent: collection.percent,
         loading: false,
         loadFailed: false

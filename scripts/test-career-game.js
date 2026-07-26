@@ -7,12 +7,16 @@ global.wx = {
   },
   setStorageSync(key, value) {
     memory[key] = JSON.parse(JSON.stringify(value));
+  },
+  removeStorageSync(key) {
+    delete memory[key];
   }
 };
 
 const content = require("../miniprogram/packages/tools/utils/careerGameContent");
 const engine = require("../miniprogram/packages/tools/utils/careerGameEngine");
 const store = require("../miniprogram/packages/tools/utils/careerGameStore");
+const simulationStatsStore = require("../miniprogram/packages/tools/utils/simulationStatsStore");
 
 assert.strictEqual(content.STAGES.length, 6);
 assert.strictEqual(content.ENDINGS.length, 12);
@@ -91,6 +95,70 @@ const dailyRunB = engine.createInitialRun({
 });
 assert.deepStrictEqual(dailyRunA.stageEventIds, dailyRunB.stageEventIds);
 assert.strictEqual(dailyRunA.challengeDate, "2026-07-24");
+const dailyWithPersonalStats = engine.createInitialRun({
+  id: "daily_profiled",
+  playerName: "小码",
+  seed: "career-daily-v1:2026-07-24",
+  mode: "daily",
+  challengeDate: "2026-07-24",
+  timestamp: "2026-07-24T12:00:00.000Z",
+  selectionProfile: {
+    runNumber: 9,
+    eventUsage: Object.fromEntries(content.EVENTS.map((item, index) => [item.id, index + 1])),
+    lastShownRuns: {},
+    recentEventIds: content.EVENTS.slice(0, 30).map((item) => item.id)
+  }
+});
+assert.deepStrictEqual(
+  dailyWithPersonalStats.stageEventIds,
+  dailyRunA.stageEventIds,
+  "daily challenge selection must ignore personal exploration statistics"
+);
+
+function adaptiveCareerRound(runNumber, profile) {
+  const selected = content.STAGES.flatMap((stage, stageIndex) => engine.buildStageEventIds(stageIndex, {
+    ...runA,
+    mode: "free",
+    runNumber,
+    seed: `adaptive-career-${runNumber}`,
+    stageIndex,
+    stats: engine.INITIAL_STATS,
+    flags: {},
+    history: []
+  }, { ...profile, runNumber }));
+  return selected;
+}
+
+const adaptiveProfile = {
+  eventUsage: {},
+  lastShownRuns: {},
+  recentEventIds: []
+};
+const adaptiveRounds = [];
+for (let runNumber = 1; runNumber <= 3; runNumber += 1) {
+  const selected = adaptiveCareerRound(runNumber, adaptiveProfile);
+  adaptiveRounds.push(selected);
+  const newCount = selected.filter((id) => !adaptiveProfile.eventUsage[id]).length;
+  if (runNumber === 1) {
+    content.STAGES.forEach((stage, stageIndex) => {
+      const stageIds = selected.slice(stageIndex * 6, stageIndex * 6 + 6);
+      assert.strictEqual(stageIds.filter((id) => stage.coreEventIds.includes(id)).length, 4);
+      assert.strictEqual(stageIds.filter((id) => stage.poolEventIds.includes(id)).length, 2);
+    });
+  } else {
+    assert(newCount >= 30, `adaptive run ${runNumber} should include at least 30 new events`);
+    content.STAGES.forEach((stage, stageIndex) => {
+      const stageIds = selected.slice(stageIndex * 6, stageIndex * 6 + 6);
+      assert.strictEqual(stageIds.filter((id) => stage.coreEventIds.includes(id)).length, 1);
+      assert.strictEqual(stageIds.filter((id) => stage.poolEventIds.includes(id)).length, 5);
+    });
+  }
+  selected.forEach((id) => {
+    adaptiveProfile.eventUsage[id] = Number(adaptiveProfile.eventUsage[id] || 0) + 1;
+    adaptiveProfile.lastShownRuns[id] = runNumber;
+  });
+  adaptiveProfile.recentEventIds = selected.concat(adaptiveProfile.recentEventIds).slice(0, 30);
+}
 const stageTwoWithoutDocs = engine.buildStageEventIds(1, {
   ...runA,
   stageIndex: 1,
@@ -172,6 +240,7 @@ assert.strictEqual(dailyStoredA.mode, "daily");
 assert.strictEqual(dailyStoredB.seed, dailyStoredA.seed);
 assert.deepStrictEqual(dailyStoredB.stageEventIds, dailyStoredA.stageEventIds);
 store.setRuns([]);
+simulationStatsStore.clearAllStats();
 assert.throws(() => store.startRun("   ", "seed"), /昵称/);
 const started = store.startRun("  小码  ", "stable-seed");
 assert.strictEqual(started.playerName, "小码");
@@ -179,9 +248,9 @@ assert.strictEqual(store.getActiveRun().id, started.id);
 let view = store.getCurrentView();
 assert.strictEqual(view.phase, "scene");
 assert.strictEqual(view.scene.choices.length >= 2, true);
-assert.strictEqual(store.getContentStats().eventCount, 120);
+assert.strictEqual(store.getContentStats().eventCount, 360);
 assert.strictEqual(store.getContentStats().choicesPerRun, 36);
-assert.strictEqual(store.getEventDiscoveryProgress().total, 120);
+assert.strictEqual(store.getEventDiscoveryProgress().total, 360);
 assert.strictEqual(view.persona.id, "uncompiled");
 assert.strictEqual(view.achievements.total, 12);
 

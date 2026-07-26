@@ -83,6 +83,20 @@
         </view>
       </view>
 
+      <view class="exploration-band">
+        <view class="exploration-icon"><ui-icon name="sparkles" size="{{29}}" tone="green" /></view>
+        <view class="exploration-main">
+          <view class="exploration-title">已遇见 {{exploration.seen}} / {{exploration.total}} 个职业事件</view>
+          <view class="exploration-copy">
+            {{exploration.completedRuns ? "自由模拟复玩时会优先安排未见经历。" : "完成首轮后，新的模拟会优先避开已见事件。"}}
+          </view>
+          <view class="exploration-track" aria-label="职业事件发现进度 {{exploration.percent}}%">
+            <view class="exploration-fill" style="width: {{exploration.percent}}%;"></view>
+          </view>
+        </view>
+        <view class="exploration-percent">{{exploration.percent}}%</view>
+      </view>
+
       <view class="new-run-section">
         <view class="section-heading">
           <view>
@@ -110,7 +124,7 @@
         </view>
         <view class="mode-description icon-label">
           <ui-icon name="{{startMode === 'daily' ? 'calendar' : 'sparkles'}}" size="{{22}}" tone="{{startMode === 'daily' ? 'amber' : 'green'}}" />
-          <text>{{startMode === "daily" ? dailyChallenge.description : "每次模拟抽取新的种子事件，适合自由观察不同路径。"}}</text>
+          <text>{{startMode === "daily" ? dailyChallenge.description + " 题序固定，不根据个人探索记录调整。" : "复玩优先新经历；题库耗尽后再平衡低频事件。"}}</text>
         </view>
         <view class="nickname-field">
           <ui-icon name="users" size="{{27}}" tone="muted" />

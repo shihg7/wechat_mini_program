@@ -1,4 +1,6 @@
 const { EVENTS } = require("./huaweiSimContent");
+const simulationStatsStore = require("./simulationStatsStore");
+const simulationStatsMigration = require("./simulationStatsMigration");
 
 const STORAGE_KEY = "toolbox_huawei_sim_progress";
 const SCHEMA_VERSION = 1;
@@ -61,54 +63,66 @@ function normalizeProgress(input = {}) {
 }
 
 function getProgress() {
-  return normalizeProgress(wx.getStorageSync(STORAGE_KEY));
+  simulationStatsMigration.migrateLegacyHuaweiStats();
+  const root = simulationStatsStore.getRoot({
+    [simulationStatsMigration.HUAWEI_ID]: EVENTS.map((item) => item.id)
+  });
+  const simulator = root.simulators[simulationStatsMigration.HUAWEI_ID];
+  if (!simulator) return normalizeProgress();
+  return normalizeProgress({
+    completedRuns: simulator.completedRuns,
+    completedRunKeys: simulator.completedRunKeys,
+    seenEventIds: Object.keys(simulator.events),
+    eventUsage: Object.keys(simulator.events).reduce((result, id) => {
+      result[id] = simulator.events[id].shownCount;
+      return result;
+    }, {}),
+    recentEventIds: simulator.recentEventIds,
+    updatedAt: root.updatedAt
+  });
 }
 
 function setProgress(input) {
   const progress = normalizeProgress(input);
-  progress.updatedAt = new Date().toISOString();
+  simulationStatsStore.clearSimulatorStats(simulationStatsMigration.HUAWEI_ID);
   wx.setStorageSync(STORAGE_KEY, clone(progress));
-  return progress;
+  simulationStatsMigration.migrateLegacyHuaweiStats();
+  return getProgress();
 }
 
 function markEventSeen(eventId) {
   const id = String(eventId || "");
-  const progress = getProgress();
-  if (!EVENT_IDS.has(id)) return progress;
-  progress.eventUsage[id] = Number(progress.eventUsage[id] || 0) + 1;
-  if (!progress.seenEventIds.includes(id)) progress.seenEventIds.push(id);
-  progress.recentEventIds = [id]
-    .concat(progress.recentEventIds.filter((item) => item !== id))
-    .slice(0, MAX_RECENT_EVENTS);
-  return setProgress(progress);
+  if (!EVENT_IDS.has(id)) return getProgress();
+  const profile = simulationStatsStore.getSelectionProfile(
+    simulationStatsMigration.HUAWEI_ID,
+    EVENTS.map((item) => item.id)
+  );
+  simulationStatsStore.recordEventShown(
+    simulationStatsMigration.HUAWEI_ID,
+    `legacy-adapter-run-${profile.completedRuns + 1}`,
+    id
+  );
+  return getProgress();
 }
 
 function recordRunCompleted(runKey) {
   const key = String(runKey || "").trim();
-  const progress = getProgress();
-  if (key && progress.completedRunKeys.includes(key)) return progress;
-  progress.completedRuns += 1;
-  if (key) {
-    progress.completedRunKeys = [key]
-      .concat(progress.completedRunKeys)
-      .slice(0, MAX_COMPLETED_RUN_KEYS);
-  }
-  return setProgress(progress);
+  if (!key) return getProgress();
+  simulationStatsStore.recordRunCompleted(simulationStatsMigration.HUAWEI_ID, key);
+  return getProgress();
 }
 
 function getSelectionProfile(input) {
-  const progress = normalizeProgress(input);
-  return {
-    runNumber: progress.completedRuns + 1,
-    seenEventIds: progress.seenEventIds.slice(),
-    eventUsage: clone(progress.eventUsage),
-    recentEventIds: progress.recentEventIds.slice()
-  };
+  return simulationStatsStore.getSelectionProfile(
+    simulationStatsMigration.HUAWEI_ID,
+    EVENTS.map((item) => item.id)
+  );
 }
 
 function clearProgress() {
   if (wx.removeStorageSync) wx.removeStorageSync(STORAGE_KEY);
   else wx.setStorageSync(STORAGE_KEY, undefined);
+  simulationStatsStore.clearSimulatorStats(simulationStatsMigration.HUAWEI_ID);
   return normalizeProgress();
 }
 

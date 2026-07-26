@@ -8,7 +8,8 @@ const {
   STAT_META
 } = require("../utils/huaweiSimContent");
 const huaweiSimEngine = require("../utils/huaweiSimEngine");
-const huaweiSimProgressStore = require("../utils/huaweiSimProgressStore");
+const simulationStatsStore = require("../utils/simulationStatsStore");
+const simulationStatsMigration = require("../utils/simulationStatsMigration");
 
 const CHOICE_MARKS = ["A", "B", "C"];
 const FEATURED_TERM_IDS = [
@@ -57,19 +58,23 @@ function glossaryView(item) {
   });
 }
 
-function readProgress() {
+function readExploration() {
   try {
-    return huaweiSimProgressStore.getProgress();
+    simulationStatsMigration.migrateLegacyHuaweiStats();
+    return simulationStatsStore.getExplorationSummary(
+      simulationStatsMigration.HUAWEI_ID,
+      EVENTS.map((item) => item.id)
+    );
   } catch (error) {
-    return huaweiSimProgressStore.normalizeProgress();
+    return null;
   }
 }
 
-function explorationView(progress) {
-  const normalized = huaweiSimProgressStore.normalizeProgress(progress);
-  const seenCount = normalized.seenEventIds.length;
+function explorationView(summary) {
+  const normalized = summary || {};
+  const seenCount = Number(normalized.seenEventCount || 0);
   const totalCount = EVENTS.length;
-  const completedRuns = normalized.completedRuns;
+  const completedRuns = Number(normalized.completedRuns || 0);
   const isFirstVisit = completedRuns === 0 && seenCount === 0;
   const replayEventCount = EVENTS.filter((item) => item.replayOnly).length;
   const unlockedCount = EVENTS.filter((item) => (
@@ -139,10 +144,12 @@ function runView(run) {
   };
 }
 
-function resultView(run, progress) {
+function resultView(run, summary, runSummary) {
   const result = huaweiSimEngine.buildResult(run);
-  const exploration = explorationView(progress);
-  const newCount = result.history.filter((entry) => run.newEventIds.includes(entry.eventId)).length;
+  const exploration = explorationView(summary);
+  const newCount = runSummary
+    ? Number(runSummary.newCount || 0)
+    : result.history.filter((entry) => run.newEventIds.includes(entry.eventId)).length;
   return {
     persona: result.persona,
     stats: statViews(result.stats),
@@ -151,6 +158,7 @@ function resultView(run, progress) {
     exploration: {
       completedRuns: exploration.completedRuns,
       newCount,
+      newRate: Math.round(newCount / Math.max(1, result.choiceCount) * 100),
       percent: exploration.percent,
       seenCount: exploration.seenCount,
       totalCount: exploration.totalCount
@@ -176,6 +184,7 @@ Page({
   data: {
     activeTab: "simulation",
     screen: "intro",
+    resultProfileKicker: "YOUR R&D PROFILE",
     runView: null,
     resultView: null,
     disclaimer: DISCLAIMER,
@@ -186,7 +195,7 @@ Page({
       choicesPerRun: huaweiSimEngine.TOTAL_EVENTS,
       replayEventCount: EVENTS.filter((item) => item.replayOnly).length
     },
-    exploration: explorationView(huaweiSimProgressStore.normalizeProgress()),
+    exploration: explorationView(null),
     featuredTerms: FEATURED_TERM_IDS
       .map((id) => huaweiSimEngine.getGlossaryById(id))
       .filter(Boolean)
@@ -199,8 +208,8 @@ Page({
 
   onLoad() {
     this.run = null;
-    this.progress = readProgress();
-    this.setData({ exploration: explorationView(this.progress) });
+    this.exploration = readExploration();
+    this.setData({ exploration: explorationView(this.exploration) });
   },
 
   onUnload() {
@@ -215,26 +224,44 @@ Page({
 
   startSimulation() {
     const timestamp = new Date().toISOString();
-    this.progress = readProgress();
+    this.exploration = readExploration();
+    let selectionProfile = { runNumber: 1, eventUsage: {}, recentEventIds: [], lastShownRuns: {} };
+    try {
+      selectionProfile = simulationStatsStore.getSelectionProfile(
+        simulationStatsMigration.HUAWEI_ID,
+        EVENTS.map((item) => item.id)
+      );
+    } catch (error) {
+      // The simulator remains playable when optional exploration storage is unavailable.
+    }
     this.run = huaweiSimEngine.createRun({
       seed: `${timestamp}:${Math.random()}`,
       timestamp,
-      ...huaweiSimProgressStore.getSelectionProfile(this.progress)
+      ...selectionProfile
     });
     const current = huaweiSimEngine.getCurrentEvent(this.run);
-    if (current) {
-      try {
-        this.progress = huaweiSimProgressStore.markEventSeen(current.id);
-      } catch (error) {
-        // Exploration history is optional; simulation must still work when storage is unavailable.
+    try {
+      simulationStatsStore.recordRunStarted(
+        simulationStatsMigration.HUAWEI_ID,
+        this.run.seed
+      );
+      if (current) {
+        simulationStatsStore.recordEventShown(
+          simulationStatsMigration.HUAWEI_ID,
+          this.run.seed,
+          current.id
+        );
       }
+      this.exploration = readExploration();
+    } catch (error) {
+      // Exploration history is optional; simulation must still work when storage is unavailable.
     }
     this.setData({
       activeTab: "simulation",
       screen: "run",
       runView: runView(this.run),
       resultView: null,
-      exploration: explorationView(this.progress)
+      exploration: explorationView(this.exploration)
     });
     if (wx.vibrateShort) wx.vibrateShort({ type: "light" });
   },
@@ -248,6 +275,15 @@ Page({
         this.run.eventIds[this.run.eventIndex],
         choiceId
       );
+      try {
+        simulationStatsStore.recordEventAnswered(
+          simulationStatsMigration.HUAWEI_ID,
+          this.run.seed,
+          this.run.lastOutcome.eventId
+        );
+      } catch (error) {
+        // Exploration history is optional.
+      }
       this.setData({ runView: runView(this.run) });
       if (wx.vibrateShort) wx.vibrateShort({ type: "medium" });
     } catch (error) {
@@ -260,22 +296,32 @@ Page({
     try {
       this.run = huaweiSimEngine.continueRun(this.run);
       if (this.run.status === "completed") {
+        let runSummary = null;
         try {
-          this.progress = huaweiSimProgressStore.recordRunCompleted(this.run.seed);
+          runSummary = simulationStatsStore.recordRunCompleted(
+            simulationStatsMigration.HUAWEI_ID,
+            this.run.seed
+          );
+          this.exploration = readExploration();
         } catch (error) {
           // Result rendering does not depend on writing exploration history.
         }
         this.setData({
           screen: "result",
           runView: null,
-          resultView: resultView(this.run, this.progress),
-          exploration: explorationView(this.progress)
+          resultView: resultView(this.run, this.exploration, runSummary),
+          exploration: explorationView(this.exploration)
         });
       } else {
         const current = huaweiSimEngine.getCurrentEvent(this.run);
         if (current) {
           try {
-            this.progress = huaweiSimProgressStore.markEventSeen(current.id);
+            simulationStatsStore.recordEventShown(
+              simulationStatsMigration.HUAWEI_ID,
+              this.run.seed,
+              current.id
+            );
+            this.exploration = readExploration();
           } catch (error) {
             // Keep the current run playable if optional progress storage fails.
           }
@@ -306,12 +352,12 @@ Page({
 
   backToIntro() {
     this.run = null;
-    this.progress = readProgress();
+    this.exploration = readExploration();
     this.setData({
       screen: "intro",
       runView: null,
       resultView: null,
-      exploration: explorationView(this.progress)
+      exploration: explorationView(this.exploration)
     });
   },
 

@@ -106,6 +106,19 @@ function normalizeView(view) {
     keywords: (Array.isArray(view.keywords) ? view.keywords : []).slice(0, 3),
     foreshadowCount: Math.max(0, Number(view.foreshadowCount || 0)),
     foreshadowText: String(view.foreshadowText || ""),
+    exploration: {
+      completedRuns: Math.max(0, Number(view.exploration && view.exploration.completedRuns || 0)),
+      seenEventCount: Math.max(0, Number(view.exploration && view.exploration.seenEventCount || 0)),
+      totalEventCount: Math.max(1, Number(view.exploration && view.exploration.totalEventCount || 1)),
+      percent: Math.max(0, Number(view.exploration && view.exploration.percent || 0))
+    },
+    runExploration: {
+      newCount: Math.max(0, Number(view.runExploration && view.runExploration.newCount || 0)),
+      repeatCount: Math.max(0, Number(view.runExploration && view.runExploration.repeatCount || 0)),
+      shownCount: Math.max(0, Number(view.runExploration && view.runExploration.shownCount || 0)),
+      newRate: Math.max(0, Number(view.runExploration && view.runExploration.newRate || 0)),
+      currentIsNew: !!(view.runExploration && view.runExploration.currentIsNew)
+    },
     stage: {
       ...stage,
       index: stageIndex(stage),

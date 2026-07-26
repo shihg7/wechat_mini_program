@@ -45,7 +45,12 @@ function testAdaptiveReplaySelection() {
   const allSelected = new Set();
   let recentEventIds = [];
 
-  for (let runNumber = 1; runNumber <= 4; runNumber += 1) {
+  const guaranteedFreshRuns = Math.floor(
+    Math.min(...STAGES.map((stage) => EVENTS.filter((item) => item.stageId === stage.id).length))
+    / engine.EVENTS_PER_STAGE
+  );
+
+  for (let runNumber = 1; runNumber <= guaranteedFreshRuns; runNumber += 1) {
     const options = {
       seed: `adaptive-run-${runNumber}`,
       timestamp: "2026-07-25T00:00:00.000Z",
@@ -76,16 +81,19 @@ function testAdaptiveReplaySelection() {
     recentEventIds = run.eventIds.concat(recentEventIds).slice(0, 30);
   }
 
-  assert.strictEqual(allSelected.size, engine.TOTAL_EVENTS * 4);
+  assert.strictEqual(allSelected.size, engine.TOTAL_EVENTS * guaranteedFreshRuns);
   const repeatRun = engine.createRun({
-    seed: "after-four-runs",
-    runNumber: 5,
+    seed: "after-fresh-capacity",
+    runNumber: guaranteedFreshRuns + 1,
     seenEventIds: seen,
     eventUsage,
     recentEventIds
   });
   assert.strictEqual(repeatRun.eventIds.length, engine.TOTAL_EVENTS);
-  assert(repeatRun.eventIds.some((id) => allSelected.has(id)), "repeats are allowed only after a stage pool is exhausted");
+  assert(
+    repeatRun.eventIds.some((id) => allSelected.has(id)),
+    "repeats are allowed only when a stage no longer has enough unseen events for its quota"
+  );
 }
 
 function testChoiceLifecycleAndBounds() {
@@ -139,7 +147,7 @@ function testGlossarySearch() {
 
 function testPoolReachability() {
   const reached = new Set();
-  for (let index = 0; index < 240; index += 1) {
+  for (let index = 0; index < EVENTS.length * 12; index += 1) {
     engine.buildEventIds(`reach-${index}`, { runNumber: 2 }).forEach((id) => reached.add(id));
   }
   assert.strictEqual(reached.size, EVENTS.length, "every encounter should be reachable from seeded runs");

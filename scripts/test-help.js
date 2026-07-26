@@ -70,6 +70,7 @@ function testHelpSearchAndSections() {
     ["自动存档", "career"],
     ["虚构复合", "huawei"],
     ["B里靠前", "huawei"],
+    ["复玩", "huawei"],
     ["覆盖", "data"]
   ];
   searches.forEach(([keyword, expectedId]) => {
@@ -150,8 +151,9 @@ function testHuaweiSimulationHelpContent() {
   [
     "非官方",
     "48 个",
-    "54 个",
-    "162 个",
+    "64 个",
+    "192 个",
+    "10 个",
     "15 次选择",
     "绩效与去留",
     "网络职场叙事",
@@ -162,7 +164,8 @@ function testHuaweiSimulationHelpContent() {
     "不代表任何企业",
     "华为公开材料",
     "行业通用表达",
-    "不写入本地缓存",
+    "已见题",
+    "优先",
     "不进入工具箱备份 v3"
   ].forEach((text) => assert(serialized.includes(text), `huawei simulation help should cover ${text}`));
 }

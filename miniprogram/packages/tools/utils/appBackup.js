@@ -3,6 +3,7 @@ const checklistStore = require("../../../utils/checklistStore");
 const ledgerStore = require("../../../utils/tripLedgerStore");
 const wheelStore = require("./wheelStore");
 const careerGameStore = require("./careerGameStore");
+const huaweiSimProgressStore = require("./huaweiSimProgressStore");
 
 const APP_ID = "local-toolbox-miniprogram";
 const SCHEMA_VERSION = 3;
@@ -228,6 +229,7 @@ function exportFullBackup() {
 
 function resetAllData() {
   COLLECTIONS.forEach((collection) => collection.set([]));
+  huaweiSimProgressStore.clearProgress();
   if (wx.removeStorageSync) wx.removeStorageSync(LAST_BACKUP_KEY);
   else wx.setStorageSync(LAST_BACKUP_KEY, undefined);
 }

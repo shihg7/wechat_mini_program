@@ -7,12 +7,22 @@ const pageRoot = path.join(root, "miniprogram", "packages", "tools", "huawei-sim
 const clipboard = [];
 const toasts = [];
 const modals = [];
+const storage = {};
 let pageDefinition;
 
 global.Page = (definition) => {
   pageDefinition = definition;
 };
 global.wx = {
+  getStorageSync(key) {
+    return storage[key] === undefined ? undefined : clone(storage[key]);
+  },
+  setStorageSync(key, value) {
+    storage[key] = clone(value);
+  },
+  removeStorageSync(key) {
+    delete storage[key];
+  },
   vibrateShort() {},
   showToast(options) {
     toasts.push(options);
@@ -51,14 +61,19 @@ function dataset(id, name = "id") {
 }
 
 function testMainFlow() {
+  Object.keys(storage).forEach((key) => delete storage[key]);
   const page = createPage();
   assert.strictEqual(page.data.screen, "intro");
   assert(page.data.contentStats.termCount >= 48);
-  assert(page.data.contentStats.eventCount >= 54);
+  assert(page.data.contentStats.eventCount >= 64);
   assert.strictEqual(page.data.contentStats.choicesPerRun, 15);
+  assert.strictEqual(page.data.contentStats.replayEventCount, 10);
+  assert.strictEqual(page.data.exploration.isFirstVisit, true);
   page.startSimulation();
+  const firstRunIds = page.run.eventIds.slice();
   assert.strictEqual(page.data.screen, "run");
   assert.strictEqual(page.data.runView.choices.length, 3);
+  assert.strictEqual(page.run.runNumber, 1);
 
   for (let index = 0; index < page.data.contentStats.choicesPerRun; index += 1) {
     const firstChoice = page.data.runView.choices[0];
@@ -73,18 +88,27 @@ function testMainFlow() {
   assert.strictEqual(page.data.screen, "result");
   assert(page.data.resultView.persona.title);
   assert.strictEqual(page.data.resultView.history.length, page.data.contentStats.choicesPerRun);
+  assert.strictEqual(page.data.resultView.exploration.newCount, 15);
+  assert.strictEqual(page.data.resultView.exploration.completedRuns, 1);
+  assert.strictEqual(page.data.exploration.isFirstVisit, false);
   page.copyResult();
   assert(clipboard.some((item) => item.includes("非官方情景模拟")));
   assert(toasts.some((item) => item.title === "模拟总结已复制"));
 
   page.restartSimulation();
   assert.strictEqual(page.data.screen, "run");
+  assert.strictEqual(page.run.runNumber, 2);
+  assert.strictEqual(page.run.replayEventIds.length, 10);
+  assert.strictEqual(page.run.eventIds.some((id) => firstRunIds.includes(id)), false);
+  assert.strictEqual(page.data.runView.noveltyLabel, "复玩解锁");
   assert.strictEqual(modals.length, 0, "completed simulations should restart directly");
   page.restartSimulation();
   assert.strictEqual(modals.length, 1, "active simulations should confirm before restart");
   page.backToIntro();
   assert.strictEqual(page.data.screen, "intro");
   assert.strictEqual(page.run, null);
+  assert.strictEqual(page.data.exploration.completedRuns, 1);
+  assert(storage.toolbox_huawei_sim_progress, "lightweight exploration progress should survive leaving the run");
 }
 
 function testGlossaryFlow() {
@@ -123,9 +147,15 @@ function testTemplateAndStyleGuards() {
   assert(wxml.includes("B里靠前"));
   assert(wxml.includes("五个阶段"));
   assert(wxml.includes("十五回合"));
+  assert(wxml.includes('class="exploration-band"'));
+  assert(wxml.includes("只保存已见题进度"));
+  assert(wxml.includes('class="result-exploration"'));
+  assert(!wxml.includes("不写缓存"));
   assert(!wxml.includes("四个阶段"));
   assert(!wxml.includes("十二回合"));
   assert(wxss.includes(".source-network"));
+  assert(wxss.includes(".novelty-replay"));
+  assert(wxss.includes(".exploration-track"));
   assert(/\.hw-page\s*\{[\s\S]*?height:\s*100vh[\s\S]*?overflow:\s*hidden/.test(wxss));
   assert(/\.content-scroll\s*\{[\s\S]*?flex:\s*1[\s\S]*?height:\s*0/.test(wxss));
   assert(/\.choice-card\s*\{[\s\S]*?min-height:\s*126rpx[\s\S]*?height:\s*auto[\s\S]*?overflow:\s*visible/.test(wxss));

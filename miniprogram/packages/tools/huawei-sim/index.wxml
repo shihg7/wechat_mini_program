@@ -55,7 +55,7 @@
         </view>
         <view class="counter-cell">
           <text class="counter-value">{{contentStats.eventCount}}</text>
-          <text class="counter-label">虚构情景</text>
+          <text class="counter-label">题库情景</text>
         </view>
         <view class="counter-cell">
           <text class="counter-value">{{contentStats.choicesPerRun}}</text>
@@ -64,9 +64,23 @@
       </view>
 
       <view class="intro-lead">
-        <view class="section-kicker">YOUR FIRST DAY</view>
+        <view class="section-kicker">{{exploration.isFirstVisit ? 'YOUR FIRST DAY' : 'WELCOME BACK'}}</view>
         <view class="intro-title">PBC 刚写完，TR 又来了</view>
         <view class="intro-copy">五个阶段会随机抽取研发现场，最后进入绩效与去留。交付、技术、能量与影响会共同形成你的最终画像。</view>
+      </view>
+
+      <view class="exploration-band">
+        <view class="exploration-icon">
+          <ui-icon name="{{exploration.isFirstVisit ? 'sparkles' : 'route'}}" size="{{27}}" tone="accent" />
+        </view>
+        <view class="exploration-copy">
+          <view class="exploration-title">{{exploration.title}}</view>
+          <view class="exploration-detail">{{exploration.detail}}</view>
+          <view class="exploration-track">
+            <view class="exploration-fill" style="width: {{exploration.percent}}%;"></view>
+          </view>
+        </view>
+        <view class="exploration-count">{{exploration.seenCount}} / {{exploration.totalCount}}</view>
       </view>
 
       <view class="term-ribbon">
@@ -75,12 +89,12 @@
 
       <button class="primary-button icon-action" bindtap="startSimulation" aria-label="开始十五回合研发情景模拟">
         <ui-icon name="play" size="{{27}}" tone="white" />
-        <text>开始情景模拟</text>
+        <text>{{exploration.startLabel}}</text>
       </button>
 
       <view class="privacy-note icon-label">
         <ui-icon name="shield" size="{{22}}" tone="green" />
-        <text>不写缓存，不进入备份，离开页面即结束</text>
+        <text>只保存已见题进度；具体选择和结果不落盘、不进入备份</text>
       </view>
 
       <view class="source-section">
@@ -118,7 +132,12 @@
 
       <view class="event-panel">
         <view class="event-meta">
-          <view class="term-badge">{{runView.term.term}}</view>
+          <view class="event-badge-row">
+            <view class="term-badge">{{runView.term.term}}</view>
+            <view class="novelty-badge novelty-{{runView.noveltyTone}}" wx:if="{{runView.noveltyLabel}}">
+              {{runView.noveltyLabel}}
+            </view>
+          </view>
           <view class="event-number">情景 {{runView.eventNumber}}</view>
         </view>
         <view class="event-title">{{runView.title}}</view>
@@ -197,6 +216,20 @@
 
       <view class="keyword-row" wx:if="{{resultView.keywords.length}}">
         <view class="keyword-chip" wx:for="{{resultView.keywords}}" wx:key="*this">{{item}}</view>
+      </view>
+
+      <view class="result-exploration">
+        <view class="result-exploration-top">
+          <view>
+            <view class="result-exploration-kicker">本轮内容探索</view>
+            <view class="result-exploration-title">遇见 {{resultView.exploration.newCount}} 个新情景</view>
+          </view>
+          <view class="result-exploration-count">{{resultView.exploration.seenCount}} / {{resultView.exploration.totalCount}}</view>
+        </view>
+        <view class="exploration-track result-exploration-track">
+          <view class="exploration-fill" style="width: {{resultView.exploration.percent}}%;"></view>
+        </view>
+        <view class="result-exploration-note">第 {{resultView.exploration.completedRuns}} 局已完成，再来一局会继续优先抽取未见或较少出现的题。</view>
       </view>
 
       <view class="result-actions">

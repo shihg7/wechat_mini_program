@@ -1,10 +1,10 @@
 {
   "name": "offline-toolbox-miniprogram",
-  "version": "1.7.0",
+  "version": "1.8.0",
   "description": "Offline daily toolbox WeChat Mini Program",
   "main": "index.js",
   "scripts": {
-    "test": "node scripts/test-toolbox-home.js && node scripts/test-date-calculator.js && node scripts/test-unit-converter.js && node scripts/test-qr-generator.js && node scripts/test-instant-tool-pages.js && node scripts/test-trips.js && node scripts/test-trip-pages.js && node scripts/test-checklists.js && node scripts/test-trip-ledger.js && node scripts/test-ledger-pages.js && node scripts/test-ledger-export.js && node scripts/test-wheel.js && node scripts/test-wheel-page.js && node scripts/test-career-content.js && node scripts/test-career-meta.js && node scripts/test-career-game.js && node scripts/test-career-pages.js && node scripts/test-huawei-sim-content.js && node scripts/test-huawei-sim-engine.js && node scripts/test-huawei-sim-page.js && node scripts/test-app-backup.js && node scripts/test-toolbox-migration.js && node scripts/test-data-page.js && node scripts/test-help.js && node scripts/test-ui-icons.js && node scripts/test-tools-package.js",
+    "test": "node scripts/test-toolbox-home.js && node scripts/test-date-calculator.js && node scripts/test-unit-converter.js && node scripts/test-qr-generator.js && node scripts/test-instant-tool-pages.js && node scripts/test-trips.js && node scripts/test-trip-pages.js && node scripts/test-checklists.js && node scripts/test-trip-ledger.js && node scripts/test-ledger-pages.js && node scripts/test-ledger-export.js && node scripts/test-wheel.js && node scripts/test-wheel-page.js && node scripts/test-career-content.js && node scripts/test-career-meta.js && node scripts/test-career-game.js && node scripts/test-career-pages.js && node scripts/test-huawei-sim-content.js && node scripts/test-huawei-sim-engine.js && node scripts/test-huawei-sim-progress.js && node scripts/test-huawei-sim-page.js && node scripts/test-app-backup.js && node scripts/test-toolbox-migration.js && node scripts/test-data-page.js && node scripts/test-help.js && node scripts/test-ui-icons.js && node scripts/test-tools-package.js",
     "check:syntax": "node scripts/check-js-syntax.js",
     "check:routes": "node scripts/check-app-routes.js",
     "check:bundle": "node scripts/check-main-package-usage.js",

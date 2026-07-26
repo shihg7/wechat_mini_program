@@ -475,6 +475,13 @@ function event(id, stageId, termId, title, situation, choices) {
   return { id, stageId, termId, title, situation, choices };
 }
 
+function replayEvent(id, stageId, termId, title, situation, choices) {
+  return Object.assign(event(id, stageId, termId, title, situation, choices), {
+    unlockRun: 2,
+    replayOnly: true
+  });
+}
+
 const EVENTS = [
   event("onboarding-pbc", "onboarding", "pbc", "第一份 PBC 被退回",
     "你写下“高质量完成模块开发”。主管说颗粒度不够，要能看出业务结果、关键里程碑和协同边界。",
@@ -856,6 +863,76 @@ const EVENTS = [
       choice("timeboxed-options", "设定六周窗口，同时推进事实复核、内部岗位沟通、外部面试和现金规划，再按明确信号决定。", "你没有把去留交给一次情绪，也没有假装环境一定会自行改善。", { energy: 8, influence: 6, tech: 3, delivery: 2 }, ["选择权", "计划"]),
       choice("prove-with-overtime", "暂停所有外部选择，用无限加班证明忠诚，期待下一轮评价自动修复一切。", "短期存在感上升，决定自己未来的能力却继续下降。", { delivery: 6, energy: -18, influence: -3 }, ["证明", "依赖"]),
       choice("leave-no-runway", "第二天直接离开，不做财务准备、交接或下一步安排，先结束痛苦再说。", "压力源被切断了，你也立刻面对现金、关系与职业空窗的新压力。", { energy: 4, delivery: -9, influence: -7 }, ["离开", "无准备"])
+    ]),
+  replayEvent("onboarding-replay-weekly", "onboarding", "pbc", "周报被改成了一份态度证明",
+    "第二次走进这段生涯，你发现新人周报模板新增了“奋斗投入”栏，却没有目标、产出或风险。主管暗示字数越多越显得有态度。",
+    [
+      choice("weekly-evidence", "用目标、完成证据、阻塞和下周决策重写周报，并请主管确认真正用于评价的字段。", "周报变短了，却第一次能支持资源决策和后续复盘。", { delivery: 7, influence: 6, energy: -2 }, ["证据", "目标"]),
+      choice("weekly-novel", "把每天从早到晚的活动全部展开，写成三千字工作纪实以证明自己足够忙。", "字数显著增长，读者仍然不知道项目是否向前移动。", { delivery: -3, energy: -8, influence: 1 }, ["形式", "忙碌"]),
+      choice("weekly-empty", "认为周报没有价值，只填一句“一切正常”，让任何风险都留到真正爆发时再说。", "你节省了填写时间，也放弃了提前争取帮助的机会。", { energy: 3, delivery: -6, influence: -4 }, ["沉默", "风险"])
+    ]),
+  replayEvent("onboarding-replay-online", "onboarding", "striver-oriented", "深夜群里突然开始报在线",
+    "晚上十一点半，群里有人发出办公室照片，随后大家依次回复“还在”。你今天的任务已经完成，第二天还有关键评审。",
+    [
+      choice("online-boundary", "回复当前交付已完成、明早评审准备就绪，然后正常休息并保持紧急联系方式畅通。", "你给出了可验证状态，也没有把在线时长伪装成业务结果。", { energy: 10, delivery: 4, influence: 3 }, ["边界", "结果"]),
+      choice("online-return", "立刻返回办公室拍一张照片，哪怕没有待处理任务也要加入报在线队列。", "照片证明你出现过，第二天的判断力却因此打了折扣。", { influence: 2, energy: -13, delivery: -3 }, ["表态", "透支"]),
+      choice("online-mock", "在群里公开嘲讽所有仍在线的人效率低，并逐个点评他们白天为什么没做完。", "你指出了一个可能的问题，也把讨论变成了人身对抗。", { influence: -10, energy: -3, delivery: -2 }, ["嘲讽", "冲突"])
+    ]),
+  replayEvent("release-replay-midnight", "release", "tr4a", "零点前十分钟的“一行代码”",
+    "版本冻结前十分钟，负责人要求直接合入一个“一行代码”的紧急改动；没有回归结果，也没有说明失败后的回滚责任。",
+    [
+      choice("midnight-gate", "快速核对影响面、最小验证和回滚门槛，由明确负责人决定合入或延后。", "十分钟没有变长，但决策至少有了证据和失败出口。", { delivery: 8, tech: 7, energy: -3 }, ["门禁", "回滚"]),
+      choice("midnight-trust", "相信代码行数代表风险大小，跳过检查直接合入，出现问题再集体攻关。", "合入动作只用了一分钟，风险账单却不按代码行数计费。", { delivery: 2, tech: -9, energy: -8 }, ["侥幸", "风险"]),
+      choice("midnight-freeze", "拒绝查看任何上下文，只要过了冻结点就一律不处理，即使问题正在影响客户。", "流程边界被严格守住，客户影响也被严格留到了明天。", { tech: 3, delivery: -8, influence: -4 }, ["僵化", "延误"])
+    ]),
+  replayEvent("release-replay-war-room", "release", "result-oriented", "作战室开始统计谁最后离开",
+    "线上故障持续两个小时，作战室看板没有根因假设，却新增了“在线人员”和“最后离场时间”两列作为投入证明。",
+    [
+      choice("war-room-facts", "把看板改回影响、假设、证据、负责人和下次更新时间，另设轮换保证持续响应。", "作战室重新开始缩小问题空间，人员也获得了可持续的轮换。", { delivery: 9, tech: 7, energy: 4 }, ["事实板", "轮换"]),
+      choice("war-room-hours", "主动承诺最后一个离开，并让每个人每半小时汇报仍在线的截图。", "在线证据越来越完整，故障证据却没有同步增长。", { influence: 2, delivery: -5, energy: -16 }, ["工时", "表态"]),
+      choice("war-room-solo", "把所有人赶出作战室，自己独占系统权限，试图用英雄式修复结束争论。", "沟通噪声下降了，单点失误和知识断层同时上升。", { tech: 4, influence: -9, delivery: -3 }, ["英雄", "单点"])
+    ]),
+  replayEvent("frontline-replay-commitment", "frontline", "ltc", "客户会上多出一个你没承诺的日期",
+    "销售在客户会上宣布月底交付一个尚未评估的能力，并说“研发已经基本完成”。会议结束后，任务才第一次出现在你的排期里。",
+    [
+      choice("commitment-map", "当天拉齐客户价值、范围、依赖和可行日期，给出分阶段方案并由承诺负责人重新确认。", "你没有只说做不到，而是把失真的承诺改造成了可选择方案。", { delivery: 8, influence: 9, tech: 3 }, ["承诺", "方案"]),
+      choice("commitment-absorb", "不纠正客户预期，把需求塞进现有版本，靠团队加班维持跨部门关系。", "关系暂时平静，团队却开始为一个从未参与的承诺买单。", { delivery: 4, influence: 2, energy: -17 }, ["兜底", "透支"]),
+      choice("commitment-blame", "直接在客户群里声明销售虚假承诺，与研发无关，要求客户自己找负责人。", "责任边界被公开，客户信任和内部协作也一起受损。", { influence: -12, delivery: -8, energy: -3 }, ["甩锅", "失信"])
+    ]),
+  replayEvent("frontline-replay-residency", "frontline", "call-artillery", "三天支援悄悄变成长期驻场",
+    "你以三天问题定位的名义到达客户现场，第十天仍没有退出条件；远端团队继续给你排原岗位任务，双方都默认你可以兼顾。",
+    [
+      choice("residency-exit", "建立现场问题清单、远程接手机制和明确退出标准，请两边负责人共同确认容量取舍。", "驻场从无限责任变成了有目标、有交接、有结束时间的任务。", { delivery: 8, influence: 9, energy: 2 }, ["退出", "交接"]),
+      choice("residency-endure", "继续同时承担现场和原岗位任务，不提出容量冲突，等客户主动说可以离开。", "所有排期看似未受影响，你的恢复时间却从计划里消失了。", { delivery: 6, energy: -18, influence: -2 }, ["兼顾", "燃尽"]),
+      choice("residency-disappear", "不做交接直接订票离开，并关闭手机两天，让组织自己理解驻场边界。", "你结束了无限驻场，也留下了一个无人接手的客户现场。", { energy: 8, delivery: -11, influence: -9 }, ["失联", "中断"])
+    ]),
+  replayEvent("crossroad-replay-visibility", "crossroad", "black-soil", "平台成果没有出现在汇报首页",
+    "你负责的平台让多个团队节省了大量重复工作，但年度材料只展示直接收入。主管建议你临时包装一个更“亮眼”的新项目。",
+    [
+      choice("visibility-evidence", "用采用率、故障下降、节省人时和业务案例量化平台价值，并争取固定的公共贡献口径。", "黑土地不再只靠情怀解释，组织第一次看见了它的结果链。", { tech: 8, influence: 9, delivery: 5 }, ["平台", "度量"]),
+      choice("visibility-project", "暂停平台维护，快速做一个容易演示的新项目，只为在汇报首页占据位置。", "首页变亮了，依赖平台的团队开始遇到新的维护缺口。", { influence: 4, tech: -6, delivery: -5 }, ["展示", "偏航"]),
+      choice("visibility-silent", "拒绝解释公共价值，认为真正专业的人自然会懂，继续把所有贡献留在幕后。", "你守住了技术纯粹，也让资源分配继续看不见平台收益。", { tech: 4, influence: -7, energy: -3 }, ["沉默", "隐形"])
+    ]),
+  replayEvent("crossroad-replay-successor", "crossroad", "strategic-reserve", "先培养接班人，再谈你的去向",
+    "你被要求在一个月内培养接班人，理由是“组织要有梯队”；但你的下一岗位、时间表和评价方式都没有任何确认。",
+    [
+      choice("successor-contract", "积极制定交接计划，同时要求确认培养目标、完成标准、个人去向和决策时间点。", "梯队建设继续推进，你也没有把自己的职业路径交给无限等待。", { influence: 9, delivery: 6, energy: -3 }, ["梯队", "确认"]),
+      choice("successor-hoard", "拒绝分享关键知识，把不可替代性当作唯一岗位保障。", "短期内没人能绕开你，长期风险也因此全部集中到你身上。", { tech: 3, influence: -10, energy: -6 }, ["垄断", "单点"]),
+      choice("successor-give-all", "无条件完成全部交接，不询问任何去向，认为服从安排自然会得到回报。", "接班人准备好了，你自己的下一站仍然只有一句“再等等”。", { delivery: 6, influence: -4, energy: -9 }, ["服从", "等待"])
+    ]),
+  replayEvent("performance-replay-quota", "performance", "b-rating", "“大家都很好，但 B 必须有人拿”",
+    "主管说团队表现都不错，只是比例要求下必须产生一个 B；他希望你理解组织规则，但仍没有说明为什么最终是你。",
+    [
+      choice("quota-evidence", "区分比例机制与个人判断，继续要求说明相对标准、选择依据、实际影响和复核方式。", "你承认资源约束存在，却没有让约束替代对个人结果的解释。", { influence: 9, delivery: 4, energy: -3 }, ["比例", "证据"]),
+      choice("quota-self-blame", "接受“总要有人拿”的解释，把随机位置理解成个人能力不足并全面加码。", "你替机制完成了自我归因，能量却为一个模糊结论持续付款。", { delivery: 3, energy: -16, influence: -3 }, ["归因", "透支"]),
+      choice("quota-campaign", "私下游说同事证明另一个人更应该拿 B，把绩效沟通变成一场淘汰投票。", "你试图改变自己的位置，却让团队进入互相举证的防御模式。", { influence: -14, energy: -7, delivery: -2 }, ["内斗", "排名"])
+    ]),
+  replayEvent("performance-replay-selection", "performance", "rd-output", "只有一个选项的“双向选择”",
+    "转岗沟通被称为双向选择，但会议里只提供一个岗位，并要求你当天签字；对方拒绝书面说明不接受会有什么后果。",
+    [
+      choice("selection-written", "要求合理考虑时间和完整岗位条件，并请对方书面确认可选路径、拒绝后果与正式流程。", "口头压力没有立即消失，但你获得了判断选择是否真实的事实基础。", { influence: 10, energy: -3, delivery: 2 }, ["选择", "书面"]),
+      choice("selection-sign", "为了避免被认为不配合，当场签下未知职责，再寄希望于入岗后重新协商。", "会议顺利结束，岗位风险和协商成本被完整带到了下一天。", { influence: 2, energy: -13, delivery: -3 }, ["签字", "未知"]),
+      choice("selection-tear", "当众撕掉材料并攻击主持人，拒绝听取任何后续流程说明。", "你清楚表达了拒绝，也同时失去了继续收集信息和谈条件的空间。", { energy: 3, influence: -13, delivery: -5 }, ["对抗", "失控"])
     ])
 ];
 

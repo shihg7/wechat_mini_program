@@ -146,7 +146,9 @@ assert.strictEqual(ui.sharedFiles[0].fileName, "工具箱-完整备份-v3.json")
 assert.notStrictEqual(page.data.localSummary.lastBackupText, "尚未备份");
 
 page.confirmClear();
-ui.modals.pop().success({ confirm: true });
+const clearPrompt = ui.modals.pop();
+assert(clearPrompt.content.includes("华子内容探索进度"));
+clearPrompt.success({ confirm: true });
 assert.strictEqual(page.data.localSummary.tripCount, 0);
 assert.strictEqual(page.data.localSummary.checklistCount, 0);
 assert.strictEqual(page.data.localSummary.ledgerCount, 0);

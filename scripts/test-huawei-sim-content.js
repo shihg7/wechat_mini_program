@@ -21,7 +21,7 @@ assert(DISCLAIMER.includes("不代表"));
 assert.strictEqual(STAT_KEYS.length, 4);
 assert.strictEqual(STAGES.length, 5);
 assert(GLOSSARY.length >= 48, "glossary should provide a substantial public-term collection");
-assert(EVENTS.length >= 54, "scenario pool should provide varied fictional encounters");
+assert(EVENTS.length >= 64, "scenario pool should provide varied fictional encounters");
 assert(PERSONAS.length >= 8, "simulation should offer varied result profiles");
 assert(SOURCE_SUMMARY.length >= 4, "source boundary should be visible in the product");
 
@@ -85,6 +85,9 @@ EVENTS.forEach((item) => {
   assert(item.title.length >= 6, `${item.id} should have a descriptive title`);
   assert(item.situation.length >= 28, `${item.id} should contain a complete fictional situation`);
   assert.strictEqual(item.choices.length, 3, `${item.id} should always present three choices`);
+  if (item.replayOnly) {
+    assert.strictEqual(item.unlockRun, 2, `${item.id} replay encounters should unlock on the second run`);
+  }
   item.choices.forEach((option) => {
     allChoiceIds.push(`${item.id}:${option.id}`);
     assert(option.text.length >= 16, `${item.id}/${option.id} choice text is too shallow`);
@@ -102,6 +105,8 @@ assertUnique(allChoiceIds, "qualified choice ids");
 STAGES.forEach((stage) => {
   const count = EVENTS.filter((item) => item.stageId === stage.id).length;
   assert(count >= 10, `${stage.id} should have at least ten candidate encounters`);
+  const replayCount = EVENTS.filter((item) => item.stageId === stage.id && item.replayOnly).length;
+  assert.strictEqual(replayCount, 2, `${stage.id} should add two second-run encounters`);
 });
 
 const serialized = JSON.stringify({ EVENTS, GLOSSARY });
@@ -114,6 +119,15 @@ const serialized = JSON.stringify({ EVENTS, GLOSSARY });
   "复盘会突然变成挨骂大会"
 ].forEach((fragment) => {
   assert(serialized.includes(fragment), `content should cover requested pressure scenario: ${fragment}`);
+});
+[
+  "周报被改成了一份态度证明",
+  "深夜群里突然开始报在线",
+  "零点前十分钟的“一行代码”",
+  "三天支援悄悄变成长期驻场",
+  "只有一个选项的“双向选择”"
+].forEach((fragment) => {
+  assert(serialized.includes(fragment), `replay content should include ${fragment}`);
 });
 ["真实员工经历", "内部泄密", "未经证实"].forEach((fragment) => {
   assert(!serialized.includes(fragment), `content should not make unsupported claims: ${fragment}`);

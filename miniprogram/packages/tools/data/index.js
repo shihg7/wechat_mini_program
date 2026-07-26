@@ -177,7 +177,7 @@ Page({
     if (this.data.clearing) return;
     wx.showModal({
       title: "清空全部本地数据？",
-      content: "行程、清单、AA 账本、转盘和生涯都会删除，且无法撤销。建议先导出备份。",
+      content: "行程、清单、AA 账本、转盘、生涯和华子内容探索进度都会删除，且无法撤销。建议先导出备份。",
       confirmText: "全部清空",
       confirmColor: "#a33d2d",
       success: (result) => {

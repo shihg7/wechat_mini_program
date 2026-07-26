@@ -65,10 +65,77 @@ function normalizeStats(input = {}) {
   }, {});
 }
 
-function buildEventIds(seed) {
+function normalizeSelectionProfile(options = {}) {
+  const seenEventIds = new Set(
+    (Array.isArray(options.seenEventIds) ? options.seenEventIds : [])
+      .map((item) => String(item || ""))
+  );
+  const sourceUsage = options.eventUsage && typeof options.eventUsage === "object"
+    ? options.eventUsage
+    : {};
+  const eventUsage = {};
+  EVENTS.forEach((item) => {
+    const count = Math.max(0, Math.floor(Number(sourceUsage[item.id]) || 0));
+    if (count > 0) eventUsage[item.id] = count;
+    else if (seenEventIds.has(item.id)) eventUsage[item.id] = 1;
+  });
+  return {
+    runNumber: Math.max(1, Math.floor(Number(options.runNumber) || 1)),
+    eventUsage,
+    recentEventIds: new Set(
+      (Array.isArray(options.recentEventIds) ? options.recentEventIds : [])
+        .map((item) => String(item || ""))
+    )
+  };
+}
+
+function eventUsage(profile, eventId) {
+  return Number(profile.eventUsage[eventId] || 0);
+}
+
+function orderUsedEvents(items, seed, profile) {
+  return items
+    .map((item) => ({
+      item,
+      usage: eventUsage(profile, item.id),
+      tieBreaker: hashSeed(`${seed}:${item.id}`)
+    }))
+    .sort((left, right) => left.usage - right.usage || left.tieBreaker - right.tieBreaker)
+    .map((entry) => entry.item);
+}
+
+function orderStageCandidates(candidates, seed, profile) {
+  const newlyUnlocked = [];
+  const unseen = [];
+  const used = [];
+  const recentlyUsed = [];
+  candidates.forEach((item) => {
+    const usage = eventUsage(profile, item.id);
+    if (usage === 0 && profile.runNumber > 1 && Number(item.unlockRun || 1) === profile.runNumber) {
+      newlyUnlocked.push(item);
+    } else if (usage === 0) {
+      unseen.push(item);
+    } else if (profile.recentEventIds.has(item.id)) {
+      recentlyUsed.push(item);
+    } else {
+      used.push(item);
+    }
+  });
+  return []
+    .concat(seededShuffle(newlyUnlocked, `${seed}:newly-unlocked`))
+    .concat(seededShuffle(unseen, `${seed}:unseen`))
+    .concat(orderUsedEvents(used, `${seed}:used`, profile))
+    .concat(orderUsedEvents(recentlyUsed, `${seed}:recent`, profile));
+}
+
+function buildEventIds(seed, options = {}) {
+  const profile = normalizeSelectionProfile(options);
   return STAGES.flatMap((stage) => {
-    const candidates = EVENTS.filter((item) => item.stageId === stage.id);
-    return seededShuffle(candidates, `${seed}:${stage.id}`)
+    const candidates = EVENTS.filter((item) => (
+      item.stageId === stage.id
+      && Number(item.unlockRun || 1) <= profile.runNumber
+    ));
+    return orderStageCandidates(candidates, `${seed}:${stage.id}`, profile)
       .slice(0, EVENTS_PER_STAGE)
       .map((item) => item.id);
   });
@@ -89,12 +156,18 @@ function getStageById(id) {
 function createRun(options = {}) {
   const timestamp = String(options.timestamp || new Date().toISOString());
   const seed = String(options.seed || timestamp);
+  const profile = normalizeSelectionProfile(options);
+  const eventIds = buildEventIds(seed, options);
   return {
     schemaVersion: 1,
     seed,
+    runNumber: profile.runNumber,
     status: "active",
     phase: "scene",
-    eventIds: buildEventIds(seed),
+    eventIds,
+    newEventIds: eventIds.filter((id) => eventUsage(profile, id) === 0),
+    replayEventIds: eventIds.filter((id) => Number(getEventById(id).unlockRun || 1) > 1),
+    availableEventCount: EVENTS.filter((item) => Number(item.unlockRun || 1) <= profile.runNumber).length,
     eventIndex: 0,
     stats: normalizeStats(INITIAL_STATS),
     history: [],
@@ -252,6 +325,7 @@ module.exports = {
   getGlossaryById,
   getStageById,
   normalizeStats,
+  normalizeSelectionProfile,
   resolveChoice,
   searchGlossary,
   selectPersona

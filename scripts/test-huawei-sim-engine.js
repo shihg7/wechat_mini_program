@@ -27,6 +27,8 @@ function testSeededSelection() {
   assert.strictEqual(first.eventIds.length, engine.TOTAL_EVENTS);
   assert.strictEqual(engine.TOTAL_EVENTS, 15);
   assert.strictEqual(new Set(first.eventIds).size, engine.TOTAL_EVENTS);
+  assert.strictEqual(first.replayEventIds.length, 0, "first run should use the core pool");
+  assert.strictEqual(first.availableEventCount, EVENTS.filter((item) => !item.replayOnly).length);
 
   STAGES.forEach((stage, stageIndex) => {
     const ids = first.eventIds.slice(
@@ -35,6 +37,55 @@ function testSeededSelection() {
     );
     assert(ids.every((id) => engine.getEventById(id).stageId === stage.id), `${stage.id} selection should stay in stage`);
   });
+}
+
+function testAdaptiveReplaySelection() {
+  const seen = [];
+  const eventUsage = {};
+  const allSelected = new Set();
+  let recentEventIds = [];
+
+  for (let runNumber = 1; runNumber <= 4; runNumber += 1) {
+    const options = {
+      seed: `adaptive-run-${runNumber}`,
+      timestamp: "2026-07-25T00:00:00.000Z",
+      runNumber,
+      seenEventIds: seen,
+      eventUsage,
+      recentEventIds
+    };
+    const run = engine.createRun(options);
+    assert.strictEqual(run.newEventIds.length, engine.TOTAL_EVENTS);
+    run.eventIds.forEach((id) => {
+      assert(!allSelected.has(id), `run ${runNumber} should prefer unseen event ${id}`);
+    });
+    if (runNumber === 2) {
+      assert.strictEqual(run.replayEventIds.length, 10, "second run should surface both unlocked events from every stage");
+      STAGES.forEach((stage) => {
+        const replayInStage = run.replayEventIds
+          .map(engine.getEventById)
+          .filter((item) => item.stageId === stage.id);
+        assert.strictEqual(replayInStage.length, 2);
+      });
+    }
+    run.eventIds.forEach((id) => {
+      allSelected.add(id);
+      if (!seen.includes(id)) seen.push(id);
+      eventUsage[id] = Number(eventUsage[id] || 0) + 1;
+    });
+    recentEventIds = run.eventIds.concat(recentEventIds).slice(0, 30);
+  }
+
+  assert.strictEqual(allSelected.size, engine.TOTAL_EVENTS * 4);
+  const repeatRun = engine.createRun({
+    seed: "after-four-runs",
+    runNumber: 5,
+    seenEventIds: seen,
+    eventUsage,
+    recentEventIds
+  });
+  assert.strictEqual(repeatRun.eventIds.length, engine.TOTAL_EVENTS);
+  assert(repeatRun.eventIds.some((id) => allSelected.has(id)), "repeats are allowed only after a stage pool is exhausted");
 }
 
 function testChoiceLifecycleAndBounds() {
@@ -89,7 +140,7 @@ function testGlossarySearch() {
 function testPoolReachability() {
   const reached = new Set();
   for (let index = 0; index < 240; index += 1) {
-    engine.buildEventIds(`reach-${index}`).forEach((id) => reached.add(id));
+    engine.buildEventIds(`reach-${index}`, { runNumber: 2 }).forEach((id) => reached.add(id));
   }
   assert.strictEqual(reached.size, EVENTS.length, "every encounter should be reachable from seeded runs");
 }
@@ -104,6 +155,7 @@ function testPersonas() {
 }
 
 testSeededSelection();
+testAdaptiveReplaySelection();
 testChoiceLifecycleAndBounds();
 testCompleteRunAndSummary();
 testGlossarySearch();

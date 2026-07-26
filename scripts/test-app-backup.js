@@ -41,6 +41,7 @@ const checklistStore = require("../miniprogram/utils/checklistStore");
 const ledgerStore = require("../miniprogram/utils/tripLedgerStore");
 const wheelStore = require("../miniprogram/packages/tools/utils/wheelStore");
 const careerGameStore = require("../miniprogram/packages/tools/utils/careerGameStore");
+const huaweiSimProgressStore = require("../miniprogram/packages/tools/utils/huaweiSimProgressStore");
 const backupApi = require("../miniprogram/packages/tools/utils/appBackup");
 
 function reset() {
@@ -250,6 +251,11 @@ function testValidationExportAndClear() {
       `${key} should not enter the v3 backup`
     );
   });
+  assert.strictEqual(
+    Object.prototype.hasOwnProperty.call(backupApi.buildBackup(), "huaweiSimProgress"),
+    false,
+    "Huawei simulation exploration progress should not enter the v3 backup"
+  );
   assert.throws(() => backupApi.preflightBackup("{"), /有效的工具箱 JSON/);
   assert.throws(() => backupApi.preflightBackup({ ...emptyBackup(), app: "another-app" }), /不是当前工具箱/);
   assert.throws(() => backupApi.preflightBackup({ ...emptyBackup(), schemaVersion: 4 }), /仅支持工具箱备份 v1、v2 或 v3/);
@@ -274,6 +280,8 @@ function testValidationExportAndClear() {
   assert.strictEqual(writtenFile.encoding, "utf8");
   assert.strictEqual(JSON.parse(writtenFile.content).app, backupApi.APP_ID);
   assert(memory[backupApi.LAST_BACKUP_KEY]);
+  huaweiSimProgressStore.markEventSeen("onboarding-pbc");
+  assert(memory[huaweiSimProgressStore.STORAGE_KEY]);
 
   backupApi.resetAllData();
   const summary = backupApi.getLocalDataSummary();
@@ -283,6 +291,7 @@ function testValidationExportAndClear() {
     0
   );
   assert.deepStrictEqual(careerGameStore.getRuns(), []);
+  assert.strictEqual(memory[huaweiSimProgressStore.STORAGE_KEY], undefined);
   assert.strictEqual(summary.currentSizeKb, 16);
   assert.strictEqual(summary.limitSizeKb, 10240);
   assert.strictEqual(summary.lastBackupAt, "");

@@ -264,7 +264,7 @@ docs/                            生成的用户手册
 - 微信官方 `wechatide-skill`：用于打开项目、编译、页面自动化、截图和运行时诊断。
 - 小程序没有运行时 npm 依赖，不需要执行“构建 npm”。
 
-项目调测只使用微信开发者工具导出的官方 `wechatide-skill`，不依赖仓库内自定义 Agent 桥接文件。首次使用时应按官方 Skill 的 `SKILL.md` 完成版本、登录与本地授权检查。
+项目调测只使用微信开发者工具导出的官方 `wechatide-skill`，不依赖仓库内自定义 Agent 桥接文件。首次使用或更新 IDE 后，应动态读取本地 `skill.yaml` 并完成版本、登录与授权检查；出现 `agent_behind` 时，从状态结果返回的 `skillPath` 向 Agent Skill 目录单向整目录同步，禁止把版本号写死或反向修改 IDE 安装目录。
 
 首次安装开发依赖：
 

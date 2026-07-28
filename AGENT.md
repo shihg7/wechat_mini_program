@@ -231,14 +231,14 @@ npm run verify
 
 官方页面说明，开发者工具 Skills 覆盖项目管理、页面自动化、运行时诊断、编译、预览发布和云开发。开发者工具版本要求、命令名和参数可能更新，因此不要只复制旧文档或聊天记录中的命令。
 
-本机当前导出版本是 `0.3.2`，但不要在自动化脚本中硬编码。每次导出或更新后都应读取：
+不要在仓库、自动化脚本或本文中固定 Skill 版本号。每次更新微信开发者工具或开始新的调试会话时，都应读取本机版本：
 
 ```bash
 SKILL_ROOT="$HOME/.codex/skills/wechatide-skill"
 SKILL_VERSION="$(awk '/^version:/ { print $2; exit }' "$SKILL_ROOT/skill.yaml")"
 ```
 
-随后以当前导出的根 `SKILL.md` 为准执行状态门禁。当前版本示例：
+随后以当前导出的根 `SKILL.md` 为准执行状态门禁：
 
 ```bash
 wechatide -c <clientName> check_wechatide_status \
@@ -247,12 +247,17 @@ wechatide -c <clientName> check_wechatide_status \
 
 `<clientName>` 使用当前 Agent 名称，并在同一会话保持一致。先检查版本关系，再检查登录状态和 token 要求。状态未就绪时不要继续编译、自动化或上传。
 
+- `versionRelation: equal`：直接使用当前官方 Skill。
+- `versionRelation: agent_behind`：从返回的 `skillPath` 单向整目录覆盖 `$HOME/.codex/skills/wechatide-skill`，重新读取 `skill.yaml` 并复查；不能只改版本号。
+- `versionRelation: agent_ahead`：记录兼容风险后继续，只有遇到明确缺工具或参数的阻断时才按 installer 指引更新 IDE。
+- 只允许 IDE 安装目录到 Agent Skill 目录的单向同步，禁止反向写入 `.app` 或 `app.asar.unpacked`。
+
 ## 9. 官方 Skill 场景选择
 
 | 任务 | 先阅读 |
 | --- | --- |
 | 打开项目、登录、AppID、运行时上下文 | `skills/initializer/SKILL.md` |
-| 项目列表导入或移除 | `skills/project-manager/SKILL.md` |
+| 项目列表、代码片段分享或导入 | `skills/project-manager/SKILL.md` |
 | 修改 `project.config.json` | `skills/project-config/SKILL.md` |
 | 编译、打开页面、刷新模拟器、构建 npm | `skills/compiler/SKILL.md` |
 | 点击、输入、滚动、页面断言 | `skills/automator/SKILL.md` |
@@ -266,6 +271,7 @@ wechatide -c <clientName> check_wechatide_status \
 - 先读根 `SKILL.md`，再按当前任务进入一个 scene。
 - 不编造工具名和参数，不凭记忆调用旧接口。
 - 页面点击只用 automator，console 和截图诊断交给 debugger。
+- 官方截图工具不传 `path` 时会返回临时文件路径，优先使用该路径做视觉核对。
 - `simulator_refresh` 触发成功不代表编译通过。
 - 工具返回异步 `taskId` 时按根 Skill 的 pending 规则处理，不重复发起上传。
 - 使用官方 `wechatide` 工作流，不再使用 `Difficult-Burger/miniprogram-agent-bridge` 或其他非官方桥接方案。

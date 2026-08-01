@@ -161,6 +161,16 @@ function surroundingStats(imageData, x, y, size, side) {
   return mergeStats(strips);
 }
 
+function avatarOuterBackground(imageData, x, y, size, side) {
+  const sampleWidth = Math.max(3, Math.round(size * 0.22));
+  return dominantRegionColor(imageData, {
+    x: side === "left" ? Math.max(0, x - sampleWidth) : x + size,
+    y: y - size * 0.08,
+    width: sampleWidth,
+    height: size * 1.16
+  });
+}
+
 function pixelRgb(imageData, x, y) {
   const px = clamp(Math.round(x), 0, imageData.width - 1);
   const py = clamp(Math.round(y), 0, imageData.height - 1);
@@ -202,7 +212,8 @@ function averageBoundaryContrast(imageData, x, y, size, side) {
   const ordered = Object.values(values).sort((first, second) => second - first);
   return {
     mean: ordered.reduce((total, value) => total + value, 0) / ordered.length,
-    strongSides: ordered.filter((value) => value >= 13).length
+    strongSides: ordered.filter((value) => value >= 13).length,
+    thirdStrongest: ordered[2] || 0
   };
 }
 
@@ -248,18 +259,131 @@ function dominantRegionColor(imageData, search) {
   return dominant.sums.map((value) => value / dominant.count);
 }
 
-function messageEvidence(imageData, x, y, size, side, background) {
-  const gap = Math.max(2, size * 0.12);
-  const width = Math.max(1, Math.min(imageData.width * 0.36, imageData.width - size - gap));
-  const left = side === "left" ? x + size + gap : x - gap - width;
-  const top = y - size * 0.04;
-  const height = size * 1.08;
-  const stats = regionStats(imageData, left, top, width, height);
-  const occupancy = foregroundOccupancy(imageData, left, top, width, height, background);
+function findHorizontalBoundary(imageData, range, options = {}) {
+  const { width, height } = imageData;
+  const stripHeight = Math.max(3, Math.round(width * 0.012));
+  const step = Math.max(1, Math.round(stripHeight * 0.4));
+  const laneWidth = Math.max(8, Math.round(width * 0.18));
+  const minimumTransition = Number(options.minimumTransition) || 18;
+  const minimumLaneTransition = Number(options.minimumLaneTransition) || 12;
+  const reference = options.reference || null;
+  let best = null;
+
+  for (let y = Math.max(stripHeight, Math.round(range.start)); y <= Math.min(height - stripHeight, Math.round(range.end)); y += step) {
+    const above = regionStats(imageData, 0, y - stripHeight, width, stripHeight);
+    const below = regionStats(imageData, 0, y, width, stripHeight);
+    const transition = colorDistance(above.meanRgb, below.meanRgb);
+    const leftTransition = colorDistance(
+      regionStats(imageData, 0, y - stripHeight, laneWidth, stripHeight).meanRgb,
+      regionStats(imageData, 0, y, laneWidth, stripHeight).meanRgb
+    );
+    const rightTransition = colorDistance(
+      regionStats(imageData, width - laneWidth, y - stripHeight, laneWidth, stripHeight).meanRgb,
+      regionStats(imageData, width - laneWidth, y, laneWidth, stripHeight).meanRgb
+    );
+    const laneTransition = Math.min(leftTransition, rightTransition);
+    if (transition < minimumTransition || laneTransition < minimumLaneTransition) continue;
+
+    const referenceDistance = reference ? colorDistance(below.meanRgb, reference.meanRgb) : 0;
+    if (reference && referenceDistance > (options.maximumReferenceDistance || 30)) continue;
+    const score = transition * 0.58
+      + laneTransition * 0.42
+      - referenceDistance * 0.24
+      - Math.max(0, below.standardDeviation - 42) * 0.06;
+    if (!best || score > best.score) best = { y, score, stripHeight };
+  }
+  return best;
+}
+
+function detectChatContentBounds(imageData) {
+  const { width, height } = imageData;
+  const defaultTop = Math.max(0, Math.round(width * (height >= width * 1.2 ? 0.19 : 0.12)));
+  const defaultBottom = Math.max(defaultTop, height - Math.round(width * 0.05));
+  if (height < width * 1.2) return { top: defaultTop, bottom: defaultBottom };
+
+  const topBoundary = findHorizontalBoundary(imageData, {
+    start: width * 0.1,
+    end: Math.min(height * 0.3, width * 0.36)
+  }, {
+    minimumTransition: 26,
+    minimumLaneTransition: 20
+  });
+
+  const referenceHeight = Math.max(4, Math.round(width * 0.045));
+  const bottomReference = regionStats(
+    imageData,
+    width * 0.08,
+    Math.max(0, height - referenceHeight),
+    width * 0.84,
+    referenceHeight
+  );
+  const bottomBoundary = findHorizontalBoundary(imageData, {
+    start: Math.max(defaultTop + width * 0.5, height - width * 0.48),
+    end: height - width * 0.045
+  }, {
+    minimumTransition: 10,
+    minimumLaneTransition: 8,
+    maximumReferenceDistance: 28,
+    reference: bottomReference
+  });
+
+  const top = topBoundary
+    ? Math.max(defaultTop, Math.round(topBoundary.y + topBoundary.stripHeight * 0.55))
+    : defaultTop;
+  const bottom = bottomBoundary
+    ? Math.min(defaultBottom, Math.round(bottomBoundary.y - bottomBoundary.stripHeight * 0.25))
+    : defaultBottom;
+  return {
+    top,
+    bottom: Math.max(top + Math.round(width * 0.12), bottom)
+  };
+}
+
+function scoreMessageArea(imageData, search, background) {
+  const stats = regionStats(imageData, search.x, search.y, search.width, search.height);
+  const occupancy = foregroundOccupancy(
+    imageData,
+    search.x,
+    search.y,
+    search.width,
+    search.height,
+    background
+  );
   const colorScore = clamp(colorDistance(stats.meanRgb, background) / 42, 0, 1);
   const edgeScore = clamp((stats.edgeRatio - 0.008) / 0.16, 0, 1);
   const occupancyScore = clamp((occupancy - 0.008) / 0.18, 0, 1);
   return colorScore * 0.25 + edgeScore * 0.3 + occupancyScore * 0.45;
+}
+
+function messageEvidence(imageData, x, y, size, side, background) {
+  const gap = Math.max(2, size * 0.12);
+  const laneInset = imageData.width * 0.135;
+  const contentEdge = side === "left"
+    ? Math.max(x + size, laneInset) + gap
+    : Math.min(x, imageData.width - laneInset) - gap;
+  const availableWidth = side === "left" ? imageData.width - contentEdge : contentEdge;
+  const broadWidth = Math.max(1, Math.min(imageData.width * 0.3, availableWidth));
+  const nearWidth = Math.max(1, Math.min(size * 1.05, broadWidth));
+  const broadLeft = side === "left" ? contentEdge : contentEdge - broadWidth;
+  const nearLeft = side === "left" ? broadLeft : contentEdge - nearWidth;
+  const top = y - size * 0.06;
+  const height = size * 1.12;
+  const broadScore = scoreMessageArea(imageData, {
+    x: broadLeft,
+    y: top,
+    width: broadWidth,
+    height
+  }, background);
+  const attachmentScore = scoreMessageArea(imageData, {
+    x: nearLeft,
+    y: top,
+    width: nearWidth,
+    height
+  }, background);
+  return {
+    attachmentScore,
+    score: broadScore * 0.42 + attachmentScore * 0.58
+  };
 }
 
 // A valid avatar needs visual content, square boundaries, and an adjacent message area.
@@ -273,14 +397,19 @@ function scoreAvatarWindow(imageData, x, y, size, side) {
   const textureScore = varianceScore * 0.58 + edgeScore * 0.42;
   const boundaryScore = clamp((boundary.mean - 6) / 35, 0, 1);
   const compactnessScore = clamp((inside.standardDeviation - outside.standardDeviation + 8) / 38, 0, 1);
-  const contentScore = messageEvidence(imageData, x, y, size, side, outside.meanRgb);
+  const message = messageEvidence(imageData, x, y, size, side, avatarOuterBackground(imageData, x, y, size, side));
+  if (message.attachmentScore < 0.08) return 0;
+  const contentScore = message.score;
   let score = contrastScore * 0.25
     + textureScore * 0.2
     + boundaryScore * 0.24
     + compactnessScore * 0.11
     + contentScore * 0.2;
-  if (boundary.strongSides < 2) score -= 0.16;
+  if (boundary.strongSides < 2) score -= 0.22;
+  else if (boundary.strongSides < 3) score -= 0.15;
+  if (boundary.thirdStrongest < 24) score -= 0.2;
   if (contentScore < 0.12) score -= 0.18;
+  if (message.attachmentScore < 0.14) score -= 0.16;
   if (outside.standardDeviation > 48 && contrastScore < 0.25) score -= 0.12;
   return clamp(score, 0, 1);
 }
@@ -315,6 +444,7 @@ function detectAvatarCandidates(imageData, options) {
   const { width, height } = imageData;
   const sizes = [0.084, 0.094, 0.104].map((ratio) => Math.max(12, Math.round(width * ratio)));
   const threshold = Number(options.avatarThreshold) || 0.5;
+  const contentBounds = detectChatContentBounds(imageData);
   const candidates = [];
 
   sizes.forEach((size) => {
@@ -322,8 +452,8 @@ function detectAvatarCandidates(imageData, options) {
       left: [0.025, 0.035].map((ratio) => Math.round(width * ratio)),
       right: [0.025, 0.035].map((ratio) => Math.round(width - width * ratio - size))
     };
-    const startY = Math.max(0, Math.round(width * (height >= width * 1.2 ? 0.19 : 0.12)));
-    const endY = Math.max(startY, height - Math.round(width * 0.05) - size);
+    const startY = contentBounds.top;
+    const endY = Math.max(startY, contentBounds.bottom - size);
     const step = Math.max(3, Math.round(size * 0.24));
 
     Object.keys(xPositions).forEach((side) => {
@@ -417,12 +547,19 @@ function detectNameRegion(imageData, avatar) {
     width: searchWidth,
     height: width * 0.075
   };
-  const background = dominantRegionColor(imageData, search);
+  const backgroundSearch = {
+    x: search.x,
+    y: avatarY - width * 0.02,
+    width: search.width,
+    height: width * 0.035
+  };
+  const background = dominantRegionColor(imageData, backgroundSearch);
   const bounds = findSparseTextBounds(imageData, search, background, {
     maxRatio: 0.2,
     threshold: 22 + Math.min(18, outside.standardDeviation * 0.45)
   });
   if (!bounds) return null;
+  if (bounds.y > avatarY + width * 0.022) return null;
   if (bounds.width > width * 0.26) return null;
   const paddingX = width * 0.012;
   const paddingY = width * 0.008;

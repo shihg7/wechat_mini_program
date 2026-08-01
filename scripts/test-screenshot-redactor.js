@@ -98,6 +98,22 @@ function paintHeaderTitle(image, dark = false) {
   paintTextBars(image, left, top, [Math.round(image.width * 0.14), Math.round(image.width * 0.1)], color);
 }
 
+function paintInputToolbar(image, top, dark = false) {
+  const background = dark ? [38, 43, 50] : [248, 249, 250];
+  const field = dark ? [25, 30, 36] : [255, 255, 255];
+  const divider = dark ? [72, 78, 86] : [210, 214, 219];
+  const icon = dark ? [225, 229, 234] : [45, 50, 57];
+  const iconSize = Math.round(image.width * 0.1);
+  const margin = Math.round(image.width * 0.03);
+  fillRect(image, 0, top, image.width, image.height - top, background);
+  fillRect(image, 0, top, image.width, 2, divider);
+  fillRect(image, Math.round(image.width * 0.18), top + 8, Math.round(image.width * 0.58), iconSize, field);
+  fillRect(image, margin, top + 10, iconSize, iconSize, background);
+  fillRect(image, margin + 5, top + 15, iconSize - 10, iconSize - 10, icon);
+  fillRect(image, image.width - margin - iconSize, top + 10, iconSize, iconSize, background);
+  paintNoisySquare(image, image.width - margin - iconSize + 5, top + 15, iconSize - 10, 901);
+}
+
 function pixel(image, x, y) {
   return Array.from(image.data.slice((y * image.width + x) * 4, (y * image.width + x) * 4 + 4));
 }
@@ -247,6 +263,18 @@ function testDetectionVariants() {
   assert.strictEqual(privateRegions.filter((region) => region.targetType === "avatar").length, 2);
   assert.strictEqual(privateRegions.filter((region) => region.targetType === "name").length, 0, "private bubbles should not create fake names");
 
+  const rightGroupMessage = makeImage(240, 720);
+  paintHeaderTitle(rightGroupMessage);
+  paintChatMessage(rightGroupMessage, {
+    side: "right",
+    y: 220,
+    name: true,
+    seed: 79,
+    bubbleColor: [149, 236, 105]
+  });
+  const rightGroupRegions = redactor.detectChatIdentityRegions(rightGroupMessage);
+  assert.strictEqual(rightGroupRegions.filter((region) => region.targetType === "name").length, 1, "a real right-side group name should remain supported");
+
   const solidAvatar = makeImage(240, 720);
   paintHeaderTitle(solidAvatar);
   const solidExpected = paintChatMessage(solidAvatar, {
@@ -271,6 +299,36 @@ function testDetectionVariants() {
     wallpaperRegions.filter((region) => region.targetType === "avatar").length,
     0,
     "textured wallpaper plus bubbles must not create edge-lane avatar guesses"
+  );
+}
+
+function testChatChromeAndRemoteBubbleExclusion() {
+  const image = makeImage(300, 900, [97, 171, 216, 255]);
+  paintHeaderTitle(image);
+  const expected = paintChatMessage(image, {
+    side: "left",
+    y: 690,
+    name: true,
+    seed: 809,
+    bubbleColor: [255, 255, 255]
+  });
+  paintInputToolbar(image, 780);
+
+  const regions = redactor.detectChatIdentityRegions(image);
+  const avatars = regions.filter((region) => region.targetType === "avatar");
+  assert.strictEqual(avatars.length, 1, "voice, emoji, and add controls in the input toolbar must be excluded");
+  assert(redactor.rectIoU(avatars[0].rect, expected.avatar) >= 0.55, "the final real avatar above the toolbar must remain detected");
+  assert(avatars.every((region) => (region.rect.y + region.rect.height) * image.height < 780));
+
+  const remoteBubble = makeImage(300, 900, [120, 178, 211, 255]);
+  paintHeaderTitle(remoteBubble);
+  paintNoisySquare(remoteBubble, 10, 430, 30, 977);
+  fillRect(remoteBubble, 112, 430, 150, 48, [149, 236, 105]);
+  paintTextBars(remoteBubble, 125, 442, [105, 82], [60, 68, 74]);
+  assert.strictEqual(
+    redactor.detectChatIdentityRegions(remoteBubble).filter((region) => region.targetType === "avatar").length,
+    0,
+    "a distant message must not validate an unrelated edge image as an avatar"
   );
 }
 
@@ -404,6 +462,7 @@ function testInvalidInputs() {
 testNormalizationAndMapping();
 testChatCandidateDetection();
 testDetectionVariants();
+testChatChromeAndRemoteBubbleExclusion();
 testMixedChatLayouts();
 testPixelEffects();
 testPrivacyStrengthAndDisabledMasks();

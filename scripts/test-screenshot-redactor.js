@@ -77,6 +77,56 @@ function paintChatMessage(image, options) {
   };
 }
 
+function paintTallAttachmentMessage(image, options) {
+  const size = options.avatarSize || Math.round(image.width * 0.1);
+  const margin = options.avatarMargin || Math.round(image.width * 0.035);
+  const gap = Math.round(image.width * 0.025);
+  const leftSide = options.side !== "right";
+  const attachmentWidth = options.attachmentWidth || Math.round(image.width * 0.39);
+  const attachmentHeight = options.attachmentHeight || Math.round(image.width * 0.54);
+  const avatarLeft = leftSide ? margin : image.width - margin - size;
+  const contentLeft = leftSide
+    ? avatarLeft + size + gap
+    : avatarLeft - gap - attachmentWidth;
+  const nameTop = options.y + Math.round(size * 0.08);
+  const attachmentTop = options.y + Math.round(size * 0.42);
+  const nameWidths = [Math.round(image.width * 0.1), Math.round(image.width * 0.065)];
+  const nameLeft = leftSide ? contentLeft : avatarLeft - gap - nameWidths[0];
+
+  paintNoisySquare(image, avatarLeft, options.y, size, options.seed || 1301);
+  paintTextBars(
+    image,
+    nameLeft,
+    nameTop,
+    nameWidths,
+    options.nameColor || [78, 142, 168]
+  );
+  fillRect(image, contentLeft, attachmentTop, attachmentWidth, attachmentHeight, [218, 215, 196]);
+  for (let x = contentLeft + 12; x < contentLeft + attachmentWidth; x += 24) {
+    fillRect(image, x, attachmentTop, 1, attachmentHeight, [126, 128, 118]);
+  }
+  for (let y = attachmentTop + 11; y < attachmentTop + attachmentHeight; y += 14) {
+    fillRect(image, contentLeft, y, attachmentWidth, 1, [126, 128, 118]);
+  }
+  paintTextBars(image, contentLeft + 20, attachmentTop + 5, [55, 41], [83, 87, 82]);
+
+  return {
+    attachment: {
+      x: contentLeft / image.width,
+      y: attachmentTop / image.height,
+      width: attachmentWidth / image.width,
+      height: attachmentHeight / image.height
+    },
+    avatar: {
+      x: avatarLeft / image.width,
+      y: options.y / image.height,
+      width: size / image.width,
+      height: size / image.height
+    },
+    side: leftSide ? "left" : "right"
+  };
+}
+
 function paintWallpaperNoise(image, amplitude, seed = 31) {
   let value = seed;
   for (let y = 0; y < image.height; y += 1) {
@@ -259,9 +309,10 @@ function testDetectionVariants() {
   paintHeaderTitle(privateChat);
   paintChatMessage(privateChat, { side: "left", y: 120, seed: 71 });
   paintChatMessage(privateChat, { side: "right", y: 260, seed: 73, bubbleColor: [149, 236, 105] });
+  paintTextBars(privateChat, 130, 262, [24, 16], [118, 124, 132]);
   const privateRegions = redactor.detectChatIdentityRegions(privateChat);
   assert.strictEqual(privateRegions.filter((region) => region.targetType === "avatar").length, 2);
-  assert.strictEqual(privateRegions.filter((region) => region.targetType === "name").length, 0, "private bubbles should not create fake names");
+  assert.strictEqual(privateRegions.filter((region) => region.targetType === "name").length, 0, "private bubbles and centered timestamps should not create fake names");
 
   const rightGroupMessage = makeImage(240, 720);
   paintHeaderTitle(rightGroupMessage);
@@ -334,6 +385,70 @@ function testChatChromeAndRemoteBubbleExclusion() {
     0,
     "a distant message must not validate an unrelated edge image as an avatar"
   );
+}
+
+function testTallAttachmentDoesNotValidateWallpaperAsAvatar() {
+  const image = makeImage(300, 900, [91, 174, 214, 255]);
+  paintHeaderTitle(image);
+  const first = paintTallAttachmentMessage(image, {
+    y: 390,
+    seed: 1307,
+    nameColor: [68, 150, 183]
+  });
+  const falseAvatar = {
+    x: 10 / image.width,
+    y: 468 / image.height,
+    width: 30 / image.width,
+    height: 30 / image.height
+  };
+  paintNoisySquare(image, 10, 468, 30, 1319);
+  const second = paintChatMessage(image, {
+    side: "left",
+    y: 575,
+    name: true,
+    seed: 1321,
+    bubbleWidth: 150
+  });
+  paintInputToolbar(image, 690);
+
+  const regions = redactor.detectChatIdentityRegions(image);
+  const avatars = regions.filter((region) => region.targetType === "avatar");
+  const names = regions.filter((region) => region.targetType === "name");
+  assert.strictEqual(avatars.length, 2, "a tall image must not validate a wallpaper tile halfway down as an avatar");
+  assert(
+    avatars.every((avatar) => redactor.rectIoU(avatar.rect, falseAvatar) < 0.2),
+    "the middle of a tall attachment must remain free of avatar candidates"
+  );
+  [first, second].forEach((message) => {
+    assert(
+      avatars.some((avatar) => redactor.rectIoU(avatar.rect, message.avatar) >= 0.5),
+      `real avatar at ${message.avatar.y} should remain detected`
+    );
+  });
+  assert.strictEqual(names.length, 2, "group names above image and text messages should both be detected");
+
+  const rightImage = makeImage(300, 900, [224, 228, 234, 255]);
+  paintHeaderTitle(rightImage);
+  const right = paintTallAttachmentMessage(rightImage, {
+    side: "right",
+    y: 280,
+    seed: 1327,
+    nameColor: [142, 148, 158]
+  });
+  const rightFalseAvatar = {
+    x: 260 / rightImage.width,
+    y: 370 / rightImage.height,
+    width: 30 / rightImage.width,
+    height: 30 / rightImage.height
+  };
+  paintNoisySquare(rightImage, 260, 370, 30, 1329);
+  const rightRegions = redactor.detectChatIdentityRegions(rightImage);
+  const rightAvatars = rightRegions.filter((region) => region.targetType === "avatar");
+  const rightNames = rightRegions.filter((region) => region.targetType === "name");
+  assert.strictEqual(rightAvatars.length, 1, "right-side tall images need the same middle-content rejection");
+  assert(redactor.rectIoU(rightAvatars[0].rect, right.avatar) >= 0.5, "the real right-side avatar should remain localized");
+  assert(redactor.rectIoU(rightAvatars[0].rect, rightFalseAvatar) < 0.2, "a right-side wallpaper tile must not become an avatar");
+  assert.strictEqual(rightNames.length, 1, "a right-side group name above an image should remain detectable");
 }
 
 function testMixedChatLayouts() {
@@ -467,6 +582,7 @@ testNormalizationAndMapping();
 testChatCandidateDetection();
 testDetectionVariants();
 testChatChromeAndRemoteBubbleExclusion();
+testTallAttachmentDoesNotValidateWallpaperAsAvatar();
 testMixedChatLayouts();
 testPixelEffects();
 testPrivacyStrengthAndDisabledMasks();

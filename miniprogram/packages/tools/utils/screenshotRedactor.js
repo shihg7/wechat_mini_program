@@ -339,7 +339,7 @@ function detectChatContentBounds(imageData) {
   };
 }
 
-function scoreMessageArea(imageData, search, background) {
+function inspectMessageArea(imageData, search, background) {
   const stats = regionStats(imageData, search.x, search.y, search.width, search.height);
   const occupancy = foregroundOccupancy(
     imageData,
@@ -352,7 +352,15 @@ function scoreMessageArea(imageData, search, background) {
   const colorScore = clamp(colorDistance(stats.meanRgb, background) / 42, 0, 1);
   const edgeScore = clamp((stats.edgeRatio - 0.008) / 0.16, 0, 1);
   const occupancyScore = clamp((occupancy - 0.008) / 0.18, 0, 1);
-  return colorScore * 0.25 + edgeScore * 0.3 + occupancyScore * 0.45;
+  return {
+    occupancy,
+    score: colorScore * 0.25 + edgeScore * 0.3 + occupancyScore * 0.45,
+    stats
+  };
+}
+
+function scoreMessageArea(imageData, search, background) {
+  return inspectMessageArea(imageData, search, background).score;
 }
 
 function messageEvidence(imageData, x, y, size, side, background) {
@@ -380,8 +388,29 @@ function messageEvidence(imageData, x, y, size, side, background) {
     width: nearWidth,
     height
   }, background);
+  const continuityHeight = Math.max(3, size * 0.42);
+  // A prior tall message stays visually similar above and beside a false avatar candidate.
+  const continuationAt = (anchorY) => {
+    const preceding = inspectMessageArea(imageData, {
+      x: nearLeft,
+      y: anchorY - size * 0.52,
+      width: nearWidth,
+      height: continuityHeight
+    }, background);
+    const leading = inspectMessageArea(imageData, {
+      x: nearLeft,
+      y: anchorY - size * 0.06,
+      width: nearWidth,
+      height: continuityHeight
+    }, background);
+    const similarity = clamp(1 - colorDistance(preceding.stats.meanRgb, leading.stats.meanRgb) / 36, 0, 1) * 0.55
+      + clamp(1 - Math.abs(preceding.occupancy - leading.occupancy) / 0.45, 0, 1) * 0.25
+      + clamp(1 - Math.abs(preceding.stats.standardDeviation - leading.stats.standardDeviation) / 34, 0, 1) * 0.2;
+    return Math.min(preceding.score, leading.score) * similarity;
+  };
   return {
     attachmentScore,
+    continuationScore: Math.max(continuationAt(y), continuationAt(y + size * 0.18)),
     score: broadScore * 0.42 + attachmentScore * 0.58
   };
 }
@@ -399,6 +428,7 @@ function scoreAvatarWindow(imageData, x, y, size, side) {
   const compactnessScore = clamp((inside.standardDeviation - outside.standardDeviation + 8) / 38, 0, 1);
   const message = messageEvidence(imageData, x, y, size, side, avatarOuterBackground(imageData, x, y, size, side));
   if (message.attachmentScore < 0.08) return 0;
+  if (message.continuationScore >= 0.46) return 0;
   const contentScore = message.score;
   let score = contrastScore * 0.25
     + textureScore * 0.2
@@ -530,8 +560,14 @@ function findSparseTextBounds(imageData, search, background, options = {}) {
     const maxX = sortedPoints[sortedPoints.length - trimCount - 1] == null
       ? group.maxX
       : sortedPoints[sortedPoints.length - trimCount - 1];
+    const anchorGap = options.anchorSide === "left"
+      ? minX - left
+      : options.anchorSide === "right"
+        ? right - maxX - 1
+        : 0;
     return {
       ...group,
+      anchorGap,
       minX,
       maxX,
       height: group.lastY - group.minY + 1,
@@ -541,6 +577,7 @@ function findSparseTextBounds(imageData, search, background, options = {}) {
   }).filter((group) => (
     group.ratio >= (options.minRatio || 0.006)
     && group.ratio <= (options.maxRatio || 0.24)
+    && group.anchorGap <= (Number(options.maxAnchorGap) || Number.POSITIVE_INFINITY)
     && group.width >= Math.max(3, (right - left) * 0.04)
     && group.height >= Math.max(3, (bottom - top) * 0.12)
     && group.height <= (bottom - top) * 0.68
@@ -572,10 +609,12 @@ function detectNameRegion(imageData, avatar) {
   };
   const background = dominantRegionColor(imageData, backgroundSearch);
   const bounds = findSparseTextBounds(imageData, search, background, {
+    anchorSide: avatar.side,
     horizontalTrimRatio: 0.025,
+    maxAnchorGap: width * 0.045,
     maxRatio: 0.2,
     requireLocalEdge: true,
-    threshold: 22 + Math.min(18, outside.standardDeviation * 0.45)
+    threshold: 18 + Math.min(8, outside.standardDeviation * 0.25)
   });
   if (!bounds) return null;
   const outerBackground = avatarOuterBackground(imageData, avatarX, avatarY, avatarSize, avatar.side);

@@ -312,11 +312,15 @@ function testChatChromeAndRemoteBubbleExclusion() {
     seed: 809,
     bubbleColor: [255, 255, 255]
   });
+  fillRect(image, 210, 691, 1, 1, [20, 25, 31]);
   paintInputToolbar(image, 780);
 
   const regions = redactor.detectChatIdentityRegions(image);
   const avatars = regions.filter((region) => region.targetType === "avatar");
+  const names = regions.filter((region) => region.targetType === "name");
   assert.strictEqual(avatars.length, 1, "voice, emoji, and add controls in the input toolbar must be excluded");
+  assert.strictEqual(names.length, 1, "a sparse wallpaper edge must not stretch a real name beyond its text");
+  assert(names[0].rect.width < 0.2, "the name mask should remain fitted to the nearby text");
   assert(redactor.rectIoU(avatars[0].rect, expected.avatar) >= 0.55, "the final real avatar above the toolbar must remain detected");
   assert(avatars.every((region) => (region.rect.y + region.rect.height) * image.height < 780));
 

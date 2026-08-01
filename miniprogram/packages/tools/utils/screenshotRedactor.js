@@ -485,6 +485,7 @@ function findSparseTextBounds(imageData, search, background, options = {}) {
     let rowCount = 0;
     let rowMinX = right;
     let rowMaxX = left;
+    const rowPoints = [];
     for (let x = left; x < right; x += 1) {
       const current = pixelRgb(imageData, x, y);
       const foreground = colorDistance(current, background);
@@ -493,35 +494,51 @@ function findSparseTextBounds(imageData, search, background, options = {}) {
         colorDistance(current, pixelRgb(imageData, x + 1, y)),
         colorDistance(current, pixelRgb(imageData, x, y + 1))
       );
-      if (edge < 9 && foreground < threshold * 1.8) continue;
+      if (edge < (options.minimumEdge || 9)
+        && (options.requireLocalEdge || foreground < threshold * 1.8)) continue;
       rowCount += 1;
+      rowPoints.push(x);
       rowMinX = Math.min(rowMinX, x);
       rowMaxX = Math.max(rowMaxX, x);
     }
     const maximumRowFill = (right - left) * (options.maxRowRatio || 0.58);
     if (rowCount >= 2 && rowCount <= maximumRowFill) {
-      rows.push({ count: rowCount, maxX: rowMaxX, minX: rowMinX, y });
+      rows.push({ count: rowCount, maxX: rowMaxX, minX: rowMinX, points: rowPoints, y });
     }
   }
   const groups = [];
   rows.forEach((row) => {
     const current = groups[groups.length - 1];
     if (!current || row.y - current.lastY > 3) {
-      groups.push({ count: row.count, lastY: row.y, maxX: row.maxX, minX: row.minX, minY: row.y });
+      groups.push({ count: row.count, lastY: row.y, maxX: row.maxX, minX: row.minX, minY: row.y, points: row.points.slice() });
       return;
     }
     current.count += row.count;
     current.lastY = row.y;
     current.minX = Math.min(current.minX, row.minX);
     current.maxX = Math.max(current.maxX, row.maxX);
+    current.points.push(...row.points);
   });
   const searchArea = Math.max(1, (right - left) * (bottom - top));
-  const candidates = groups.map((group) => ({
-    ...group,
-    height: group.lastY - group.minY + 1,
-    ratio: group.count / searchArea,
-    width: group.maxX - group.minX + 1
-  })).filter((group) => (
+  const candidates = groups.map((group) => {
+    const sortedPoints = group.points.slice().sort((first, second) => first - second);
+    const trimCount = Math.min(
+      Math.floor(sortedPoints.length * (Number(options.horizontalTrimRatio) || 0)),
+      Math.max(0, Math.floor((sortedPoints.length - 1) / 2))
+    );
+    const minX = sortedPoints[trimCount] == null ? group.minX : sortedPoints[trimCount];
+    const maxX = sortedPoints[sortedPoints.length - trimCount - 1] == null
+      ? group.maxX
+      : sortedPoints[sortedPoints.length - trimCount - 1];
+    return {
+      ...group,
+      minX,
+      maxX,
+      height: group.lastY - group.minY + 1,
+      ratio: group.count / searchArea,
+      width: maxX - minX + 1
+    };
+  }).filter((group) => (
     group.ratio >= (options.minRatio || 0.006)
     && group.ratio <= (options.maxRatio || 0.24)
     && group.width >= Math.max(3, (right - left) * 0.04)
@@ -555,10 +572,21 @@ function detectNameRegion(imageData, avatar) {
   };
   const background = dominantRegionColor(imageData, backgroundSearch);
   const bounds = findSparseTextBounds(imageData, search, background, {
+    horizontalTrimRatio: 0.025,
     maxRatio: 0.2,
+    requireLocalEdge: true,
     threshold: 22 + Math.min(18, outside.standardDeviation * 0.45)
   });
   if (!bounds) return null;
+  const outerBackground = avatarOuterBackground(imageData, avatarX, avatarY, avatarSize, avatar.side);
+  const probeWidth = width * 0.1;
+  const messageProbe = dominantRegionColor(imageData, {
+    x: avatar.side === "left" ? search.x : search.x + search.width - probeWidth,
+    y: avatarY + width * 0.005,
+    width: probeWidth,
+    height: width * 0.01
+  });
+  if (colorDistance(messageProbe, outerBackground) > 38) return null;
   if (bounds.y > avatarY + width * 0.022) return null;
   if (bounds.width > width * 0.26) return null;
   const paddingX = width * 0.012;

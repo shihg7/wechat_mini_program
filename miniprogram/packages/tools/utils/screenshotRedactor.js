@@ -3,6 +3,7 @@ const DEFAULT_EFFECT = Object.freeze({
   strength: 12,
   color: "#182230"
 });
+const MIN_REDACTION_STRENGTH = 8;
 
 function clamp(value, minimum, maximum) {
   return Math.min(maximum, Math.max(minimum, value));
@@ -50,7 +51,7 @@ function normalizeMaskRegion(region, imageSize) {
       type: ["mosaic", "blur", "solid"].includes(region && region.effect && region.effect.type)
         ? region.effect.type
         : DEFAULT_EFFECT.type,
-      strength: clamp(Math.round(Number(region && region.effect && region.effect.strength) || DEFAULT_EFFECT.strength), 2, 40),
+      strength: clamp(Math.round(Number(region && region.effect && region.effect.strength) || DEFAULT_EFFECT.strength), MIN_REDACTION_STRENGTH, 40),
       color: /^#[0-9a-f]{6}$/i.test(region && region.effect && region.effect.color || "")
         ? region.effect.color.toLowerCase()
         : DEFAULT_EFFECT.color
@@ -295,6 +296,19 @@ function parseHexColor(value) {
   return [parseInt(hex.slice(0, 2), 16), parseInt(hex.slice(2, 4), 16), parseInt(hex.slice(4, 6), 16), 255];
 }
 
+function sortRegionsForPrivacy(regions) {
+  const priority = { mosaic: 0, blur: 1, solid: 2 };
+  return (regions || [])
+    .map((region, index) => ({ index, region }))
+    .filter((item) => item.region && item.region.enabled !== false)
+    .sort((first, second) => {
+      const firstPriority = priority[first.region.effect && first.region.effect.type] || 0;
+      const secondPriority = priority[second.region.effect && second.region.effect.type] || 0;
+      return firstPriority - secondPriority || first.index - second.index;
+    })
+    .map((item) => item.region);
+}
+
 function applySolid(data, imageWidth, rect, color) {
   const rgba = parseHexColor(color);
   for (let y = rect.top; y < rect.bottom; y += 1) {
@@ -388,7 +402,7 @@ function applyMaskEffects(imageData, regions) {
     width: imageData.width,
     height: imageData.height
   };
-  (regions || []).filter((region) => region && region.enabled !== false).forEach((input) => {
+  sortRegionsForPrivacy(regions).forEach((input) => {
     const region = normalizeMaskRegion(input, result);
     const rect = pixelRect(region.rect, result.width, result.height);
     if (!rect.width || !rect.height) return;
@@ -433,11 +447,13 @@ function fitImageToViewport(imageSize, viewport) {
 
 module.exports = {
   DEFAULT_EFFECT,
+  MIN_REDACTION_STRENGTH,
   applyMaskEffects,
   detectChatIdentityRegions,
   fitImageToViewport,
   mapCanvasPointToImage,
   normalizeMaskRegion,
   normalizeRect,
-  rectIoU
+  rectIoU,
+  sortRegionsForPrivacy
 };

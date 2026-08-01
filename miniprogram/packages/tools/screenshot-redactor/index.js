@@ -304,7 +304,7 @@ Page({
   },
 
   changeStrength(event) {
-    const strength = Math.max(2, Math.min(30, Number(event.detail.value) || 12));
+    const strength = Math.max(redactor.MIN_REDACTION_STRENGTH, Math.min(30, Number(event.detail.value) || 12));
     const selected = this.getSelectedRegion();
     if (selected && selected.effect.strength !== strength) {
       this.pushUndo();
@@ -656,7 +656,7 @@ Page({
       this.imageSize.width * this.transform.scale,
       this.imageSize.height * this.transform.scale
     );
-    this.regions.filter((region) => region.enabled).forEach((region) => {
+    redactor.sortRegionsForPrivacy(this.regions).forEach((region) => {
       this.drawRegionEffect(context, region, this.transform);
     });
     this.regions.forEach((region) => this.drawRegionOutline(context, region));
@@ -699,7 +699,7 @@ Page({
     if (!this.scratchCanvas) return;
     const divisor = region.effect.type === "mosaic"
       ? region.effect.strength
-      : Math.max(3, region.effect.strength * 1.6);
+      : Math.max(redactor.MIN_REDACTION_STRENGTH, region.effect.strength * 1.6);
     const width = Math.max(1, Math.min(320, Math.round(source.width / divisor)));
     const height = Math.max(1, Math.min(320, Math.round(source.height / divisor)));
     this.scratchCanvas.width = width;
@@ -804,7 +804,7 @@ Page({
     context.clearRect(0, 0, width, height);
     context.drawImage(this.sourceImage, 0, 0, width, height);
     const identityTransform = { scale: 1, offsetX: 0, offsetY: 0 };
-    regions.forEach((region) => this.drawRegionEffect(context, region, identityTransform));
+    redactor.sortRegionsForPrivacy(regions).forEach((region) => this.drawRegionEffect(context, region, identityTransform));
 
     const filePath = await new Promise((resolve, reject) => {
       wx.canvasToTempFilePath({

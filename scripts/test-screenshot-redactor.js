@@ -26,6 +26,78 @@ function paintNoisySquare(image, left, top, size, seed) {
   }
 }
 
+function fillRect(image, left, top, width, height, color) {
+  for (let y = Math.max(0, top); y < Math.min(image.height, top + height); y += 1) {
+    for (let x = Math.max(0, left); x < Math.min(image.width, left + width); x += 1) {
+      const index = (y * image.width + x) * 4;
+      image.data[index] = color[0];
+      image.data[index + 1] = color[1];
+      image.data[index + 2] = color[2];
+      image.data[index + 3] = 255;
+    }
+  }
+}
+
+function paintTextBars(image, left, top, widths, color) {
+  widths.forEach((width, index) => {
+    fillRect(image, left, top + index * 3, width, 1, color);
+  });
+}
+
+function paintChatMessage(image, options) {
+  const size = options.avatarSize || Math.round(image.width * 0.1);
+  const margin = options.avatarMargin || Math.round(image.width * 0.035);
+  const gap = Math.round(image.width * 0.025);
+  const leftSide = options.side !== "right";
+  const avatarLeft = leftSide ? margin : image.width - margin - size;
+  if (options.avatarColor) {
+    fillRect(image, avatarLeft, options.y, size, size, options.avatarColor);
+  } else {
+    paintNoisySquare(image, avatarLeft, options.y, size, options.seed || options.y + 7);
+  }
+
+  const bubbleWidth = options.bubbleWidth || Math.round(image.width * 0.3);
+  const bubbleTop = options.y + (options.name ? Math.round(image.width * 0.055) : 0);
+  const bubbleHeight = Math.round(image.width * 0.12);
+  const bubbleLeft = leftSide
+    ? avatarLeft + size + gap
+    : avatarLeft - gap - bubbleWidth;
+  fillRect(image, bubbleLeft, bubbleTop, bubbleWidth, bubbleHeight, options.bubbleColor || [255, 255, 255]);
+  paintTextBars(image, bubbleLeft + 5, bubbleTop + 6, [bubbleWidth - 12, Math.max(8, bubbleWidth - 28)], [75, 79, 86]);
+
+  if (options.name) {
+    const nameWidth = Math.round(image.width * 0.12);
+    const nameLeft = leftSide ? avatarLeft + size + gap : avatarLeft - gap - nameWidth;
+    paintTextBars(image, nameLeft, options.y + 1, [nameWidth, Math.round(nameWidth * 0.62)], [102, 109, 119]);
+  }
+  return {
+    avatar: { x: avatarLeft / image.width, y: options.y / image.height, width: size / image.width, height: size / image.height },
+    hasName: Boolean(options.name),
+    side: options.side || "left"
+  };
+}
+
+function paintWallpaperNoise(image, amplitude, seed = 31) {
+  let value = seed;
+  for (let y = 0; y < image.height; y += 1) {
+    for (let x = 0; x < image.width; x += 1) {
+      value = (value * 1664525 + 1013904223) >>> 0;
+      const delta = (value & 255) / 255 * amplitude - amplitude / 2;
+      const index = (y * image.width + x) * 4;
+      image.data[index] = Math.round(225 + delta);
+      image.data[index + 1] = Math.round(229 + delta);
+      image.data[index + 2] = Math.round(233 + delta);
+    }
+  }
+}
+
+function paintHeaderTitle(image, dark = false) {
+  const color = dark ? [232, 235, 239] : [35, 39, 45];
+  const top = Math.round(image.width * 0.145);
+  const left = Math.round(image.width * 0.43);
+  paintTextBars(image, left, top, [Math.round(image.width * 0.14), Math.round(image.width * 0.1)], color);
+}
+
 function pixel(image, x, y) {
   return Array.from(image.data.slice((y * image.width + x) * 4, (y * image.width + x) * 4 + 4));
 }
@@ -86,25 +158,36 @@ function testNormalizationAndMapping() {
 
 function testChatCandidateDetection() {
   const image = makeImage(240, 720);
-  paintNoisySquare(image, 9, 90, 24, 3);
-  paintNoisySquare(image, 9, 260, 24, 7);
-  paintNoisySquare(image, 207, 170, 24, 11);
-  paintNoisySquare(image, 207, 430, 24, 19);
+  paintHeaderTitle(image);
+  const expected = [
+    paintChatMessage(image, { side: "left", y: 90, name: true, seed: 3 }),
+    paintChatMessage(image, { side: "right", y: 170, seed: 11, bubbleColor: [149, 236, 105] }),
+    paintChatMessage(image, { side: "left", y: 260, name: true, seed: 7 }),
+    paintChatMessage(image, { side: "right", y: 430, seed: 19, bubbleColor: [149, 236, 105] })
+  ];
 
-  const regions = redactor.detectChatIdentityRegions(image, { avatarThreshold: 0.4 });
+  const regions = redactor.detectChatIdentityRegions(image);
   const avatars = regions.filter((region) => region.targetType === "avatar");
   const names = regions.filter((region) => region.targetType === "name");
   assert(regions.some((region) => region.targetType === "title"), "top title candidate should be included");
   assert(avatars.some((region) => region.rect.x < 0.2), "left avatar should be detected");
   assert(avatars.some((region) => region.rect.x > 0.75), "right avatar should be detected");
-  assert(avatars.length <= 8, "nearby scan windows should collapse into a small candidate set");
-  assert(names.length >= 2, "avatar candidates should produce adjacent name candidates");
+  assert.strictEqual(avatars.length, 4, "one structured chat row should produce one avatar candidate");
+  expected.forEach((message) => {
+    assert(
+      avatars.some((avatar) => redactor.rectIoU(avatar.rect, message.avatar) >= 0.58),
+      `avatar at ${message.avatar.y} should be localized instead of broadly guessed`
+    );
+  });
+  assert.strictEqual(names.length, 2, "only rows with text-like group names should produce name candidates");
+  assert(names.every((region) => region.rect.x < 0.5), "private right-side bubbles must not become name candidates");
+  assert(names.every((region) => region.rect.width < 0.24), "name masks should fit detected text instead of covering a fixed wide strip");
   assert(regions.every((region) => region.source === "auto" && region.enabled));
   assert(regions.every((region) => region.rect.x >= 0 && region.rect.y >= 0));
   assert(regions.every((region) => region.rect.x + region.rect.width <= 1.000001));
   assert(regions.every((region) => region.rect.y + region.rect.height <= 1.000001));
 
-  const secondPass = redactor.detectChatIdentityRegions(image, { avatarThreshold: 0.4 });
+  const secondPass = redactor.detectChatIdentityRegions(image);
   assert.deepStrictEqual(secondPass, regions, "same pixels should produce stable candidates");
 }
 
@@ -118,22 +201,105 @@ function testDetectionVariants() {
   );
   assert.strictEqual(redactor.detectChatIdentityRegions(flatDark).length, 1, "a dark empty chat should only suggest the title");
 
-  paintNoisySquare(flatDark, 9, 110, 24, 13);
-  paintNoisySquare(flatDark, 9, 380, 24, 17);
-  const oneSided = redactor.detectChatIdentityRegions(flatDark, { avatarThreshold: 0.4 });
+  paintHeaderTitle(flatDark, true);
+  paintChatMessage(flatDark, { side: "left", y: 110, name: true, seed: 13, bubbleColor: [48, 56, 68] });
+  paintChatMessage(flatDark, { side: "left", y: 380, seed: 17, bubbleColor: [48, 56, 68] });
+  const oneSided = redactor.detectChatIdentityRegions(flatDark);
   const oneSidedAvatars = oneSided.filter((region) => region.targetType === "avatar");
   assert(oneSidedAvatars.length >= 2);
   assert(oneSidedAvatars.every((region) => region.rect.x < 0.2), "one-sided chats should not invent right-side avatars");
 
   const longChat = makeImage(180, 2400);
-  [120, 540, 1010, 1810].forEach((y, index) => paintNoisySquare(longChat, index % 2 ? 155 : 7, y, 18, index + 23));
-  const longRegions = redactor.detectChatIdentityRegions(longChat, { avatarThreshold: 0.4 });
+  paintHeaderTitle(longChat);
+  [120, 540, 1010, 1810].forEach((y, index) => paintChatMessage(longChat, {
+    side: index % 2 ? "right" : "left",
+    y,
+    name: index % 2 === 0,
+    seed: index + 23,
+    bubbleColor: index % 2 ? [149, 236, 105] : [255, 255, 255]
+  }));
+  const longRegions = redactor.detectChatIdentityRegions(longChat);
   const longAvatars = longRegions.filter((region) => region.targetType === "avatar");
   assert(longAvatars.length >= 4, "long screenshots should retain candidates across the full image height");
   assert(longAvatars.some((region) => region.rect.y > 0.7), "bottom candidates in long screenshots must not be dropped");
 
-  const capped = redactor.detectChatIdentityRegions(longChat, { avatarThreshold: 0.4, maxAvatars: 2 });
+  const capped = redactor.detectChatIdentityRegions(longChat, { maxAvatars: 2 });
   assert(capped.filter((region) => region.targetType === "avatar").length <= 2, "avatar cap should be respected");
+
+  const distractors = makeImage(240, 720);
+  paintHeaderTitle(distractors);
+  fillRect(distractors, 42, 100, 160, 120, [255, 255, 255]);
+  paintNoisySquare(distractors, 46, 105, 90, 91);
+  fillRect(distractors, 35, 300, 170, 80, [149, 236, 105]);
+  paintTextBars(distractors, 44, 320, [120, 90, 135], [57, 63, 70]);
+  const distractorRegions = redactor.detectChatIdentityRegions(distractors);
+  assert.strictEqual(
+    distractorRegions.filter((region) => region.targetType === "avatar").length,
+    0,
+    "message images and bubbles outside avatar lanes must not be mistaken for avatars"
+  );
+
+  const privateChat = makeImage(240, 720);
+  paintHeaderTitle(privateChat);
+  paintChatMessage(privateChat, { side: "left", y: 120, seed: 71 });
+  paintChatMessage(privateChat, { side: "right", y: 260, seed: 73, bubbleColor: [149, 236, 105] });
+  const privateRegions = redactor.detectChatIdentityRegions(privateChat);
+  assert.strictEqual(privateRegions.filter((region) => region.targetType === "avatar").length, 2);
+  assert.strictEqual(privateRegions.filter((region) => region.targetType === "name").length, 0, "private bubbles should not create fake names");
+
+  const solidAvatar = makeImage(240, 720);
+  paintHeaderTitle(solidAvatar);
+  const solidExpected = paintChatMessage(solidAvatar, {
+    side: "left",
+    y: 180,
+    avatarColor: [47, 128, 237],
+    bubbleColor: [255, 255, 255]
+  });
+  const solidRegions = redactor.detectChatIdentityRegions(solidAvatar);
+  assert(
+    solidRegions.some((region) => region.targetType === "avatar" && redactor.rectIoU(region.rect, solidExpected.avatar) >= 0.55),
+    "flat-color avatars should be detected from square boundaries and message context"
+  );
+
+  const wallpaper = makeImage(240, 720);
+  paintWallpaperNoise(wallpaper, 18);
+  paintHeaderTitle(wallpaper);
+  fillRect(wallpaper, 42, 130, 150, 45, [255, 255, 255]);
+  fillRect(wallpaper, 58, 330, 140, 50, [149, 236, 105]);
+  const wallpaperRegions = redactor.detectChatIdentityRegions(wallpaper);
+  assert.strictEqual(
+    wallpaperRegions.filter((region) => region.targetType === "avatar").length,
+    0,
+    "textured wallpaper plus bubbles must not create edge-lane avatar guesses"
+  );
+}
+
+function testMixedChatLayouts() {
+  const image = makeImage(300, 1200, [238, 240, 243, 255]);
+  fillRect(image, 95, 2, 110, 20, [18, 20, 24]);
+  paintHeaderTitle(image);
+  const inputs = [
+    { side: "left", y: 105, name: true, avatarSize: 25, avatarMargin: 8, seed: 101 },
+    { side: "right", y: 225, avatarSize: 28, avatarMargin: 10, seed: 103, bubbleColor: [149, 236, 105] },
+    { side: "left", y: 370, avatarSize: 31, avatarMargin: 11, seed: 107 },
+    { side: "right", y: 555, avatarSize: 25, avatarMargin: 8, seed: 109, bubbleColor: [149, 236, 105] },
+    { side: "left", y: 760, name: true, avatarSize: 28, avatarMargin: 10, seed: 113 },
+    { side: "right", y: 980, avatarSize: 31, avatarMargin: 11, seed: 127, bubbleColor: [149, 236, 105] }
+  ];
+  const expected = inputs.map((input) => paintChatMessage(image, input));
+  const regions = redactor.detectChatIdentityRegions(image);
+  const avatars = regions.filter((region) => region.targetType === "avatar");
+  const names = regions.filter((region) => region.targetType === "name");
+  expected.forEach((message) => {
+    assert(
+      avatars.some((avatar) => redactor.rectIoU(avatar.rect, message.avatar) >= 0.46),
+      `mixed layout avatar at ${message.avatar.y} should be found`
+    );
+  });
+  assert.strictEqual(avatars.length, expected.length, "mixed avatar sizes and margins should not create duplicates");
+  assert.strictEqual(names.length, inputs.filter((input) => input.name).length, "only explicit group-name rows should be masked");
+  const title = regions.find((region) => region.targetType === "title");
+  assert(title && title.rect.y * image.height > 25, "status-bar shapes must not be selected as the chat title");
 }
 
 function testPixelEffects() {
@@ -238,6 +404,7 @@ function testInvalidInputs() {
 testNormalizationAndMapping();
 testChatCandidateDetection();
 testDetectionVariants();
+testMixedChatLayouts();
 testPixelEffects();
 testPrivacyStrengthAndDisabledMasks();
 testInvalidInputs();

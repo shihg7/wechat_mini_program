@@ -274,8 +274,12 @@ async function testRecognitionFallbackAndCleanup() {
   page.createAnalysisImageData = async () => { throw new Error("analysis failed"); };
   page.renderPreview = () => {};
   await page.runRecognition();
-  assert(page.regions.some((region) => region.targetType === "title"), "recognition failure should retain a title fallback");
+  const titleFallback = page.regions.find((region) => region.targetType === "title");
+  assert(titleFallback, "recognition failure should retain a title fallback");
+  assert(titleFallback.rect.y >= 0.05, "full screenshots should place the fallback below the system status bar");
   assert(page.regions.some((region) => region.id === "manual"), "recognition failure must preserve manual masks");
+  assert.strictEqual(page.data.avatarCandidateCount, 0);
+  assert.strictEqual(page.data.nameCandidateCount, 0);
   assert(toasts.some((item) => item.title.includes("手动检查")));
 
   const preview = makeCanvas();
@@ -290,6 +294,20 @@ async function testRecognitionFallbackAndCleanup() {
   assert.strictEqual(preview.canvas.height, 1);
 }
 
+function testRecognitionSummary() {
+  const page = loadPage({});
+  page.regions = [
+    mask("avatar"),
+    { ...mask("name"), targetType: "name" },
+    { ...mask("title"), targetType: "title" },
+    { ...mask("manual"), source: "manual", targetType: "custom" }
+  ];
+  page.syncEditorState();
+  assert.strictEqual(page.data.avatarCandidateCount, 1);
+  assert.strictEqual(page.data.nameCandidateCount, 1);
+  assert.strictEqual(page.data.candidateCount, 3, "manual masks must not inflate automatic candidate counts");
+}
+
 function testLayoutGuards() {
   const wxml = fs.readFileSync(path.join(pageRoot, "index.wxml"), "utf8");
   const wxss = fs.readFileSync(path.join(pageRoot, "index.wxss"), "utf8");
@@ -301,6 +319,7 @@ function testLayoutGuards() {
   assert(wxml.includes("图片不会上传"), "privacy promise should be visible before choosing an image");
   assert(wxml.includes('bindtap="deleteSelectedRegion"'), "a single mistaken mask should be removable");
   assert(wxml.includes('min="8"'), "redaction strength should enforce a privacy-safe minimum");
+  assert(wxml.includes("仅标记顶部标题"), "low-confidence recognition should be stated honestly");
   assert(!wxss.includes("text-overflow: ellipsis"), "editor text must not be truncated");
   assert(!fs.readFileSync(modulePath, "utf8").includes("StorageSync"), "temporary screenshot state must not use storage");
   assert(/\.page\s*\{[\s\S]*?height:\s*100vh[\s\S]*?overflow:\s*hidden/.test(wxss));
@@ -314,6 +333,7 @@ Promise.resolve()
   .then(testSaveGuardAndPermissionFailure)
   .then(testCancelAndFailurePaths)
   .then(testRecognitionFallbackAndCleanup)
+  .then(testRecognitionSummary)
   .then(testLayoutGuards)
   .then(() => console.log("screenshot redactor page tests passed"))
   .catch((error) => {

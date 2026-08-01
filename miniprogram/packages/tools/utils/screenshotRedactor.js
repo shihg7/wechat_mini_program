@@ -76,17 +76,25 @@ function rectIoU(a, b) {
   return union > 0 ? intersection / union : 0;
 }
 
-function regionStats(imageData, x, y, size) {
+function colorDistance(first, second) {
+  return (
+    Math.abs(first[0] - second[0])
+    + Math.abs(first[1] - second[1])
+    + Math.abs(first[2] - second[2])
+  ) / 3;
+}
+
+function regionStats(imageData, x, y, regionWidth, regionHeight) {
   const { data, width, height } = imageData;
   const left = clamp(Math.round(x), 0, width - 1);
   const top = clamp(Math.round(y), 0, height - 1);
-  const right = clamp(Math.round(x + size), left + 1, width);
-  const bottom = clamp(Math.round(y + size), top + 1, height);
-  const stride = Math.max(1, Math.floor(size / 18));
+  const right = clamp(Math.round(x + regionWidth), left + 1, width);
+  const bottom = clamp(Math.round(y + regionHeight), top + 1, height);
+  const stride = Math.max(1, Math.floor(Math.min(right - left, bottom - top) / 20));
   let count = 0;
+  const rgb = [0, 0, 0];
   let sum = 0;
   let squared = 0;
-  let colorful = 0;
   let edges = 0;
   let edgeChecks = 0;
 
@@ -97,9 +105,11 @@ function regionStats(imageData, x, y, size) {
       const g = data[index + 1];
       const b = data[index + 2];
       const luminance = r * 0.299 + g * 0.587 + b * 0.114;
+      rgb[0] += r;
+      rgb[1] += g;
+      rgb[2] += b;
       sum += luminance;
       squared += luminance * luminance;
-      colorful += Math.max(r, g, b) - Math.min(r, g, b);
       count += 1;
 
       const nextX = Math.min(right - 1, px + stride);
@@ -119,25 +129,171 @@ function regionStats(imageData, x, y, size) {
   const mean = count ? sum / count : 0;
   const variance = count ? Math.max(0, squared / count - mean * mean) : 0;
   return {
-    colorfulness: count ? colorful / count : 0,
     edgeRatio: edgeChecks ? edges / edgeChecks : 0,
-    mean,
+    meanRgb: rgb.map((value) => count ? value / count : 0),
     standardDeviation: Math.sqrt(variance)
   };
 }
 
-function scoreAvatarWindow(stats) {
-  const varianceScore = clamp((stats.standardDeviation - 9) / 45, 0, 1);
-  const edgeScore = clamp((stats.edgeRatio - 0.035) / 0.28, 0, 1);
-  const colorScore = clamp(stats.colorfulness / 85, 0, 1);
-  return varianceScore * 0.52 + edgeScore * 0.36 + colorScore * 0.12;
+function mergeStats(stats) {
+  const valid = stats.filter(Boolean);
+  if (!valid.length) return { edgeRatio: 0, meanRgb: [0, 0, 0], standardDeviation: 0 };
+  return {
+    edgeRatio: valid.reduce((total, item) => total + item.edgeRatio, 0) / valid.length,
+    meanRgb: [0, 1, 2].map((channel) => (
+      valid.reduce((total, item) => total + item.meanRgb[channel], 0) / valid.length
+    )),
+    standardDeviation: valid.reduce((total, item) => total + item.standardDeviation, 0) / valid.length
+  };
+}
+
+function surroundingStats(imageData, x, y, size, side) {
+  const padding = Math.max(3, Math.round(size * 0.18));
+  const strips = [
+    regionStats(imageData, x, y - padding, size, padding),
+    regionStats(imageData, x, y + size, size, padding)
+  ];
+  if (side === "left") {
+    strips.push(regionStats(imageData, x - padding, y, padding, size));
+  } else {
+    strips.push(regionStats(imageData, x + size, y, padding, size));
+  }
+  return mergeStats(strips);
+}
+
+function pixelRgb(imageData, x, y) {
+  const px = clamp(Math.round(x), 0, imageData.width - 1);
+  const py = clamp(Math.round(y), 0, imageData.height - 1);
+  const index = (py * imageData.width + px) * 4;
+  return [imageData.data[index], imageData.data[index + 1], imageData.data[index + 2]];
+}
+
+function averageBoundaryContrast(imageData, x, y, size, side) {
+  const inset = Math.max(1, Math.round(size * 0.06));
+  const outside = Math.max(2, Math.round(size * 0.1));
+  const samples = Math.max(8, Math.round(size / 3));
+  const values = { bottom: 0, inner: 0, outer: 0, top: 0 };
+  for (let index = 0; index < samples; index += 1) {
+    const ratio = 0.18 + index / Math.max(1, samples - 1) * 0.64;
+    const horizontal = x + size * ratio;
+    const vertical = y + size * ratio;
+    values.top += colorDistance(
+      pixelRgb(imageData, horizontal, y + inset),
+      pixelRgb(imageData, horizontal, y - outside)
+    );
+    values.bottom += colorDistance(
+      pixelRgb(imageData, horizontal, y + size - inset),
+      pixelRgb(imageData, horizontal, y + size + outside)
+    );
+    const outerInside = side === "left" ? x + inset : x + size - inset;
+    const outerOutside = side === "left" ? x - outside : x + size + outside;
+    const innerInside = side === "left" ? x + size - inset : x + inset;
+    const innerOutside = side === "left" ? x + size + outside : x - outside;
+    values.outer += colorDistance(
+      pixelRgb(imageData, outerInside, vertical),
+      pixelRgb(imageData, outerOutside, vertical)
+    );
+    values.inner += colorDistance(
+      pixelRgb(imageData, innerInside, vertical),
+      pixelRgb(imageData, innerOutside, vertical)
+    );
+  }
+  Object.keys(values).forEach((key) => { values[key] /= samples; });
+  const ordered = Object.values(values).sort((first, second) => second - first);
+  return {
+    mean: ordered.reduce((total, value) => total + value, 0) / ordered.length,
+    strongSides: ordered.filter((value) => value >= 13).length
+  };
+}
+
+function foregroundOccupancy(imageData, x, y, width, height, background, threshold = 26) {
+  const left = clamp(Math.round(x), 0, imageData.width - 1);
+  const top = clamp(Math.round(y), 0, imageData.height - 1);
+  const right = clamp(Math.round(x + width), left + 1, imageData.width);
+  const bottom = clamp(Math.round(y + height), top + 1, imageData.height);
+  const stride = Math.max(1, Math.floor(Math.min(right - left, bottom - top) / 24));
+  let foreground = 0;
+  let total = 0;
+  for (let py = top; py < bottom; py += stride) {
+    for (let px = left; px < right; px += stride) {
+      if (colorDistance(pixelRgb(imageData, px, py), background) >= threshold) foreground += 1;
+      total += 1;
+    }
+  }
+  return total ? foreground / total : 0;
+}
+
+function dominantRegionColor(imageData, search) {
+  const left = clamp(Math.floor(search.x), 0, imageData.width - 1);
+  const top = clamp(Math.floor(search.y), 0, imageData.height - 1);
+  const right = clamp(Math.ceil(search.x + search.width), left + 1, imageData.width);
+  const bottom = clamp(Math.ceil(search.y + search.height), top + 1, imageData.height);
+  const stride = Math.max(1, Math.floor(Math.min(right - left, bottom - top) / 18));
+  const buckets = new Map();
+  for (let y = top; y < bottom; y += stride) {
+    for (let x = left; x < right; x += stride) {
+      const color = pixelRgb(imageData, x, y);
+      const key = color.map((value) => Math.round(value / 16)).join(":");
+      const bucket = buckets.get(key) || { count: 0, sums: [0, 0, 0] };
+      bucket.count += 1;
+      color.forEach((value, channel) => { bucket.sums[channel] += value; });
+      buckets.set(key, bucket);
+    }
+  }
+  let dominant = null;
+  buckets.forEach((bucket) => {
+    if (!dominant || bucket.count > dominant.count) dominant = bucket;
+  });
+  if (!dominant) return [0, 0, 0];
+  return dominant.sums.map((value) => value / dominant.count);
+}
+
+function messageEvidence(imageData, x, y, size, side, background) {
+  const gap = Math.max(2, size * 0.12);
+  const width = Math.max(1, Math.min(imageData.width * 0.36, imageData.width - size - gap));
+  const left = side === "left" ? x + size + gap : x - gap - width;
+  const top = y - size * 0.04;
+  const height = size * 1.08;
+  const stats = regionStats(imageData, left, top, width, height);
+  const occupancy = foregroundOccupancy(imageData, left, top, width, height, background);
+  const colorScore = clamp(colorDistance(stats.meanRgb, background) / 42, 0, 1);
+  const edgeScore = clamp((stats.edgeRatio - 0.008) / 0.16, 0, 1);
+  const occupancyScore = clamp((occupancy - 0.008) / 0.18, 0, 1);
+  return colorScore * 0.25 + edgeScore * 0.3 + occupancyScore * 0.45;
+}
+
+// A valid avatar needs visual content, square boundaries, and an adjacent message area.
+function scoreAvatarWindow(imageData, x, y, size, side) {
+  const inside = regionStats(imageData, x, y, size, size);
+  const outside = surroundingStats(imageData, x, y, size, side);
+  const boundary = averageBoundaryContrast(imageData, x, y, size, side);
+  const contrastScore = clamp((colorDistance(inside.meanRgb, outside.meanRgb) - 5) / 52, 0, 1);
+  const varianceScore = clamp((inside.standardDeviation - 7) / 42, 0, 1);
+  const edgeScore = clamp((inside.edgeRatio - 0.018) / 0.23, 0, 1);
+  const textureScore = varianceScore * 0.58 + edgeScore * 0.42;
+  const boundaryScore = clamp((boundary.mean - 6) / 35, 0, 1);
+  const compactnessScore = clamp((inside.standardDeviation - outside.standardDeviation + 8) / 38, 0, 1);
+  const contentScore = messageEvidence(imageData, x, y, size, side, outside.meanRgb);
+  let score = contrastScore * 0.25
+    + textureScore * 0.2
+    + boundaryScore * 0.24
+    + compactnessScore * 0.11
+    + contentScore * 0.2;
+  if (boundary.strongSides < 2) score -= 0.16;
+  if (contentScore < 0.12) score -= 0.18;
+  if (outside.standardDeviation > 48 && contrastScore < 0.25) score -= 0.12;
+  return clamp(score, 0, 1);
 }
 
 function suppressOverlaps(candidates, limit) {
   const accepted = [];
   candidates
     .slice()
-    .sort((a, b) => b.score - a.score || a.rect.y - b.rect.y)
+    .sort((a, b) => {
+      const scoreDifference = b.score - a.score;
+      if (Math.abs(scoreDifference) > 0.035) return scoreDifference;
+      return b.rect.width - a.rect.width || scoreDifference || a.rect.y - b.rect.y;
+    })
     .forEach((candidate) => {
       if (accepted.length >= limit) return;
       if (accepted.some((item) => {
@@ -157,24 +313,23 @@ function suppressOverlaps(candidates, limit) {
 
 function detectAvatarCandidates(imageData, options) {
   const { width, height } = imageData;
-  const sizes = [0.084, 0.102, 0.12].map((ratio) => Math.max(12, Math.round(width * ratio)));
-  const threshold = Number(options.avatarThreshold) || 0.46;
+  const sizes = [0.084, 0.094, 0.104].map((ratio) => Math.max(12, Math.round(width * ratio)));
+  const threshold = Number(options.avatarThreshold) || 0.5;
   const candidates = [];
 
   sizes.forEach((size) => {
     const xPositions = {
-      left: [0.022, 0.036, 0.05].map((ratio) => Math.round(width * ratio)),
-      right: [0.022, 0.036, 0.05].map((ratio) => Math.round(width - width * ratio - size))
+      left: [0.025, 0.035].map((ratio) => Math.round(width * ratio)),
+      right: [0.025, 0.035].map((ratio) => Math.round(width - width * ratio - size))
     };
-    const startY = Math.max(0, Math.round(width * 0.16));
+    const startY = Math.max(0, Math.round(width * (height >= width * 1.2 ? 0.19 : 0.12)));
     const endY = Math.max(startY, height - Math.round(width * 0.05) - size);
-    const step = Math.max(5, Math.round(size * 0.3));
+    const step = Math.max(3, Math.round(size * 0.24));
 
     Object.keys(xPositions).forEach((side) => {
       xPositions[side].forEach((x) => {
         for (let y = startY; y <= endY; y += step) {
-          const stats = regionStats(imageData, x, y, size);
-          const score = scoreAvatarWindow(stats);
+          const score = scoreAvatarWindow(imageData, x, y, size, side);
           if (score < threshold) continue;
           candidates.push({
             rect: { x: x / width, y: y / height, width: size / width, height: size / height },
@@ -186,7 +341,153 @@ function detectAvatarCandidates(imageData, options) {
     });
   });
 
-  return suppressOverlaps(candidates, Number(options.maxAvatars) || 24);
+  return suppressOverlaps(candidates, Number(options.maxAvatars) || 32);
+}
+
+function findSparseTextBounds(imageData, search, background, options = {}) {
+  const left = clamp(Math.floor(search.x), 0, imageData.width - 1);
+  const top = clamp(Math.floor(search.y), 0, imageData.height - 1);
+  const right = clamp(Math.ceil(search.x + search.width), left + 1, imageData.width);
+  const bottom = clamp(Math.ceil(search.y + search.height), top + 1, imageData.height);
+  const threshold = Math.max(20, Number(options.threshold) || 0);
+  const rows = [];
+  for (let y = top; y < bottom; y += 1) {
+    let rowCount = 0;
+    let rowMinX = right;
+    let rowMaxX = left;
+    for (let x = left; x < right; x += 1) {
+      const current = pixelRgb(imageData, x, y);
+      const foreground = colorDistance(current, background);
+      if (foreground < threshold) continue;
+      const edge = Math.max(
+        colorDistance(current, pixelRgb(imageData, x + 1, y)),
+        colorDistance(current, pixelRgb(imageData, x, y + 1))
+      );
+      if (edge < 9 && foreground < threshold * 1.8) continue;
+      rowCount += 1;
+      rowMinX = Math.min(rowMinX, x);
+      rowMaxX = Math.max(rowMaxX, x);
+    }
+    const maximumRowFill = (right - left) * (options.maxRowRatio || 0.58);
+    if (rowCount >= 2 && rowCount <= maximumRowFill) {
+      rows.push({ count: rowCount, maxX: rowMaxX, minX: rowMinX, y });
+    }
+  }
+  const groups = [];
+  rows.forEach((row) => {
+    const current = groups[groups.length - 1];
+    if (!current || row.y - current.lastY > 3) {
+      groups.push({ count: row.count, lastY: row.y, maxX: row.maxX, minX: row.minX, minY: row.y });
+      return;
+    }
+    current.count += row.count;
+    current.lastY = row.y;
+    current.minX = Math.min(current.minX, row.minX);
+    current.maxX = Math.max(current.maxX, row.maxX);
+  });
+  const searchArea = Math.max(1, (right - left) * (bottom - top));
+  const candidates = groups.map((group) => ({
+    ...group,
+    height: group.lastY - group.minY + 1,
+    ratio: group.count / searchArea,
+    width: group.maxX - group.minX + 1
+  })).filter((group) => (
+    group.ratio >= (options.minRatio || 0.006)
+    && group.ratio <= (options.maxRatio || 0.24)
+    && group.width >= Math.max(3, (right - left) * 0.04)
+    && group.height >= Math.max(3, (bottom - top) * 0.12)
+    && group.height <= (bottom - top) * 0.68
+  )).sort((first, second) => second.count - first.count || first.minY - second.minY);
+  if (!candidates.length) return null;
+  const best = candidates[0];
+  return { x: best.minX, y: best.minY, width: best.width, height: best.height, ratio: best.ratio };
+}
+
+function detectNameRegion(imageData, avatar) {
+  const width = imageData.width;
+  const avatarX = avatar.rect.x * width;
+  const avatarY = avatar.rect.y * imageData.height;
+  const avatarSize = avatar.rect.width * width;
+  const outside = surroundingStats(imageData, avatarX, avatarY, avatarSize, avatar.side);
+  const gap = width * 0.025;
+  const searchWidth = width * 0.32;
+  const search = {
+    x: avatar.side === "left" ? avatarX + avatarSize + gap : avatarX - gap - searchWidth,
+    y: avatarY - width * 0.03,
+    width: searchWidth,
+    height: width * 0.075
+  };
+  const background = dominantRegionColor(imageData, search);
+  const bounds = findSparseTextBounds(imageData, search, background, {
+    maxRatio: 0.2,
+    threshold: 22 + Math.min(18, outside.standardDeviation * 0.45)
+  });
+  if (!bounds) return null;
+  if (bounds.width > width * 0.26) return null;
+  const paddingX = width * 0.012;
+  const paddingY = width * 0.008;
+  return {
+    side: avatar.side,
+    targetType: "name",
+    confidence: clamp(0.55 + avatar.score * 0.22, 0, 0.82),
+    rect: normalizeRect({
+      x: (bounds.x - paddingX) / width,
+      y: (bounds.y - paddingY) / imageData.height,
+      width: (bounds.width + paddingX * 2) / width,
+      height: (bounds.height + paddingY * 2) / imageData.height
+    })
+  };
+}
+
+function detectTitleRegion(imageData) {
+  const { width, height } = imageData;
+  const fullScreenshot = height >= width * 1.2;
+  const search = {
+    x: width * 0.2,
+    y: width * (fullScreenshot ? 0.105 : 0.018),
+    width: width * 0.6,
+    height: width * (fullScreenshot ? 0.115 : 0.12)
+  };
+  const sideStats = mergeStats([
+    regionStats(imageData, width * 0.06, search.y, width * 0.1, search.height),
+    regionStats(imageData, width * 0.84, search.y, width * 0.1, search.height)
+  ]);
+  const background = dominantRegionColor(imageData, search);
+  const bounds = findSparseTextBounds(imageData, search, background, {
+    maxRatio: 0.28,
+    minRatio: 0.003,
+    threshold: 20 + Math.min(16, sideStats.standardDeviation * 0.35)
+  });
+  if (bounds) {
+    const center = (bounds.x + bounds.width / 2) / width;
+    if (center >= 0.34 && center <= 0.66 && bounds.width <= width * 0.48) {
+      const paddingX = width * 0.035;
+      const paddingY = width * 0.014;
+      return {
+        side: "center",
+        targetType: "title",
+        confidence: 0.76,
+        rect: normalizeRect({
+          x: (bounds.x - paddingX) / width,
+          y: (bounds.y - paddingY) / height,
+          width: (bounds.width + paddingX * 2) / width,
+          height: (bounds.height + paddingY * 2) / height
+        })
+      };
+    }
+  }
+  const fallbackTop = width * (fullScreenshot ? 0.12 : 0.03);
+  return {
+    side: "center",
+    targetType: "title",
+    confidence: 0.38,
+    rect: normalizeRect({
+      x: 0.24,
+      y: fallbackTop / height,
+      width: 0.52,
+      height: Math.min(height, width * 0.09) / height
+    })
+  };
 }
 
 function mergeNearbyRegions(regions) {
@@ -220,21 +521,9 @@ function detectChatIdentityRegions(imageData, options = {}) {
   const { width, height } = imageData;
   const avatars = detectAvatarCandidates(imageData, options);
   const rawRegions = [];
-  const titleHeight = Math.min(height, width * 0.105);
-  const titleTop = Math.min(Math.max(0, width * 0.028), Math.max(0, height - titleHeight));
 
   if (options.includeTitle !== false && height >= width * 0.45) {
-    rawRegions.push({
-      side: "center",
-      targetType: "title",
-      confidence: 0.64,
-      rect: normalizeRect({
-        x: 0.22,
-        y: titleTop / height,
-        width: 0.56,
-        height: titleHeight / height
-      })
-    });
+    rawRegions.push(detectTitleRegion(imageData));
   }
 
   avatars.forEach((avatar) => {
@@ -253,21 +542,8 @@ function detectChatIdentityRegions(imageData, options = {}) {
       rect: avatarRect
     });
 
-    const nameWidth = 0.31;
-    const nameHeight = Math.min(height, width * 0.055) / height;
-    rawRegions.push({
-      side: avatar.side,
-      targetType: "name",
-      confidence: clamp(0.36 + avatar.score * 0.42, 0, 0.82),
-      rect: normalizeRect({
-        x: avatar.side === "left"
-          ? avatarRect.x + avatarRect.width + 0.012
-          : avatarRect.x - nameWidth - 0.012,
-        y: avatarRect.y - width * 0.004 / height,
-        width: nameWidth,
-        height: nameHeight
-      })
-    });
+    const name = detectNameRegion(imageData, avatar);
+    if (name) rawRegions.push(name);
   });
 
   return mergeNearbyRegions(rawRegions).map((region, index) => normalizeMaskRegion({

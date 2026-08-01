@@ -45,12 +45,14 @@ Page({
   data: {
     canRedo: false,
     canUndo: false,
+    avatarCandidateCount: 0,
     candidateCount: 0,
     effectType: "mosaic",
     exporting: false,
     hasImage: false,
     loading: false,
     mode: "move",
+    nameCandidateCount: 0,
     recognizing: false,
     regionCount: 0,
     selectedEnabled: true,
@@ -255,7 +257,8 @@ Page({
   },
 
   createTitleFallback() {
-    const height = Math.min(0.2, this.imageSize.width * 0.105 / this.imageSize.height);
+    const fullScreenshot = this.imageSize.height >= this.imageSize.width * 1.2;
+    const height = Math.min(0.2, this.imageSize.width * 0.09 / this.imageSize.height);
     return [redactor.normalizeMaskRegion({
       id: "auto-title-fallback",
       source: "auto",
@@ -263,9 +266,9 @@ Page({
       confidence: 0.4,
       effect: this.currentEffect(),
       rect: {
-        x: 0.22,
-        y: this.imageSize.width * 0.028 / this.imageSize.height,
-        width: 0.56,
+        x: 0.24,
+        y: this.imageSize.width * (fullScreenshot ? 0.12 : 0.03) / this.imageSize.height,
+        width: 0.52,
         height
       }
     }, this.imageSize)];
@@ -413,11 +416,15 @@ Page({
 
   syncEditorState() {
     const selected = this.getSelectedRegion();
-    const candidateCount = this.regions.filter((region) => region.source === "auto").length;
+    const automatic = this.regions.filter((region) => region.source === "auto");
+    const avatarCandidateCount = automatic.filter((region) => region.targetType === "avatar").length;
+    const nameCandidateCount = automatic.filter((region) => region.targetType === "name").length;
     const patch = {
+      avatarCandidateCount,
       canRedo: this.redoStack.length > 0,
       canUndo: this.undoStack.length > 0,
-      candidateCount,
+      candidateCount: automatic.length,
+      nameCandidateCount,
       regionCount: this.regions.length,
       selectedEnabled: selected ? selected.enabled : true
     };
@@ -720,7 +727,11 @@ Page({
     const selected = region.id === this.data.selectedId;
     context.save();
     context.lineWidth = selected ? 3 : 2;
-    context.strokeStyle = !region.enabled ? "#98a2b3" : region.source === "auto" ? "#2f9a72" : "#3f83d5";
+    context.strokeStyle = !region.enabled
+      ? "#98a2b3"
+      : region.source === "auto"
+        ? region.confidence < 0.5 ? "#d18b22" : "#2f9a72"
+        : "#3f83d5";
     if (!region.enabled && context.setLineDash) context.setLineDash([7, 5]);
     context.strokeRect(destination.x, destination.y, destination.width, destination.height);
     if (selected) {

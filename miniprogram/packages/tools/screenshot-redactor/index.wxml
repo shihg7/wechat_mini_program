@@ -15,7 +15,7 @@
       <ui-icon name="scan" size="{{62}}" tone="blue" />
     </view>
     <view class="empty-title">选择一张聊天截图</view>
-    <view class="empty-text">自动标记左右头像、邻近名称和顶部标题。识别结果仅供辅助，保存前请逐一检查。</view>
+    <view class="empty-text">尝试识别聊天边缘的头像、群昵称和顶部标题。识别结果仅供辅助，保存前请逐一检查。</view>
     <button class="choose-primary" bindtap="chooseScreenshot" disabled="{{loading}}">
       <ui-icon name="image" size="{{26}}" tone="white" />
       <text>{{loading ? '正在读取图片' : '从相册选择'}}</text>
@@ -70,10 +70,10 @@
       </view>
     </view>
 
-    <view class="recognition-status {{candidateCount ? 'status-ready' : 'status-warning'}}">
-      <ui-icon name="{{candidateCount ? 'check' : 'alert'}}" size="{{22}}" tone="{{candidateCount ? 'green' : 'amber'}}" />
-      <text wx:if="{{candidateCount}}">已自动标记 {{candidateCount}} 处，请检查遗漏和误判</text>
-      <text wx:else>未找到明确候选，请使用框选或涂抹补充</text>
+    <view class="recognition-status {{avatarCandidateCount ? 'status-ready' : 'status-warning'}}">
+      <ui-icon name="{{avatarCandidateCount ? 'check' : 'alert'}}" size="{{22}}" tone="{{avatarCandidateCount ? 'green' : 'amber'}}" />
+      <text wx:if="{{avatarCandidateCount}}">识别到头像 {{avatarCandidateCount}} 处、名称 {{nameCandidateCount}} 处，请逐一检查</text>
+      <text wx:else>仅标记顶部标题，未可靠识别头像，请手工补充</text>
     </view>
 
     <view class="editor-controls">

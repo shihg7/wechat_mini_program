@@ -1,0 +1,142 @@
+<view class="page">
+  <view class="page-head">
+    <view class="head-copy">
+      <view class="eyebrow">PRIVACY TOOL</view>
+      <view class="page-title">截图打码</view>
+    </view>
+    <view class="offline-badge">
+      <ui-icon name="shield" size="{{22}}" tone="green" />
+      <text>全程离线</text>
+    </view>
+  </view>
+
+  <view class="empty-state" wx:if="{{!hasImage}}">
+    <view class="empty-icon">
+      <ui-icon name="scan" size="{{62}}" tone="blue" />
+    </view>
+    <view class="empty-title">选择一张聊天截图</view>
+    <view class="empty-text">自动标记左右头像、邻近名称和顶部标题。识别结果仅供辅助，保存前请逐一检查。</view>
+    <button class="choose-primary" bindtap="chooseScreenshot" disabled="{{loading}}">
+      <ui-icon name="image" size="{{26}}" tone="white" />
+      <text>{{loading ? '正在读取图片' : '从相册选择'}}</text>
+    </button>
+    <view class="privacy-note">
+      <ui-icon name="shield" size="{{22}}" tone="green" />
+      <text>图片不会上传，退出页面后不会保留。</text>
+    </view>
+  </view>
+
+  <block wx:else>
+    <view class="quick-tools">
+      <button class="icon-command" bindtap="undo" disabled="{{!canUndo}}" aria-label="撤销">
+        <ui-icon name="arrow-left" size="{{24}}" tone="{{canUndo ? 'default' : 'muted'}}" />
+        <text>撤销</text>
+      </button>
+      <button class="icon-command" bindtap="redo" disabled="{{!canRedo}}" aria-label="重做">
+        <ui-icon name="arrow-right" size="{{24}}" tone="{{canRedo ? 'default' : 'muted'}}" />
+        <text>重做</text>
+      </button>
+      <button class="icon-command" bindtap="recognizeAgain" disabled="{{recognizing}}" aria-label="重新识别">
+        <ui-icon name="scan" size="{{24}}" tone="blue" />
+        <text>识别</text>
+      </button>
+      <button class="icon-command" bindtap="enableAllCandidates" aria-label="应用全部候选">
+        <ui-icon name="check" size="{{24}}" tone="green" />
+        <text>全选</text>
+      </button>
+      <button class="icon-command" bindtap="deleteSelectedRegion" disabled="{{!selectedId}}" aria-label="删除所选区域">
+        <ui-icon name="x" size="{{24}}" tone="accent" />
+        <text>删除</text>
+      </button>
+      <button class="icon-command" bindtap="clearMasks" disabled="{{regionCount === 0}}" aria-label="清除全部打码">
+        <ui-icon name="trash" size="{{24}}" tone="danger" />
+        <text>清除</text>
+      </button>
+    </view>
+
+    <view class="canvas-shell">
+      <canvas
+        type="2d"
+        id="previewCanvas"
+        class="preview-canvas"
+        catchtouchstart="onCanvasTouchStart"
+        catchtouchmove="onCanvasTouchMove"
+        catchtouchend="onCanvasTouchEnd"
+        catchtouchcancel="onCanvasTouchEnd"
+      ></canvas>
+      <view class="recognizing-cover" wx:if="{{recognizing}}">
+        <view class="spinner"></view>
+        <text>正在分析聊天布局</text>
+      </view>
+    </view>
+
+    <view class="recognition-status {{candidateCount ? 'status-ready' : 'status-warning'}}">
+      <ui-icon name="{{candidateCount ? 'check' : 'alert'}}" size="{{22}}" tone="{{candidateCount ? 'green' : 'amber'}}" />
+      <text wx:if="{{candidateCount}}">已自动标记 {{candidateCount}} 处，请检查遗漏和误判</text>
+      <text wx:else>未找到明确候选，请使用框选或涂抹补充</text>
+    </view>
+
+    <view class="editor-controls">
+      <view class="control-row">
+        <view class="control-label">操作</view>
+        <view class="segmented mode-segmented">
+          <view class="segment {{mode === 'move' ? 'segment-active' : ''}}" data-mode="move" bindtap="selectMode">
+            <ui-icon name="move" size="{{22}}" tone="{{mode === 'move' ? 'blue' : 'muted'}}" />
+            <text>移动</text>
+          </view>
+          <view class="segment {{mode === 'frame' ? 'segment-active' : ''}}" data-mode="frame" bindtap="selectMode">
+            <ui-icon name="square" size="{{22}}" tone="{{mode === 'frame' ? 'blue' : 'muted'}}" />
+            <text>框选</text>
+          </view>
+          <view class="segment {{mode === 'brush' ? 'segment-active' : ''}}" data-mode="brush" bindtap="selectMode">
+            <ui-icon name="edit" size="{{22}}" tone="{{mode === 'brush' ? 'blue' : 'muted'}}" />
+            <text>涂抹</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="control-row">
+        <view class="control-label">效果</view>
+        <view class="segmented effect-segmented">
+          <view class="segment {{effectType === 'mosaic' ? 'segment-active' : ''}}" data-effect="mosaic" bindtap="selectEffect">马赛克</view>
+          <view class="segment {{effectType === 'blur' ? 'segment-active' : ''}}" data-effect="blur" bindtap="selectEffect">模糊</view>
+          <view class="segment {{effectType === 'solid' ? 'segment-active' : ''}}" data-effect="solid" bindtap="selectEffect">纯色</view>
+        </view>
+      </view>
+
+      <view class="detail-control">
+        <block wx:if="{{effectType !== 'solid'}}">
+          <text class="detail-label">{{effectType === 'mosaic' ? '颗粒' : '强度'}}</text>
+          <slider class="strength-slider" min="2" max="30" step="2" value="{{strength}}" activeColor="#176b68" backgroundColor="#d9e0e8" block-size="18" bindchange="changeStrength" />
+          <text class="strength-value">{{strength}}</text>
+        </block>
+        <block wx:else>
+          <text class="detail-label">颜色</text>
+          <view class="color-options">
+            <view class="color-swatch color-dark {{solidColor === '#182230' ? 'swatch-active' : ''}}" data-color="#182230" bindtap="selectSolidColor" aria-role="button" aria-label="深色"></view>
+            <view class="color-swatch color-gray {{solidColor === '#667085' ? 'swatch-active' : ''}}" data-color="#667085" bindtap="selectSolidColor" aria-role="button" aria-label="灰色"></view>
+            <view class="color-swatch color-white {{solidColor === '#ffffff' ? 'swatch-active' : ''}}" data-color="#ffffff" bindtap="selectSolidColor" aria-role="button" aria-label="白色"></view>
+          </view>
+        </block>
+        <button class="toggle-mask" bindtap="toggleSelectedRegion" disabled="{{!selectedId}}">
+          {{selectedEnabled ? '停用所选' : '启用所选'}}
+        </button>
+      </view>
+    </view>
+
+    <view class="bottom-bar">
+      <button class="replace-button" bindtap="chooseScreenshot" disabled="{{loading || exporting}}">
+        <ui-icon name="refresh" size="{{24}}" tone="default" />
+        <text>换一张</text>
+      </button>
+      <button class="save-button" bindtap="saveRedactedImage" disabled="{{exporting || recognizing}}">
+        <ui-icon name="download" size="{{25}}" tone="white" />
+        <text>{{exporting ? '正在生成原图' : '保存打码图片'}}</text>
+      </button>
+    </view>
+  </block>
+
+  <canvas type="2d" id="analysisCanvas" class="hidden-canvas"></canvas>
+  <canvas type="2d" id="scratchCanvas" class="hidden-canvas"></canvas>
+  <canvas type="2d" id="exportCanvas" class="hidden-canvas"></canvas>
+</view>

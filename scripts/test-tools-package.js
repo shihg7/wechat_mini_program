@@ -16,6 +16,7 @@ const toolPages = [
   "date-calculator/index",
   "unit-converter/index",
   "qr-generator/index",
+  "screenshot-redactor/index",
   "data/index",
   "help/index",
   "wheel/index",

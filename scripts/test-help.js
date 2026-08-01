@@ -53,7 +53,7 @@ function allGuideBlocks() {
 
 function testHelpSearchAndSections() {
   const page = loadHelpPage();
-  const expectedIds = ["quick", "date", "units", "qr", "ledger", "trips", "checklists", "wheel", "career", "huawei", "data", "faq"];
+  const expectedIds = ["quick", "date", "units", "qr", "redactor", "ledger", "trips", "checklists", "wheel", "career", "huawei", "data", "faq"];
   assert.deepStrictEqual(page.data.sections.map((section) => section.id), expectedIds);
   assert.strictEqual(page.data.sections.length, HELP_SECTIONS.length);
   assert.strictEqual(page.data.visibleSections[0].id, "quick");
@@ -63,6 +63,7 @@ function testHelpSearchAndSections() {
     ["闰年", "date"],
     ["KiB", "units"],
     ["Wi-Fi", "qr"],
+    ["聊天头像", "redactor"],
     ["三人分账", "ledger"],
     ["时间冲突", "trips"],
     ["旅行打包", "checklists"],
@@ -101,6 +102,7 @@ function testHelpContentSourceAndRoutes() {
     "/packages/tools/date-calculator/index",
     "/packages/tools/unit-converter/index",
     "/packages/tools/qr-generator/index",
+    "/packages/tools/screenshot-redactor/index",
     "/pages/ledger/index/index",
     "/pages/trip/index",
     "/pages/checklist/index",
@@ -124,10 +126,10 @@ function testHelpContentSourceAndRoutes() {
     .flatMap((section) => section.blocks)
     .find((block) => block.type === "table" && block.headers[0] === "工具");
   assert(quickToolsTable, "quick start should include the tools overview");
-  assert.strictEqual(quickToolsTable.rows.length, 9, "quick start should list all nine tools");
+  assert.strictEqual(quickToolsTable.rows.length, 10, "quick start should list all ten tools");
   assert(quickToolsTable.rows.some((row) => row[0] === "程序员生涯模拟"));
   assert(quickToolsTable.rows.some((row) => row[0] === "华子研发模拟"));
-  assert(serialized.includes("九个工具"), "help content should describe nine tools");
+  assert(serialized.includes("十个工具"), "help content should describe ten tools");
   assert(serialized.includes("五类数据"), "help content should describe five data collections");
   assert(!serialized.includes("六个工具"), "retired six-tool wording should be removed");
   assert(!serialized.includes("酒店餐厅快评"), "retired quick ratings should not remain in help");
@@ -140,6 +142,16 @@ function testHelpContentSourceAndRoutes() {
     "/packages/tools/insights/",
     "images/user-guide/"
   ].forEach((fragment) => assert(!serialized.includes(fragment), `retired help content found: ${fragment}`));
+}
+
+function testScreenshotRedactorHelpContent() {
+  const section = HELP_SECTIONS.find((item) => item.id === "redactor");
+  assert(section, "screenshot redactor help chapter should exist");
+  assert.strictEqual(section.url, "/packages/tools/screenshot-redactor/index");
+  const serialized = JSON.stringify(section);
+  ["头像", "名称", "顶部标题", "马赛克", "模糊", "纯色", "原始像素尺寸", "不读取名称文字", "不会上传图片"].forEach((text) => {
+    assert(serialized.includes(text), `screenshot redactor help should cover ${text}`);
+  });
 }
 
 function testHuaweiSimulationHelpContent() {
@@ -245,6 +257,7 @@ testHelpSearchAndSections();
 testHelpContentSourceAndRoutes();
 testCareerHelpContent();
 testHuaweiSimulationHelpContent();
+testScreenshotRedactorHelpContent();
 testHelpNavigationAndExpansion();
 testHelpRegistrationAndHomeActions();
 console.log("offline toolbox help tests passed");

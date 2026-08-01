@@ -1,0 +1,7 @@
+{
+  "navigationBarTitleText": "截图打码",
+  "disableScroll": true,
+  "usingComponents": {
+    "ui-icon": "/components/ui-icon/index"
+  }
+}

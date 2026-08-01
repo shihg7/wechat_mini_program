@@ -17,6 +17,7 @@
         "date-calculator/index",
         "unit-converter/index",
         "qr-generator/index",
+        "screenshot-redactor/index",
         "wheel/index",
         "career/index",
         "career/play",

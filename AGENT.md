@@ -1,6 +1,6 @@
 # 日常工具箱协作开发指南
 
-本文是开发者和编程 Agent 进入仓库后的第一份操作说明。它记录当前 `1.10.0` 产品边界、代码结构、数据约束、验证流程，以及微信开发者工具官方 Skills 的学习和使用方式。
+本文是开发者和编程 Agent 进入仓库后的第一份操作说明。它记录当前 `1.11.0` 产品边界、代码结构、数据约束、验证流程，以及微信开发者工具官方 Skills 的学习和使用方式。
 
 如实现或工作流发生变化，请同步更新本文和 `README.md`。项目约定：每次代码变更都要检查并更新 README。
 
@@ -32,23 +32,24 @@ https://github.com/shihg7/wechat_mini_program.git
 
 ## 2. 产品定位
 
-这是一个完全离线、纯前端的微信小程序日常工具箱。当前首页有九个平级工具：
+这是一个完全离线、纯前端的微信小程序日常工具箱。当前首页有十个平级工具：
 
 1. 日期计算
 2. 单位换算
 3. 二维码生成
-4. 决策转盘
-5. AA 分账
-6. 简版行程
-7. 通用清单
-8. 程序员生涯模拟
-9. 华子研发模拟
+4. 截图打码
+5. 决策转盘
+6. AA 分账
+7. 简版行程
+8. 通用清单
+9. 程序员生涯模拟
+10. 华子研发模拟
 
 当前不做：
 
 - 登录、账号体系、云同步或跨设备同步
 - 后端接口、云数据库、公共评论流
-- 地图、照片上传、公开分享页
+- 地图、照片云上传、公开分享页
 - 工具之间的关联 ID
 - 需要联网更新的数据，例如实时汇率
 
@@ -59,7 +60,7 @@ https://github.com/shihg7/wechat_mini_program.git
 主包页面：
 
 ```text
-miniprogram/pages/index/       九工具首页
+miniprogram/pages/index/       十工具首页
 miniprogram/pages/ledger/      AA 账本
 miniprogram/pages/trip/        简版行程
 miniprogram/pages/checklist/   通用清单
@@ -71,6 +72,7 @@ miniprogram/pages/checklist/   通用清单
 miniprogram/packages/tools/date-calculator/
 miniprogram/packages/tools/unit-converter/
 miniprogram/packages/tools/qr-generator/
+miniprogram/packages/tools/screenshot-redactor/
 miniprogram/packages/tools/wheel/
 miniprogram/packages/tools/career/
 miniprogram/packages/tools/huawei-sim/
@@ -111,7 +113,7 @@ scripts/                                   Node 测试和静态检查
 
 临时工具：
 
-- 日期计算、单位换算、二维码输入只存在当前页面。
+- 日期计算、单位换算、二维码输入和截图打码图片只存在当前页面。
 - 退出页面后清空，不写缓存，不进入备份。
 
 必须保持的规则：
@@ -141,6 +143,15 @@ scripts/                                   Node 测试和静态检查
 - 使用固定版本的纯 JavaScript QR 库，保留许可证。
 - 输入上限按 UTF-8 字节计算。
 - 固定高对比黑白、M 级纠错和四模块留白，优先保证可扫。
+
+### 截图打码
+
+- 自动识别使用聊天布局和本地像素特征，不读取文字内容、不识别人脸身份，不接入网络 OCR。
+- 自动结果只是候选，界面必须明确要求用户检查；手工框选和涂抹始终可用。
+- 区域统一使用原图归一化坐标，预览缩放、移动和原图导出不得各自维护另一套坐标。
+- 保存必须保持方向校正后的原图宽高；无法创建原图 Canvas 时明确失败，不静默缩小。
+- 页面固定高度并使用内部画布手势，底部保存操作始终可见，手势不得带动整页滚动。
+- 图片、区域、撤销栈和临时输出在离开页面时清除，不新增 Store，不修改备份 v3。
 
 ### AA 分账
 
@@ -291,8 +302,9 @@ wechatide -c <clientName> check_wechatide_status \
 
 重点模拟流程：
 
-- 首页九个入口都能进入并返回。
+- 首页十个入口都能进入并返回。
 - 日期、换算、二维码各完成一次有效输入。
+- 截图打码选择一张聊天截图，检查自动候选，手工补充一处并保存到相册。
 - AA 创建成员、支出、部分结算和撤销，核对金额守恒。
 - 行程和清单完成新增、编辑、排序、删除。
 - 转盘完成点击旋转和手势拨动。

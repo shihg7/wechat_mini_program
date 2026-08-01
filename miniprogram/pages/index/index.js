@@ -21,6 +21,13 @@ const TOOLS = [
     url: "/packages/tools/qr-generator/index"
   },
   {
+    id: "screenshot-redactor",
+    label: "截图打码",
+    icon: "scan",
+    tone: "blue",
+    url: "/packages/tools/screenshot-redactor/index"
+  },
+  {
     id: "wheel",
     label: "决策转盘",
     icon: "wheel",

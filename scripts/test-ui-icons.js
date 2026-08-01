@@ -55,7 +55,7 @@ assert(referencedIcons.size >= 15, "core pages should use a meaningful semantic 
 referencedIcons.forEach(assertIcon);
 
 const homeScript = fs.readFileSync(path.join(miniprogramRoot, "pages/index/index.js"), "utf8");
-["receipt", "calendar", "clipboard", "wheel", "code", "shield", "book", "database"].forEach((iconName) => {
+["receipt", "calendar", "clipboard", "wheel", "code", "shield", "book", "database", "scan"].forEach((iconName) => {
   assert(homeScript.includes(`icon: "${iconName}"`), `home should declare the ${iconName} icon`);
   assertIcon(iconName);
 });
@@ -65,6 +65,7 @@ const pageExpectations = {
   "pages/checklist/index.wxml": ["clipboard", "edit", "more"],
   "pages/ledger/index/index.wxml": ["receipt", "users", "check"],
   "packages/tools/data/index.wxml": ["shield", "download", "upload", "trash"],
+  "packages/tools/screenshot-redactor/index.wxml": ["scan", "image", "move", "square", "edit", "download"],
   "packages/tools/wheel/index.wxml": ["wheel", "sliders", "refresh"],
   "packages/tools/help/index.wxml": ["search", "alert", "shield"],
   "packages/tools/career/index.wxml": ["play"],

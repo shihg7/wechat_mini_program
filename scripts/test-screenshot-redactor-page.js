@@ -102,6 +102,51 @@ async function testEditingAndHistory() {
   assert.strictEqual(page.regions.length, 1, "deleting one region should be undoable");
 }
 
+function testGlobalAndSelectedEffectControls() {
+  const page = loadPage({});
+  page.regions = [mask("first"), mask("second")];
+  page.regions[1].effect.strength = 16;
+  page.renderPreview = () => {};
+  page.syncEditorState();
+
+  page.selectEffect({ currentTarget: { dataset: { effect: "blur" } } });
+  assert(page.regions.every((region) => region.effect.type === "blur"), "no selection should apply the effect to every region");
+  page.selectSolidColor({ currentTarget: { dataset: { color: "#ffffff" } } });
+  assert(page.regions.every((region) => region.effect.color === "#ffffff"), "no selection should apply the color to every region");
+
+  const undoCount = page.undoStack.length;
+  page.previewStrength({ detail: { value: 28 } });
+  assert.strictEqual(page.data.strength, 28);
+  assert.strictEqual(page.strengthPreview, 28, "dragging should expose a live preview value");
+  assert.deepStrictEqual(page.regions.map((region) => region.effect.strength), [12, 16], "live preview should not create partial history states");
+  page.changeStrength({ detail: { value: 28 } });
+  assert.deepStrictEqual(page.regions.map((region) => region.effect.strength), [28, 28], "releasing the slider should update every region");
+  assert.strictEqual(page.undoStack.length, undoCount + 1, "one slider drag should create one undo step");
+  assert.strictEqual(page.strengthPreview, null);
+  page.undo();
+  assert.deepStrictEqual(page.regions.map((region) => region.effect.strength), [12, 16]);
+
+  page.data.selectedId = "second";
+  page.selectEffect({ currentTarget: { dataset: { effect: "solid" } } });
+  assert.strictEqual(page.regions[0].effect.type, "blur", "selected edits must leave other regions unchanged");
+  assert.strictEqual(page.regions[1].effect.type, "solid");
+  page.changeStrength({ detail: { value: 2 } });
+  assert.strictEqual(page.regions[0].effect.strength, 12);
+  assert.strictEqual(page.regions[1].effect.strength, 8, "selected strength must respect the privacy minimum");
+}
+
+function testStrengthLivePreviewRendering() {
+  const page = loadPage({});
+  const scratch = makeCanvas();
+  page.scratchCanvas = scratch.canvas;
+  page.sourceImage = {};
+  page.imageSize = { width: 100, height: 100 };
+  page.data.selectedId = "";
+  page.strengthPreview = 30;
+  page.drawRegionEffect(makeContext(), mask(), { scale: 1, offsetX: 0, offsetY: 0 });
+  assert.strictEqual(scratch.canvas.width, 1, "live strength should immediately increase visible mosaic grain size");
+}
+
 async function testManualFrameGesture() {
   const page = loadPage({});
   page.sourceImage = {};
@@ -319,6 +364,8 @@ function testLayoutGuards() {
   assert(wxml.includes("图片不会上传"), "privacy promise should be visible before choosing an image");
   assert(wxml.includes('bindtap="deleteSelectedRegion"'), "a single mistaken mask should be removable");
   assert(wxml.includes('min="8"'), "redaction strength should enforce a privacy-safe minimum");
+  assert(wxml.includes('bindchanging="previewStrength"'), "slider dragging should update the preview continuously");
+  assert(wxml.includes("selectedId ? '所选' : '全部'"), "effect controls should state whether they target one mask or all masks");
   assert(wxml.includes("仅标记顶部标题"), "low-confidence recognition should be stated honestly");
   assert(!wxss.includes("text-overflow: ellipsis"), "editor text must not be truncated");
   assert(!fs.readFileSync(modulePath, "utf8").includes("StorageSync"), "temporary screenshot state must not use storage");
@@ -328,6 +375,8 @@ function testLayoutGuards() {
 
 Promise.resolve()
   .then(testEditingAndHistory)
+  .then(testGlobalAndSelectedEffectControls)
+  .then(testStrengthLivePreviewRendering)
   .then(testManualFrameGesture)
   .then(testOriginalSizeExport)
   .then(testSaveGuardAndPermissionFailure)

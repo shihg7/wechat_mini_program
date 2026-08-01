@@ -41,6 +41,10 @@ function isPermissionDenied(error) {
   return message.includes("auth deny") || message.includes("authorize:fail") || message.includes("permission denied");
 }
 
+function normalizeStrength(value) {
+  return Math.max(redactor.MIN_REDACTION_STRENGTH, Math.min(30, Number(value) || 12));
+}
+
 Page({
   data: {
     canRedo: false,
@@ -65,6 +69,7 @@ Page({
     this.regions = [];
     this.undoStack = [];
     this.redoStack = [];
+    this.strengthPreview = null;
     this.transform = null;
     this.imageSize = null;
     this.queryCanvas("#analysisCanvas", "analysis").catch(() => {});
@@ -196,6 +201,7 @@ Page({
           this.regions = [];
           this.undoStack = [];
           this.redoStack = [];
+          this.strengthPreview = null;
           this.gesture = null;
           this.draftRect = null;
           await this.runRecognition();
@@ -296,23 +302,24 @@ Page({
   selectEffect(event) {
     const effectType = event.currentTarget.dataset.effect;
     if (!EFFECTS.includes(effectType)) return;
-    const selected = this.getSelectedRegion();
-    if (selected && selected.effect.type !== effectType) {
-      this.pushUndo();
-      selected.effect = { ...selected.effect, type: effectType };
-    }
+    this.strengthPreview = null;
+    this.updateTargetEffects({ type: effectType });
     this.setData({ effectType });
     this.syncEditorState();
     this.renderPreview();
   },
 
+  previewStrength(event) {
+    const strength = normalizeStrength(event.detail.value);
+    this.strengthPreview = strength;
+    this.setData({ strength });
+    this.renderPreview();
+  },
+
   changeStrength(event) {
-    const strength = Math.max(redactor.MIN_REDACTION_STRENGTH, Math.min(30, Number(event.detail.value) || 12));
-    const selected = this.getSelectedRegion();
-    if (selected && selected.effect.strength !== strength) {
-      this.pushUndo();
-      selected.effect.strength = strength;
-    }
+    const strength = normalizeStrength(event.detail.value);
+    this.strengthPreview = null;
+    this.updateTargetEffects({ strength });
     this.setData({ strength });
     this.syncEditorState();
     this.renderPreview();
@@ -321,11 +328,8 @@ Page({
   selectSolidColor(event) {
     const solidColor = String(event.currentTarget.dataset.color || "").toLowerCase();
     if (!SOLID_COLORS.includes(solidColor)) return;
-    const selected = this.getSelectedRegion();
-    if (selected && selected.effect.color !== solidColor) {
-      this.pushUndo();
-      selected.effect.color = solidColor;
-    }
+    this.strengthPreview = null;
+    this.updateTargetEffects({ color: solidColor });
     this.setData({ solidColor });
     this.syncEditorState();
     this.renderPreview();
@@ -333,6 +337,24 @@ Page({
 
   getSelectedRegion() {
     return this.regions.find((region) => region.id === this.data.selectedId) || null;
+  },
+
+  getEffectTargets() {
+    const selected = this.getSelectedRegion();
+    return selected ? [selected] : this.regions;
+  },
+
+  updateTargetEffects(patch) {
+    const keys = Object.keys(patch);
+    const changed = this.getEffectTargets().filter((region) => (
+      keys.some((key) => region.effect[key] !== patch[key])
+    ));
+    if (!changed.length) return false;
+    this.pushUndo();
+    changed.forEach((region) => {
+      region.effect = { ...region.effect, ...patch };
+    });
+    return true;
   },
 
   toggleSelectedRegion() {
@@ -704,9 +726,12 @@ Page({
       return;
     }
     if (!this.scratchCanvas) return;
+    const previewsStrength = typeof this.strengthPreview === "number"
+      && (!this.data.selectedId || region.id === this.data.selectedId);
+    const strength = previewsStrength ? this.strengthPreview : region.effect.strength;
     const divisor = region.effect.type === "mosaic"
-      ? region.effect.strength
-      : Math.max(redactor.MIN_REDACTION_STRENGTH, region.effect.strength * 1.6);
+      ? strength
+      : Math.max(redactor.MIN_REDACTION_STRENGTH, strength * 1.6);
     const width = Math.max(1, Math.min(320, Math.round(source.width / divisor)));
     const height = Math.max(1, Math.min(320, Math.round(source.height / divisor)));
     this.scratchCanvas.width = width;
@@ -870,6 +895,7 @@ Page({
     this.regions = [];
     this.undoStack = [];
     this.redoStack = [];
+    this.strengthPreview = null;
     this.gesture = null;
     this.draftRect = null;
   }

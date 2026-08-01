@@ -96,7 +96,7 @@
       </view>
 
       <view class="control-row">
-        <view class="control-label">效果</view>
+        <view class="control-label">{{selectedId ? '所选' : '全部'}}</view>
         <view class="segmented effect-segmented">
           <view class="segment {{effectType === 'mosaic' ? 'segment-active' : ''}}" data-effect="mosaic" bindtap="selectEffect">马赛克</view>
           <view class="segment {{effectType === 'blur' ? 'segment-active' : ''}}" data-effect="blur" bindtap="selectEffect">模糊</view>
@@ -107,7 +107,7 @@
       <view class="detail-control">
         <block wx:if="{{effectType !== 'solid'}}">
           <text class="detail-label">{{effectType === 'mosaic' ? '颗粒' : '强度'}}</text>
-          <slider class="strength-slider" min="8" max="30" step="2" value="{{strength}}" activeColor="#176b68" backgroundColor="#d9e0e8" block-size="18" bindchange="changeStrength" />
+          <slider class="strength-slider" min="8" max="30" step="2" value="{{strength}}" activeColor="#176b68" backgroundColor="#d9e0e8" block-size="18" bindchanging="previewStrength" bindchange="changeStrength" aria-label="{{selectedId ? '调整所选区域强度' : '调整全部区域强度'}}" />
           <text class="strength-value">{{strength}}</text>
         </block>
         <block wx:else>
